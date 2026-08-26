@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "source": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/raw-video/grok-build-local.mp4",
+  "source_size": {
+    "width": 544,
+    "height": 544
+  },
+  "detected_layout": {
+    "columns": 3,
+    "rows": 3,
+    "count": 9,
+    "confidence": 0.99
+  },
+  "output_fps": 6,
+  "frames_per_animation": 36,
+  "cells": [
+    {
+      "id": "01",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.636977,
+      "alpha_coverage_max": 0.659809,
+      "border_coverage_max": 0.048343,
+      "loop_difference": 0.073736,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "02",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.628613,
+      "alpha_coverage_max": 0.639022,
+      "border_coverage_max": 0.059392,
+      "loop_difference": 0.07983,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "03",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.537976,
+      "alpha_coverage_max": 0.581871,
+      "border_coverage_max": 0.030303,
+      "loop_difference": 0.051672,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "04",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.542077,
+      "alpha_coverage_max": 0.655383,
+      "border_coverage_max": 0.030387,
+      "loop_difference": 0.077038,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "05",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.553402,
+      "alpha_coverage_max": 0.584262,
+      "border_coverage_max": 0.031768,
+      "loop_difference": 0.104709,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "06",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.560561,
+      "alpha_coverage_max": 0.63627,
+      "border_coverage_max": 0.0427,
+      "loop_difference": 0.045991,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "07",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.560257,
+      "alpha_coverage_max": 0.639427,
+      "border_coverage_max": 0.011019,
+      "loop_difference": 0.072426,
+      "warnings": []
+    },
+    {
+      "id": "08",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.55455,
+      "alpha_coverage_max": 0.593983,
+      "border_coverage_max": 0.016529,
+      "loop_difference": 0.182186,
+      "warnings": [
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "09",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.5765,
+      "alpha_coverage_max": 0.60992,
+      "border_coverage_max": 0.019231,
+      "loop_difference": 0.101749,
+      "warnings": []
+    }
+  ],
+  "warnings": [
+    "01:foreground-touches-cell-boundary",
+    "02:foreground-touches-cell-boundary",
+    "03:foreground-touches-cell-boundary",
+    "04:foreground-touches-cell-boundary",
+    "05:foreground-touches-cell-boundary",
+    "06:foreground-touches-cell-boundary",
+    "08:loop-end-differs-from-start"
+  ],
+  "outputs": [
+    "01.webp",
+    "01.gif",
+    "01.png",
+    "02.webp",
+    "02.gif",
+    "02.png",
+    "03.webp",
+    "03.gif",
+    "03.png",
+    "04.webp",
+    "04.gif",
+    "04.png",
+    "05.webp",
+    "05.gif",
+    "05.png",
+    "06.webp",
+    "06.gif",
+    "06.png",
+    "07.webp",
+    "07.gif",
+    "07.png",
+    "08.webp",
+    "08.gif",
+    "08.png",
+    "09.webp",
+    "09.gif",
+    "09.png",
+    "layout.json",
+    "processing.json",
+    "sticker-pack.zip"
+  ]
+}

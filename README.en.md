@@ -12,6 +12,45 @@ After install, use it as a conversation: upload an image → choose a style → 
 $motion-sticker-pack
 ```
 
+## Example gallery
+
+> These are real outputs from this repository. GIFs loop automatically; click any image to open the original file. Each case shows 3 selected reactions, while the linked folder contains the complete GIF, WebP, and PNG set.
+
+<p align="center"><strong>🐈‍⬛ Black cat · 3D toy sticker</strong> · <a href="examples/black-cat/">View the complete 9-cell case →</a></p>
+<p align="center">
+  <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="Black cat animated sticker: happy"></a>
+  <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="Black cat animated sticker: heart"></a>
+  <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="Black cat animated sticker: crying"></a>
+</p>
+
+<p align="center"><strong>👶 Baby · Cute character</strong> · <a href="examples/child/">View the complete case →</a></p>
+<p align="center">
+  <a href="examples/child/01.gif"><img src="examples/child/01.gif" height="150" loading="lazy" alt="Baby animated sticker: pouty"></a>
+  <a href="examples/child/02.gif"><img src="examples/child/02.gif" height="150" loading="lazy" alt="Baby animated sticker: holding a heart"></a>
+  <a href="examples/child/03.gif"><img src="examples/child/03.gif" height="150" loading="lazy" alt="Baby animated sticker: happy"></a>
+</p>
+
+<p align="center"><strong>👩 Girl in gold · Realistic portrait</strong> · <a href="examples/gold-dress-girl/">View the complete 9-cell case →</a></p>
+<p align="center">
+  <a href="examples/gold-dress-girl/01-dup.gif"><img src="examples/gold-dress-girl/01-dup.gif" height="150" loading="lazy" alt="Girl in gold animated sticker: waving"></a>
+  <a href="examples/gold-dress-girl/02-dup.gif"><img src="examples/gold-dress-girl/02-dup.gif" height="150" loading="lazy" alt="Girl in gold animated sticker: heart gesture"></a>
+  <a href="examples/gold-dress-girl/03-dup.gif"><img src="examples/gold-dress-girl/03-dup.gif" height="150" loading="lazy" alt="Girl in gold animated sticker: sad"></a>
+</p>
+
+<p align="center"><strong>🧔 Musk · 3D character reactions</strong> · <a href="examples/musk-3d/">View the complete 9-cell case →</a></p>
+<p align="center">
+  <a href="examples/musk-3d/01.gif"><img src="examples/musk-3d/01.gif" height="150" loading="lazy" alt="Musk animated sticker: arms open"></a>
+  <a href="examples/musk-3d/02.gif"><img src="examples/musk-3d/02.gif" height="150" loading="lazy" alt="Musk animated sticker: surprised"></a>
+  <a href="examples/musk-3d/03.gif"><img src="examples/musk-3d/03.gif" height="150" loading="lazy" alt="Musk animated sticker: angry"></a>
+</p>
+
+<p align="center"><strong>🇺🇸 Trump · Comic character reactions</strong> · <a href="examples/trump/">View the complete 9-cell case →</a></p>
+<p align="center">
+  <a href="examples/trump/01.gif"><img src="examples/trump/01.gif" height="150" loading="lazy" alt="Trump animated sticker: thumbs up"></a>
+  <a href="examples/trump/02.gif"><img src="examples/trump/02.gif" height="150" loading="lazy" alt="Trump animated sticker: surprised"></a>
+  <a href="examples/trump/03.gif"><img src="examples/trump/03.gif" height="150" loading="lazy" alt="Trump animated sticker: angry"></a>
+</p>
+
 ## Why Codex
 
 A sticker pack needs **real transparency**, not a checkerboard preview and not aggressive post-hoc cutout.
@@ -50,6 +89,46 @@ On Windows, add `--copy`. Update:
 npx skills update motion-sticker-pack -g -y
 ```
 
+After installing for Codex, the Skill lives at `~/.codex/skills/motion-sticker-pack`. For local development you can symlink a clone:
+
+```bash
+git clone https://github.com/kobingogo/motion-sticker-pack.git
+ln -s "$PWD/motion-sticker-pack" ~/.codex/skills/motion-sticker-pack
+```
+
+## Getting started
+
+After installing the Skill above, prepare the local media dependencies and start the conversation:
+
+### 1. Install local media dependencies
+
+A full pack needs Python 3.10+, Pillow, NumPy, FFmpeg, and FFprobe:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+macOS: `brew install ffmpeg`. Ubuntu/Debian: `sudo apt update && sudo apt install ffmpeg`.
+
+```bash
+python3 -c "import PIL, numpy; print(PIL.__version__, numpy.__version__)"
+ffmpeg -version && ffprobe -version
+```
+
+Verified with Python 3.10.12, Pillow 12.3.0, NumPy 2.2.6, and FFmpeg 8.1.2.
+
+To use the bundled xAI / Kling / Seedance / Wan / FAL executors, also run `npm ci` at the skill root (Node 22+). Skip Node if you only probe local agent tools or use fully local animation.
+
+### 2. Start the conversation
+
+```text
+$motion-sticker-pack
+```
+
+In Codex, run `$motion-sticker-pack`, upload a character reference, pick a style, and type Emoji or a short reaction list. For the static sheet, use **GPT-image-2** and ask for a transparent background / real alpha.
+
+If video goes to Grok Build, read [Privacy Opt in and ZDR](#grok-build-privacy-opt-in-and-zdr) first. Without Opt in, local `image_to_video` often fails with a ZDR/privacy error. That is not a prompt bug.
+
 ## Status
 
 The Codex path is usable: GPT-image-2 transparent sheets, grid detection, hash-bound static approval, whole-sheet animation, splitting, Animated WebP, looping GIF, first-frame PNG, and ZIP. If the Codex session has no image-to-video tool, video can fall through to a configured external provider, Grok Build / xAI Videos, or local `transform-local`:
@@ -70,62 +149,12 @@ Stable reproduction on another agent depends on the work-directory and approval 
 - Static generation must use a **host tool that actually accepts the reference image**. Do not assume `image_edit` or `image_gen` exists.
 - A generated sheet must be approved by the user. A user-supplied sheet uses `--source-type user-supplied` and must not be approved a second time.
 - Every animation path (host native video, external provider, key poses, local transform) must run `manage_job_state.py verify` first.
-- Keep every generated artifact for one character under `works/<character-name>/`. Do not write new job files to the skill root or a shared `work/` folder.
+- Keep every generated artifact for one character under `works/<character-slug>/`. Do not write new job files to the skill root or a shared `work/` folder.
 - `probe` → `route` → `execute` must share the same `video-providers.json` and `video-task.json` inside that character directory.
 - Independent stickers use `scripts/process_independent_stickers.py`. Do not invent a fake `1×1 layout.json` per file.
 - `native-video` is the work mode; the provider driver name is `native-tool`. They are not two different routes.
 
 Threat model, fixed issues, and remaining boundaries: [`docs/adversarial-audit.md`](docs/adversarial-audit.md).
-
-## 30-second start
-
-### 1. Install the Skill
-
-Install in Codex (recommended):
-
-```bash
-npx skills add kobingogo/motion-sticker-pack -g -y -a codex
-```
-
-The skill lands in `~/.codex/skills/motion-sticker-pack`. Source: [github.com/kobingogo/motion-sticker-pack](https://github.com/kobingogo/motion-sticker-pack).
-
-For local development you can still symlink a clone:
-
-```bash
-git clone https://github.com/kobingogo/motion-sticker-pack.git
-ln -s "$PWD/motion-sticker-pack" ~/.codex/skills/motion-sticker-pack
-```
-
-Codex uses `$motion-sticker-pack`. Other hosts can install it for post-processing; generate the transparent static sheet on Codex + GPT-image-2.
-
-### 2. Install local media dependencies
-
-A full pack needs Python 3.10+, Pillow, NumPy, FFmpeg, and FFprobe:
-
-```bash
-python3 -m pip install -r requirements.txt
-```
-
-macOS: `brew install ffmpeg`. Ubuntu/Debian: `sudo apt update && sudo apt install ffmpeg`.
-
-```bash
-python3 -c "import PIL, numpy; print(PIL.__version__, numpy.__version__)"
-ffmpeg -version && ffprobe -version
-```
-
-Verified with Python 3.10.12, Pillow 12.3.0, NumPy 2.2.6, and FFmpeg 8.1.2.
-
-To use the bundled xAI / Kling / Seedance / Wan / FAL executors, also run `npm ci` at the skill root (Node 22+). Skip Node if you only probe local agent tools or use fully local animation.
-
-### 3. Start the conversation
-
-```text
-$motion-sticker-pack
-```
-
-In Codex, run `$motion-sticker-pack`, upload a character reference, pick a style, and type Emoji or a short reaction list. For the static sheet, use **GPT-image-2** and ask for a transparent background / real alpha.
-
-If video goes to Grok Build, read [Privacy Opt in and ZDR](#grok-build-privacy-opt-in-and-zdr) first. Without Opt in, local `image_to_video` often fails with a ZDR/privacy error. That is not a prompt bug.
 
 ## Conversation flow
 
@@ -368,7 +397,6 @@ Enable the providers you need. Store environment-variable **names** only, never 
 
 ```bash
 export XAI_API_KEY='your-key'
-npm ci
 ```
 
 The bundled AI SDK routes have executable defaults below. The model IDs match the SDK versions pinned in `package-lock.json`; re-check the model list for that region after dependency upgrades or region changes. The API key, endpoint, and model must belong to the same region.
@@ -498,7 +526,7 @@ If the sheet came from GPT-image-2 with real alpha, keep that source alpha; do n
 
 ## For maintainers and contributors
 
-End users should not need these commands. When debugging providers or reusing scripts, treat `works/<character-name>/` as that character's only working directory. `probe` / `route` / `execute` must use the same config and task. Do not keep stacking files in a shared `work/` folder.
+End users should not need these commands. When debugging providers or reusing scripts, treat `works/<character-slug>/` as that character's only working directory. `probe` / `route` / `execute` must use the same config and task. Do not keep stacking files in a shared `work/` folder.
 
 ### Layout
 

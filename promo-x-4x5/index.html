@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, height=1350">
+    <title>Motion Sticker Pack — X Promo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "PingFang SC";
+        src: local("PingFang SC");
+      }
+
+      @font-face {
+        font-family: "Microsoft YaHei";
+        src: local("Microsoft YaHei");
+      }
+
+      :root {
+        --paper: #f8f5ee;
+        --ink: #18252f;
+        --orange: #d67433;
+        --blue: #54b8ff;
+        --purple: #a77bff;
+        --yellow: #ffd35c;
+        --line: #d8d1c4;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 1080px;
+        height: 1350px;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      #root {
+        width: 1080px;
+        height: 1350px;
+        overflow: hidden;
+        position: relative;
+        background: var(--paper);
+      }
+
+      #gallery-host {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+      }
+
+      .canvas {
+        width: 100%;
+        height: 100%;
+        padding: 64px 64px 54px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .dot-field {
+        position: absolute;
+        inset: 0;
+        opacity: 0.34;
+        background-image: radial-gradient(#cfc5b5 1.5px, transparent 1.5px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(to bottom, black, transparent 88%);
+        pointer-events: none;
+      }
+
+      .scribble {
+        position: absolute;
+        border: 4px solid var(--yellow);
+        border-radius: 50%;
+        transform: rotate(-15deg);
+        pointer-events: none;
+      }
+
+      .scribble.one {
+        width: 110px;
+        height: 52px;
+        top: 118px;
+        right: -28px;
+      }
+
+      .scribble.two {
+        width: 84px;
+        height: 84px;
+        bottom: 190px;
+        left: -35px;
+        border-color: var(--purple);
+      }
+
+      .topbar,
+      .hero,
+      .showcase,
+      .flow-heading,
+      .flow,
+      .promise,
+      .footer {
+        position: relative;
+        z-index: 1;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: white;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+      }
+
+      .eyebrow-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--orange);
+      }
+
+      .duration {
+        color: #766e62;
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .hero {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .hero h1 {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-width: 900px;
+        font-size: 74px;
+        line-height: 1.04;
+        letter-spacing: -0.055em;
+        font-weight: 900;
+      }
+
+      .hero h1 .accent {
+        color: var(--orange);
+      }
+
+      .hero-subtitle {
+        max-width: 720px;
+        color: #615b52;
+        font-size: 25px;
+        line-height: 1.42;
+        font-weight: 600;
+      }
+
+      .showcase {
+        display: grid;
+        grid-template-columns: 0.82fr 1.18fr;
+        align-items: stretch;
+        gap: 22px;
+        min-height: 430px;
+      }
+
+      .showcase-card {
+        border: 3px solid var(--ink);
+        border-radius: 28px;
+        background: white;
+        box-shadow: 0 10px 0 rgba(24, 37, 47, 0.11);
+      }
+
+      .input-card {
+        padding: 26px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: #fffdf8;
+      }
+
+      .card-kicker {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .card-kicker .tag {
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: #e8f5ff;
+        color: #2076a4;
+        font-size: 15px;
+      }
+
+      .character-stage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 230px;
+        border-radius: 22px;
+        background: #eaf6ff;
+        overflow: hidden;
+      }
+
+      .mascot {
+        width: 165px;
+        height: 165px;
+        border: 5px solid var(--ink);
+        border-radius: 42% 58% 48% 52%;
+        position: relative;
+        background: var(--blue);
+        transform: rotate(-7deg);
+        box-shadow: 12px 14px 0 rgba(24, 37, 47, 0.16);
+      }
+
+      .mascot::before,
+      .mascot::after {
+        content: "";
+        position: absolute;
+        top: 56px;
+        width: 19px;
+        height: 25px;
+        border-radius: 50%;
+        background: var(--ink);
+      }
+
+      .mascot::before {
+        left: 43px;
+      }
+
+      .mascot::after {
+        right: 43px;
+      }
+
+      .mascot-mouth {
+        position: absolute;
+        left: 58px;
+        top: 94px;
+        width: 48px;
+        height: 25px;
+        border-bottom: 5px solid var(--ink);
+        border-radius: 0 0 50% 50%;
+      }
+
+      .file-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #6d665c;
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .file-icon {
+        width: 34px;
+        height: 40px;
+        border: 2px solid var(--ink);
+        border-radius: 7px;
+        background: #d9f0ff;
+        position: relative;
+      }
+
+      .file-icon::after {
+        content: "";
+        position: absolute;
+        width: 13px;
+        height: 13px;
+        right: -2px;
+        top: -2px;
+        background: var(--paper);
+        border-left: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .output-card {
+        padding: 26px;
+        background: #fffaf0;
+      }
+
+      .output-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .output-title strong {
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .output-title span {
+        color: #7a7166;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .sticker-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .sticker-tile {
+        min-height: 104px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 2px solid var(--ink);
+        border-radius: 18px;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 800;
+        transform-origin: center;
+      }
+
+      .sticker-tile:nth-child(1),
+      .sticker-tile:nth-child(5),
+      .sticker-tile:nth-child(9) {
+        background: #ffe4d1;
+      }
+
+      .sticker-tile:nth-child(2),
+      .sticker-tile:nth-child(6),
+      .sticker-tile:nth-child(7) {
+        background: #e6f5ff;
+      }
+
+      .sticker-tile:nth-child(3),
+      .sticker-tile:nth-child(4),
+      .sticker-tile:nth-child(8) {
+        background: #eee7ff;
+      }
+
+      .sticker-face {
+        font-size: 32px;
+        line-height: 1;
+      }
+
+      .flow-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+
+      .flow-heading h2 {
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+
+      .flow-heading p {
+        color: #756d63;
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .flow {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .flow-line {
+        position: absolute;
+        left: 32px;
+        right: 32px;
+        top: 36px;
+        height: 5px;
+        border-radius: 5px;
+        background: var(--line);
+        transform-origin: left center;
+      }
+
+      .flow-card {
+        flex: 1;
+        min-width: 0;
+        min-height: 92px;
+        padding: 15px 10px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 2px solid var(--ink);
+        border-radius: 18px;
+        background: white;
+        position: relative;
+        z-index: 1;
+        text-align: center;
+      }
+
+      .step-dot {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        border: 2px solid var(--ink);
+        border-radius: 50%;
+        background: var(--paper);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .step-label {
+        font-size: 16px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .promise {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 22px;
+        padding: 18px 22px;
+        border: 2px solid var(--ink);
+        border-radius: 20px;
+        background: var(--ink);
+        color: white;
+      }
+
+      .promise-text {
+        font-size: 20px;
+        line-height: 1.25;
+        font-weight: 800;
+      }
+
+      .format-chips {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      .format-chip {
+        padding: 8px 11px;
+        border-radius: 999px;
+        color: var(--ink);
+        background: white;
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .format-chip:nth-child(2) {
+        background: var(--yellow);
+      }
+
+      .format-chip:nth-child(3) {
+        background: var(--blue);
+      }
+
+      .format-chip:nth-child(4) {
+        background: var(--orange);
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: auto;
+      }
+
+      .footer-cta {
+        font-size: 27px;
+        font-weight: 900;
+        letter-spacing: -0.025em;
+      }
+
+      .footer-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #70685d;
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .mark-block {
+        width: 22px;
+        height: 22px;
+        border: 3px solid var(--ink);
+        border-radius: 7px;
+        background: var(--orange);
+        transform: rotate(8deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-ow3m" id="root" data-composition-id="main" data-start="0" data-duration="27" data-track-index="0" data-width="1080" data-height="1350">
+      <main data-hf-id="hf-7e8s" id="intro-canvas" class="canvas clip" data-start="0" data-duration="12" data-track-index="1">
+        <div data-hf-id="hf-yjub" class="dot-field" data-layout-ignore=""></div>
+        <div data-hf-id="hf-aoup" class="scribble one" data-layout-ignore=""></div>
+        <div data-hf-id="hf-gcev" class="scribble two" data-layout-ignore=""></div>
+
+        <header data-hf-id="hf-6f4s" class="topbar">
+          <div data-hf-id="hf-xvvp" class="eyebrow"><span data-hf-id="hf-pbp4" class="eyebrow-dot"></span>X 短片 · 动态表情包工作流</div>
+          <div data-hf-id="hf-bal4" class="duration">12s / first draft</div>
+        </header>
+
+        <section data-hf-id="hf-219o" class="hero">
+          <h1 data-hf-id="hf-m3fm">
+            <span data-hf-id="hf-6l85">一张角色图</span>
+            <span data-hf-id="hf-ya54" class="accent">变成一整套动态表情</span>
+          </h1>
+          <p data-hf-id="hf-seh8" class="hero-subtitle">从角色参考图，到可用的 WebP、GIF、PNG 和 ZIP。</p>
+        </section>
+
+        <section data-hf-id="hf-csgb" class="showcase">
+          <article data-hf-id="hf-4d0k" class="showcase-card input-card">
+            <div data-hf-id="hf-xj28" class="card-kicker"><span data-hf-id="hf-538p">输入</span><span data-hf-id="hf-25lr" class="tag">character.png</span></div>
+            <div data-hf-id="hf-s6oo" class="character-stage">
+              <div data-hf-id="hf-lkax" class="mascot"><span data-hf-id="hf-gdv6" class="mascot-mouth"></span></div>
+            </div>
+            <div data-hf-id="hf-rr6d" class="file-row"><span data-hf-id="hf-dwvj" class="file-icon"></span><span data-hf-id="hf-jg9k">一张角色参考图</span></div>
+          </article>
+
+          <article data-hf-id="hf-5kuj" class="showcase-card output-card">
+            <div data-hf-id="hf-7yne" class="output-title"><strong data-hf-id="hf-z02v">输出预览</strong><span data-hf-id="hf-i9ae">3 × 3 sticker sheet</span></div>
+            <div data-hf-id="hf-mq5u" class="sticker-grid">
+              <div data-hf-id="hf-svu6" class="sticker-tile"><span data-hf-id="hf-tkr2" class="sticker-face">✦</span><span data-hf-id="hf-0akw">开心</span></div>
+              <div data-hf-id="hf-z5te" class="sticker-tile"><span data-hf-id="hf-y9vf" class="sticker-face">♥</span><span data-hf-id="hf-7um7">喜欢</span></div>
+              <div data-hf-id="hf-zk4f" class="sticker-tile"><span data-hf-id="hf-tcsn" class="sticker-face">!</span><span data-hf-id="hf-bsud">惊讶</span></div>
+              <div data-hf-id="hf-zyfg" class="sticker-tile"><span data-hf-id="hf-xr69" class="sticker-face">↗</span><span data-hf-id="hf-g23i">加油</span></div>
+              <div data-hf-id="hf-0cqh" class="sticker-tile"><span data-hf-id="hf-2w13" class="sticker-face">☁</span><span data-hf-id="hf-3jih">困困</span></div>
+              <div data-hf-id="hf-0r1i" class="sticker-tile"><span data-hf-id="hf-wonb" class="sticker-face">♡</span><span data-hf-id="hf-n5dt">谢谢</span></div>
+              <div data-hf-id="hf-15cj" class="sticker-tile"><span data-hf-id="hf-anx9" class="sticker-face">✓</span><span data-hf-id="hf-unc2">点赞</span></div>
+              <div data-hf-id="hf-1jnk" class="sticker-tile"><span data-hf-id="hf-vscu" class="sticker-face">…</span><span data-hf-id="hf-szad">委屈</span></div>
+              <div data-hf-id="hf-vl25" class="sticker-tile"><span data-hf-id="hf-2psp" class="sticker-face">✿</span><span data-hf-id="hf-qkzl">亲亲</span></div>
+            </div>
+          </article>
+        </section>
+
+        <section data-hf-id="hf-id3x" class="flow-heading">
+          <h2 data-hf-id="hf-zzbs">简单五步，完成一整包</h2>
+          <p data-hf-id="hf-csjo">先确认，再让它动起来</p>
+        </section>
+
+        <section data-hf-id="hf-5g5w" class="flow">
+          <div data-hf-id="hf-6phj" class="flow-line"></div>
+          <div data-hf-id="hf-9zdf" class="flow-card"><span data-hf-id="hf-ejt0" class="step-dot">1</span><span data-hf-id="hf-qyk8" class="step-label">上传</span></div>
+          <div data-hf-id="hf-wrlf" class="flow-card"><span data-hf-id="hf-dcvx" class="step-dot">2</span><span data-hf-id="hf-lnn7" class="step-label">选风格</span></div>
+          <div data-hf-id="hf-wdae" class="flow-card"><span data-hf-id="hf-dr6y" class="step-dot">3</span><span data-hf-id="hf-jn3g" class="step-label">先确认</span></div>
+          <div data-hf-id="hf-vyzd" class="flow-card"><span data-hf-id="hf-fqq3" class="step-dot">4</span><span data-hf-id="hf-jvlm" class="step-label">动起来</span></div>
+          <div data-hf-id="hf-vkoc" class="flow-card"><span data-hf-id="hf-g514" class="step-dot">5</span><span data-hf-id="hf-qw4w" class="step-label">导出</span></div>
+        </section>
+
+        <section data-hf-id="hf-wdc7" class="promise">
+          <p data-hf-id="hf-zzau" class="promise-text">不是一个预览视频，<br data-hf-id="hf-x5px">而是一包可以直接使用的表情。</p>
+          <div data-hf-id="hf-ojpv" class="format-chips">
+            <span data-hf-id="hf-aged" class="format-chip">WebP</span>
+            <span data-hf-id="hf-sp93" class="format-chip">GIF</span>
+            <span data-hf-id="hf-qi6q" class="format-chip">PNG</span>
+            <span data-hf-id="hf-vdam" class="format-chip">ZIP</span>
+          </div>
+        </section>
+
+        <footer data-hf-id="hf-vadb" class="footer">
+          <div data-hf-id="hf-dd0x" class="footer-cta">从你的角色图开始。</div>
+          <div data-hf-id="hf-8zex" class="footer-mark"><span data-hf-id="hf-fqp2" class="mark-block"></span>motion-sticker-pack</div>
+        </footer>
+      </main>
+
+      <div data-hf-id="hf-7enh" id="gallery-host" data-composition-id="character-gallery" data-composition-src="compositions/character-gallery.html" data-layout-allow-overlap="" data-layout-allow-occlusion="" data-start="12" data-duration="15" data-track-index="10" data-width="1080" data-height="1350"></div>
+
+      <script>
+        (() => {
+          const tl = gsap.timeline({ paused: true });
+          const tiles = gsap.utils.toArray(".sticker-tile");
+          const flowCards = gsap.utils.toArray(".flow-card");
+          const dots = gsap.utils.toArray(".step-dot");
+
+          tl.from(".dot-field", { opacity: 0, duration: 0.5, ease: "power2.out" }, 0.1);
+          tl.from(".eyebrow", { y: -24, opacity: 0, duration: 0.55, ease: "back.out(1.5)" }, 0.2);
+          tl.from(".duration", { x: 24, opacity: 0, duration: 0.45, ease: "power3.out" }, 0.35);
+          tl.from(".hero h1 span:first-child", { y: 34, opacity: 0, duration: 0.65, ease: "power4.out" }, 0.55);
+          tl.from(".hero h1 .accent", { x: -38, opacity: 0, duration: 0.7, ease: "expo.out" }, 0.78);
+          tl.from(".hero-subtitle", { y: 18, opacity: 0, duration: 0.5, ease: "power2.out" }, 1.15);
+
+          tl.from(".input-card", { x: -70, rotation: -3, opacity: 0, duration: 0.8, ease: "back.out(1.2)" }, 1.45);
+          tl.from(".output-card", { x: 70, rotation: 3, opacity: 0, duration: 0.8, ease: "power3.out" }, 1.58);
+          tl.from(tiles, { scale: 0.5, opacity: 0, duration: 0.45, stagger: 0.07, ease: "back.out(1.7)" }, 2.05);
+
+          tl.from(".flow-heading h2", { y: 22, opacity: 0, duration: 0.5, ease: "power3.out" }, 3.2);
+          tl.from(".flow-heading p", { y: 16, opacity: 0, duration: 0.45, ease: "power2.out" }, 3.38);
+          tl.from(".flow-line", { scaleX: 0, duration: 0.7, ease: "power2.out" }, 3.62);
+          tl.from(flowCards, { y: 28, opacity: 0, duration: 0.5, stagger: 0.12, ease: "back.out(1.3)" }, 3.7);
+
+          flowCards.forEach((card, index) => {
+            const start = 4.35 + index * 0.72;
+            tl.to(card, { backgroundColor: index === 3 ? "#ffe4d1" : "#ffffff", boxShadow: index === 3 ? "0 7px 0 rgba(214, 116, 51, 0.28)" : "0 0 0 rgba(0,0,0,0)", duration: 0.18, ease: "power1.out" }, start);
+            tl.to(dots[index], { backgroundColor: index === 3 ? "#d67433" : "#54b8ff", duration: 0.18, ease: "power1.out" }, start);
+          });
+
+          tl.from(".promise", { y: 24, opacity: 0, duration: 0.6, ease: "back.out(1.2)" }, 8.65);
+          tl.from(".promise-text", { x: -20, opacity: 0, duration: 0.5, ease: "power3.out" }, 8.9);
+          tl.from(".format-chip", { scale: 0.7, opacity: 0, duration: 0.38, stagger: 0.08, ease: "back.out(1.5)" }, 9.0);
+          tl.from(".footer-cta", { y: 18, opacity: 0, duration: 0.5, ease: "power3.out" }, 10.05);
+          tl.from(".footer-mark", { x: 18, opacity: 0, duration: 0.45, ease: "power2.out" }, 10.25);
+
+          window.__timelines = window.__timelines || {};
+          window.__timelines.main = tl;
+        })();
+      </script>
+    </div>
+  </body>
+</html>

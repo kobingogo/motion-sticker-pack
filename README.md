@@ -12,6 +12,45 @@
 $motion-sticker-pack
 ```
 
+## 案例集
+
+> 下面是仓库内的真实输出预览。GIF 会自动循环播放；点击图片可打开原文件。每组展示 3 个精选动作，完整案例目录同时保留 GIF、WebP 和 PNG 三种格式。
+
+<p align="center"><strong>🐈‍⬛ 黑猫 · 3D 玩具贴纸</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
+<p align="center">
+  <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="黑猫动态贴纸：开心"></a>
+  <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="黑猫动态贴纸：爱心"></a>
+  <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="黑猫动态贴纸：哭泣"></a>
+</p>
+
+<p align="center"><strong>👶 宝宝 · 萌系角色</strong> · <a href="examples/child/">查看完整案例 →</a></p>
+<p align="center">
+  <a href="examples/child/01.gif"><img src="examples/child/01.gif" height="150" loading="lazy" alt="宝宝动态贴纸：撒娇"></a>
+  <a href="examples/child/02.gif"><img src="examples/child/02.gif" height="150" loading="lazy" alt="宝宝动态贴纸：抱爱心"></a>
+  <a href="examples/child/03.gif"><img src="examples/child/03.gif" height="150" loading="lazy" alt="宝宝动态贴纸：开心"></a>
+</p>
+
+<p align="center"><strong>👩 金裙女孩 · 写实人像</strong> · <a href="examples/gold-dress-girl/">查看完整 9 格案例 →</a></p>
+<p align="center">
+  <a href="examples/gold-dress-girl/01-dup.gif"><img src="examples/gold-dress-girl/01-dup.gif" height="150" loading="lazy" alt="金裙女孩动态贴纸：挥手"></a>
+  <a href="examples/gold-dress-girl/02-dup.gif"><img src="examples/gold-dress-girl/02-dup.gif" height="150" loading="lazy" alt="金裙女孩动态贴纸：比心"></a>
+  <a href="examples/gold-dress-girl/03-dup.gif"><img src="examples/gold-dress-girl/03-dup.gif" height="150" loading="lazy" alt="金裙女孩动态贴纸：难过"></a>
+</p>
+
+<p align="center"><strong>🧔 Musk · 3D 人物表情</strong> · <a href="examples/musk-3d/">查看完整 9 格案例 →</a></p>
+<p align="center">
+  <a href="examples/musk-3d/01.gif"><img src="examples/musk-3d/01.gif" height="150" loading="lazy" alt="Musk 动态贴纸：张开双臂"></a>
+  <a href="examples/musk-3d/02.gif"><img src="examples/musk-3d/02.gif" height="150" loading="lazy" alt="Musk 动态贴纸：惊讶"></a>
+  <a href="examples/musk-3d/03.gif"><img src="examples/musk-3d/03.gif" height="150" loading="lazy" alt="Musk 动态贴纸：生气"></a>
+</p>
+
+<p align="center"><strong>🇺🇸 Trump · 漫画人物表情</strong> · <a href="examples/trump/">查看完整 9 格案例 →</a></p>
+<p align="center">
+  <a href="examples/trump/01.gif"><img src="examples/trump/01.gif" height="150" loading="lazy" alt="Trump 动态贴纸：点赞"></a>
+  <a href="examples/trump/02.gif"><img src="examples/trump/02.gif" height="150" loading="lazy" alt="Trump 动态贴纸：惊讶"></a>
+  <a href="examples/trump/03.gif"><img src="examples/trump/03.gif" height="150" loading="lazy" alt="Trump 动态贴纸：愤怒"></a>
+</p>
+
 ## 为什么推荐 Codex
 
 贴纸包要的是**真实透明**，不是棋盘格预览，也不是后期硬抠。
@@ -50,55 +89,18 @@ Windows 请加 `--copy`。更新：
 npx skills update motion-sticker-pack -g -y
 ```
 
-## 当前状态
-
-面向 Codex 的完整链路已经可用：GPT-image-2 出透明静图板、网格检测、哈希绑定的静态审批、整板动画、切图、Animated WebP、循环 GIF、首帧 PNG 和 ZIP。视频阶段若 Codex 会话没有图生视频，可以落到已配置的外部 Provider，或 Grok Build / xAI Videos / 本地 `transform-local`：
-
-```text
-Codex + GPT-image-2 生成透明静图板
-        ↓ 用户确认
-宿主或外部图生视频
-        ↓ 失败或不可用
-Grok Build / xAI Videos API
-        ↓ 失败或不可用
-本地 transform-local 备用动效
-```
-
-Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批合同，而不是某一次手工跑通。关键约定：
-
-- 从角色图生成静图时，优先用 Codex 里可调用的 **GPT-image-2**，并要求真实 alpha。其他模型不要假装已经出了透明底。
-- 静态生图必须使用**当前宿主里真正能接收参考图**的工具；不要假设一定存在 `image_edit` 或 `image_gen`。
-- 生成的静图必须先给用户确认。用户自己提供的现成图板用 `--source-type user-supplied`，不要再要求一次 approve。
-- 任何动画（宿主 native 视频、外部 Provider、关键姿态、本地 transform）之前都要 `manage_job_state.py verify`。
-- 每个角色的生成物都放在 `works/<角色名>/`，不要写到 skill 根目录或共用的 `work/`。
-- `probe` → `route` → `execute` 必须使用同一角色目录里的 `video-providers.json` 和 `video-task.json`。
-- 独立贴纸走 `scripts/process_independent_stickers.py`，不要为每张图伪造 `1×1 layout.json`。
-- `native-video` 是工作模式；配置里的 driver 名叫 `native-tool`。两者不是两条路。
-
-威胁模型、已修复问题和剩余边界见 [`docs/adversarial-audit.md`](docs/adversarial-audit.md)。
-
-## 30 秒开始使用
-
-### 1. 安装 Skill
-
-在 Codex 里安装（推荐）：
-
-```bash
-npx skills add kobingogo/motion-sticker-pack -g -y -a codex
-```
-
-Skill 会落到 `~/.codex/skills/motion-sticker-pack`。仓库：[github.com/kobingogo/motion-sticker-pack](https://github.com/kobingogo/motion-sticker-pack)。
-
-从源码开发时也可以自己链接：
+使用 Codex 安装后，Skill 位于 `~/.codex/skills/motion-sticker-pack`。从源码开发时也可以自己链接：
 
 ```bash
 git clone https://github.com/kobingogo/motion-sticker-pack.git
 ln -s "$PWD/motion-sticker-pack" ~/.codex/skills/motion-sticker-pack
 ```
 
-Codex 使用 `$motion-sticker-pack`。其他宿主可以安装后处理用，但透明静图请仍在 Codex + GPT-image-2 上生成。
+## 开始使用
 
-### 2. 安装本地媒体依赖
+完成上面的 Skill 安装后，再按下面步骤准备本地媒体依赖并开始对话。
+
+### 1. 安装本地媒体依赖
 
 完整交付需要 Python 3.10+、Pillow、NumPy、FFmpeg 和 FFprobe：
 
@@ -119,7 +121,7 @@ ffmpeg -version && ffprobe -version
 
 若要使用仓库内置的 xAI / Kling / Seedance / Wan / FAL 执行器，再在 Skill 根目录执行 `npm ci`（需要 Node 22+）。只探测本地 Agent 工具或只用本地动画时可以不装 Node 依赖。
 
-### 3. 开始对话
+### 2. 开始对话
 
 ```text
 $motion-sticker-pack
@@ -128,6 +130,33 @@ $motion-sticker-pack
 在 Codex 中调用 `$motion-sticker-pack`，上传角色参考图，按提示选择风格并输入 Emoji 或短描述。静图阶段应使用 **GPT-image-2**，并明确要求透明背景 / 真实 alpha。
 
 视频若交给 Grok Build，请先看 [隐私 Opt in](#grok-build-隐私opt-in-与-zdr)。未 Opt in 时本机 `image_to_video` 常会报 ZDR/隐私错误，这不是提示词问题。
+
+## 当前状态
+
+面向 Codex 的完整链路已经可用：GPT-image-2 出透明静图板、网格检测、哈希绑定的静态审批、整板动画、切图、Animated WebP、循环 GIF、首帧 PNG 和 ZIP。视频阶段若 Codex 会话没有图生视频，可以落到已配置的外部 Provider，或 Grok Build / xAI Videos / 本地 `transform-local`：
+
+```text
+Codex + GPT-image-2 生成透明静图板
+        ↓ 用户确认
+宿主或外部图生视频
+        ↓ 失败或不可用
+Grok Build / xAI Videos API
+        ↓ 失败或不可用
+本地 transform-local 备用动效
+```
+
+Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批合同，而不是某一次手工跑通。关键约定：
+
+- 从角色图生成静图时，优先用 Codex 里可调用的 **GPT-image-2**，并要求真实 alpha。其他模型不要假装已经出了透明底。
+- 静态生图必须使用**当前宿主里真正能接收参考图**的工具；不要假设一定存在 `image_edit` 或 `image_gen`。
+- 生成的静图必须先给用户确认。用户自己提供的现成图板用 `--source-type user-supplied`，不要再要求一次 approve。
+- 任何动画（宿主 native 视频、外部 Provider、关键姿态、本地 transform）之前都要 `manage_job_state.py verify`。
+- 每个角色的生成物都放在 `works/<character-slug>/`，不要写到 skill 根目录或共用的 `work/`。
+- `probe` → `route` → `execute` 必须使用同一角色目录里的 `video-providers.json` 和 `video-task.json`。
+- 独立贴纸走 `scripts/process_independent_stickers.py`，不要为每张图伪造 `1×1 layout.json`。
+- `native-video` 是工作模式；配置里的 driver 名叫 `native-tool`。两者不是两条路。
+
+威胁模型、已修复问题和剩余边界见 [`docs/adversarial-audit.md`](docs/adversarial-audit.md)。
 
 ## 对话流程
 
@@ -372,7 +401,6 @@ cp assets/video-providers.example.json video-providers.json
 
 ```bash
 export XAI_API_KEY='your-key'
-npm ci
 ```
 
 内置 AI SDK 路由的可执行配置如下。示例模型 ID 与 `package-lock.json` 锁定的 SDK 版本匹配；升级依赖或切换区域后应重新核对该区域的模型列表。API Key、端点与模型必须属于同一区域。
@@ -502,7 +530,7 @@ output/
 
 ## 给维护者和贡献者
 
-普通用户不需要运行下面的命令。调试 Provider 或单独复用脚本时，以 `works/<角色名>/` 为该角色的唯一工作目录，`probe` / `route` / `execute` 使用同一份 config 和 task。不要往共用的 `work/` 里继续堆文件。
+普通用户不需要运行下面的命令。调试 Provider 或单独复用脚本时，以 `works/<character-slug>/` 为该角色的唯一工作目录，`probe` / `route` / `execute` 使用同一份 config 和 task。不要往共用的 `work/` 里继续堆文件。
 
 ### 项目结构
 
