@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "id": "host-native-video",
+      "available": false,
+      "model": "host-defined",
+      "priority": 100,
+      "capabilities": ["image-to-video"]
+    },
+    {
+      "id": "host-image-generation",
+      "available": false,
+      "model": "host-defined",
+      "priority": 100,
+      "capabilities": ["image-generation"]
+    }
+  ]
+}

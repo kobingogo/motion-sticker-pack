@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "presets": {
+    "realistic": {
+      "label": "写实还原",
+      "aliases": ["realistic", "写实", "写实还原", "还原"],
+      "prompt": "Preserve the reference character's facial structure, body proportions, clothing, materials, lighting cues, and recognizable visual identity with highly faithful semi-realistic rendering."
+    },
+    "3d": {
+      "label": "3D 卡通风",
+      "aliases": ["3D", "3d-cartoon", "3d toy", "3d-toy", "toy", "玩具", "立体", "3D 卡通风"],
+      "prompt": "Use polished 3D cartoon rendering with expressive facial animation, smooth materials, controlled proportions, soft studio lighting, subtle ambient occlusion, and a clean sticker finish."
+    },
+    "hand-drawn": {
+      "label": "手绘风",
+      "aliases": ["handdrawn", "hand-drawn", "手绘", "手绘风", "插画"],
+      "prompt": "Use warm hand-drawn illustration, clean expressive linework, softly textured color, visible brush character, and friendly sticker-like shapes while preserving the reference IP."
+    },
+    "chibi": {
+      "label": "Q版",
+      "aliases": ["chibi", "q", "Q版", "q版", "萌系"],
+      "prompt": "Use an expressive chibi style with an oversized head, compact body, clear facial reactions, rounded cute shapes, and consistent simplified details."
+    },
+    "manga": {
+      "label": "漫画风",
+      "aliases": ["manga", "漫画", "漫画风", "comic", "comics"],
+      "prompt": "Use dynamic manga-inspired illustration with expressive eyes, confident ink contours, selective cel shading, energetic gesture language, and clear sticker silhouettes."
+    },
+    "pixel-art": {
+      "label": "像素艺术",
+      "aliases": ["pixel", "pixel-art", "像素", "像素艺术", "像素画"],
+      "prompt": "Use carefully designed pixel art with a consistent limited palette, readable silhouettes, deliberate pixel clusters, expressive animation-ready poses, and crisp edges."
+    },
+    "cute": {
+      "label": "可爱风",
+      "aliases": ["cute", "可爱", "可爱风", "kawaii"],
+      "prompt": "Use a warm cute character style with soft rounded shapes, appealing expressions, gentle color accents, charming gesture language, and polished sticker readability."
+    },
+    "retro": {
+      "label": "复古风",
+      "aliases": ["retro", "复古", "复古风", "vintage"],
+      "prompt": "Use a retro-inspired illustration treatment with period-evocative color separation, tactile print texture, bold simplified shapes, and nostalgic sticker finishing."
+    }
+  }
+}

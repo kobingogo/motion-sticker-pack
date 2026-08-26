@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "tiles": [
+    {"id": "01", "motion": "轻轻点头一次并回到初始姿势", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "02", "motion": "眨眼一次，头部保持稳定", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "03", "motion": "双手轻微抬起后落回", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "04", "motion": "身体小幅左右摇摆一次", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "05", "motion": "眼睛短暂睁大再恢复", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "06", "motion": "头部轻轻侧倾后回正", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "07", "motion": "已有道具轻微晃动一次", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "08", "motion": "肩膀轻耸一次并恢复", "amplitude": "small", "loop": "return-to-start"},
+    {"id": "09", "motion": "轻轻挥手一次并回到原位", "amplitude": "small", "loop": "return-to-start"}
+  ]
+}

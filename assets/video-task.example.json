@@ -1,0 +1,19 @@
+{
+  "$schema": "../references/video-task.schema.json",
+  "version": 1,
+  "operation": "image-to-video",
+  "required_capabilities": ["image-to-video"],
+  "prefer_capabilities": ["first-last-frame"],
+  "require_alpha": false,
+  "allow_key_background": true,
+  "allow_fallback": true,
+  "provider": "auto",
+  "input_image": "/absolute/path/to/static-sheet.png",
+  "layout_file": "/absolute/path/to/layout.json",
+  "prompt_file": "/absolute/path/to/prompts.json",
+  "approval_file": "/absolute/path/to/job-state.json",
+  "output_directory": "/absolute/path/to/raw-video",
+  "duration_seconds": 3,
+  "timeout_seconds": 900,
+  "max_output_bytes": 209715200
+}

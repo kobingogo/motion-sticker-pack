@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/motion-sticker-pack/video-providers.schema.json",
+  "title": "Motion Sticker Pack video provider configuration",
+  "type": "object",
+  "required": ["version", "routing", "providers"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": 1},
+    "routing": {
+      "type": "object",
+      "required": ["policy", "max_attempts", "fallback"],
+      "additionalProperties": false,
+      "properties": {
+        "policy": {"const": "local-first"},
+        "max_attempts": {"type": "integer", "minimum": 1, "maximum": 10},
+        "fallback": {"enum": ["keypose-local", "transform-local", "keyframe-local", "prompt-only", "none"]}
+      }
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "driver", "enabled", "priority", "capabilities"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "driver": {"enum": ["native-tool", "ai-sdk", "command", "http-job"]},
+          "enabled": {"type": "boolean"},
+          "priority": {"type": "integer", "minimum": 0, "maximum": 100},
+          "provider": {"type": "string"},
+          "package": {"type": "string"},
+          "model": {"type": "string"},
+          "tool": {"type": "string"},
+          "command": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "adapter_command": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "provider_options": {"type": "object"},
+          "capabilities": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true
+          },
+          "credentials": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "env": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+              "optional_env": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"driver": {"const": "native-tool"}}},
+            "then": {"required": ["tool"]}
+          },
+          {
+            "if": {"properties": {"driver": {"const": "ai-sdk"}}},
+            "then": {"required": ["provider", "package", "model", "credentials"]}
+          },
+          {
+            "if": {"properties": {"driver": {"const": "command"}}},
+            "then": {"required": ["command"]}
+          },
+          {
+            "if": {"properties": {"driver": {"const": "http-job"}}},
+            "then": {"required": ["adapter_command"]}
+          }
+        ]
+      }
+    }
+  }
+}

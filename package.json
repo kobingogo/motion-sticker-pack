@@ -1,0 +1,37 @@
+{
+  "name": "motion-sticker-pack",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Agent Skill that turns a character image into a looping transparent sticker pack",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kobingogo/motion-sticker-pack.git"
+  },
+  "homepage": "https://github.com/kobingogo/motion-sticker-pack#readme",
+  "bugs": {
+    "url": "https://github.com/kobingogo/motion-sticker-pack/issues"
+  },
+  "keywords": [
+    "agent-skills",
+    "stickers",
+    "image-to-video",
+    "grok"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests-node/*.test.mjs",
+    "video:gateway": "node scripts/video_gateway.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/alibaba": "2.0.35",
+    "@ai-sdk/bytedance": "2.0.33",
+    "@ai-sdk/fal": "3.0.31",
+    "@ai-sdk/klingai": "4.0.32",
+    "@ai-sdk/xai": "4.0.44",
+    "ai": "7.0.79"
+  }
+}

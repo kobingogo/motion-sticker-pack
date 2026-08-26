@@ -1,0 +1,7 @@
+interface:
+  display_name: "Motion Sticker Pack｜动态表情包制作器"
+  short_description: "上传角色图，选择风格与表情，生成并打包透明循环动态表情包"
+  default_prompt: "Use $motion-sticker-pack to start from my image, ask me to choose a style and reactions, and wait for static-sheet approval before generating video."
+
+policy:
+  allow_implicit_invocation: true
