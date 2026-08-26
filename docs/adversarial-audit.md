@@ -38,5 +38,5 @@ Scope: Agent interaction, static approval, layout detection, prompt compilation,
 - A custom `command` Adapter is executable code chosen by the user. Environment filtering reduces accidental credential exposure but does not sandbox filesystem or network access.
 - Native tool manifests are assertions from the host Agent runtime and cannot be independently proven by this repository.
 - Vercel AI SDK video generation remains experimental, so pinned dependency upgrades require contract retesting.
-- The repository now includes an MIT `LICENSE`; the copyright holder should confirm that the name and year are correct before publishing.
+- The repository is released under the MIT License; the copyright holder is `kobingogo`.
 - The current Git working tree may contain generated local artifacts. Review the ignore rules and stage only source, tests, documentation, examples, and lockfiles for the initial public commit.

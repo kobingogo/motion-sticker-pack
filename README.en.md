@@ -598,4 +598,4 @@ Real case write-ups are welcome: input, detected layout, route, failures, and fi
 
 ## License
 
-[MIT](LICENSE) © 2026 Kobin
+[MIT](LICENSE) © 2026 kobingogo

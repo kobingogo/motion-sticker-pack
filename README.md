@@ -602,4 +602,4 @@ npm audit --audit-level=high
 
 ## License
 
-[MIT](LICENSE) © 2026 Kobin
+[MIT](LICENSE) © 2026 kobingogo
