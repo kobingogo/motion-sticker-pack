@@ -1,26 +1,61 @@
-__pycache__/
-*.py[cod]
+# OS / editor
 .DS_Store
+**/.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Secrets and local env
 .env
 .env.*
 !.env.example
-node_modules/
+*.pem
+*.key
+credentials.json
+mcp_credentials.json
+
+# Python / Node
+__pycache__/
+*.py[cod]
 .venv/
+node_modules/
 dist/
-work/
+
+# Local provider config (machine paths, never commit)
+video-providers.json
+**/video-providers.json
+!assets/video-providers.example.json
+
+# Accidental dumps at the skill root
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.gif
+/*.mp4
+/*.zip
 output/
 raw-video/
-layout.json
-layout-overlay.png
-static-sheet.png
-tile-plan.json
-grok-build-result.json
-video-route-validation.json
-capabilities.json
-route.json
-video-result.json
-video-providers.json
-video-task.json
-job-state.json
-static-prompt.json
-prompts.json
+delivered/
+
+# Root job JSON dumps (also live under works/<character>/)
+/layout.json
+/layout-overlay.png
+/static-sheet.png
+/static-prompt.json
+/tile-plan.json
+/job-state.json
+/prompts.json
+/capabilities.json
+/route.json
+/video-result.json
+/video-task.json
+/grok-build-result.json
+/video-route-validation.json
+
+# Legacy shared folder
+work/
+
+# Per-character generated assets (keep the convention README only)
+works/*
+!works/README.md

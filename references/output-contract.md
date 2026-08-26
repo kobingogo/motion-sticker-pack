@@ -2,10 +2,29 @@
 
 Read this reference before processing or delivering files.
 
+## Character workspace
+
+All generated artifacts for one character live under `works/<character-slug>/` in the skill directory. Resolve it with `scripts/character_workspace.py --name <角色名>`. Do not add new job files to a shared `work/` folder or the skill root.
+
+```text
+works/<character-slug>/
+├── character.json
+├── static-sheet.png
+├── static-prompt.json
+├── layout.json
+├── job-state.json
+├── tile-plan.json
+├── prompts.json
+├── video-task.json
+├── route.json
+├── raw-video/
+└── output/                      # numbered stickers + processing.json + ZIP
+```
+
 ## Required generic package
 
 ```text
-output/
+works/<character-slug>/output/
 ├── 01.webp ... NN.webp
 ├── 01.gif  ... NN.gif
 ├── 01.png  ... NN.png

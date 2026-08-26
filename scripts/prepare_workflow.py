@@ -9,6 +9,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from character_workspace import character_workspace, write_character_manifest
 from config_contract import is_python_interpreter, validate_provider_config, validate_video_task
 
 
@@ -54,7 +55,8 @@ def usable_provider_config(source: Path, skill_root: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--work-dir", type=Path, required=True)
+    parser.add_argument("--work-dir", type=Path)
+    parser.add_argument("--character", help="character display name; creates works/<slug>/ under --skill-root")
     parser.add_argument("--skill-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--image", type=Path, required=True)
     parser.add_argument("--layout", type=Path, required=True)
@@ -68,8 +70,14 @@ def main() -> int:
     args = parser.parse_args()
 
     skill_root = args.skill_root.expanduser().resolve()
-    work = args.work_dir.expanduser().resolve()
-    work.mkdir(parents=True, exist_ok=True)
+    if args.character:
+        work = args.work_dir.expanduser().resolve() if args.work_dir else character_workspace(skill_root, args.character)
+        write_character_manifest(work, args.character)
+    elif args.work_dir:
+        work = args.work_dir.expanduser().resolve()
+        work.mkdir(parents=True, exist_ok=True)
+    else:
+        raise ValueError("pass --character <name> or --work-dir <path>")
     provider_template = args.provider_template or skill_root / "assets" / "video-providers.example.json"
     manifest_template = args.tool_manifest_template or skill_root / "assets" / "tool-manifest.example.json"
     for path in (args.image, args.layout, args.prompts, args.state, args.tile_plan, provider_template, manifest_template):
@@ -98,13 +106,17 @@ def main() -> int:
         }
     )
     write_json(work / "video-task.json", validate_video_task(task, require_execution_fields=True), overwrite=args.overwrite)
-    print(json.dumps({
+    result = {
         "work_dir": str(work),
         "config": str((work / "video-providers.json").resolve()),
         "runtime_tools": str((work / "runtime-tools.json").resolve()),
         "tile_plan": str((work / "tile-plan.json").resolve()),
         "task": str((work / "video-task.json").resolve()),
-    }, ensure_ascii=False))
+    }
+    manifest = work / "character.json"
+    if manifest.is_file():
+        result["character"] = read_json(manifest)
+    print(json.dumps(result, ensure_ascii=False))
     return 0
 
 

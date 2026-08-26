@@ -70,7 +70,8 @@ Stable reproduction on another agent depends on the work-directory and approval 
 - Static generation must use a **host tool that actually accepts the reference image**. Do not assume `image_edit` or `image_gen` exists.
 - A generated sheet must be approved by the user. A user-supplied sheet uses `--source-type user-supplied` and must not be approved a second time.
 - Every animation path (host native video, external provider, key poses, local transform) must run `manage_job_state.py verify` first.
-- `probe` → `route` → `execute` must share the same `work/video-providers.json` and `work/video-task.json`.
+- Keep every generated artifact for one character under `works/<character-name>/`. Do not write new job files to the skill root or a shared `work/` folder.
+- `probe` → `route` → `execute` must share the same `video-providers.json` and `video-task.json` inside that character directory.
 - Independent stickers use `scripts/process_independent_stickers.py`. Do not invent a fake `1×1 layout.json` per file.
 - `native-video` is the work mode; the provider driver name is `native-tool`. They are not two different routes.
 
@@ -497,7 +498,7 @@ If the sheet came from GPT-image-2 with real alpha, keep that source alpha; do n
 
 ## For maintainers and contributors
 
-End users should not need these commands. When debugging providers or reusing scripts, treat `work/` as the only working directory. `probe` / `route` / `execute` must use the same config and task.
+End users should not need these commands. When debugging providers or reusing scripts, treat `works/<character-name>/` as that character's only working directory. `probe` / `route` / `execute` must use the same config and task. Do not keep stacking files in a shared `work/` folder.
 
 ### Layout
 
@@ -512,38 +513,44 @@ motion-sticker-pack/
 ├── assets/                      # example configs and tile-plan template
 ├── references/                  # agent contracts (intake, prompt, routing, output)
 ├── scripts/
+├── works/                       # per-character generated assets
 ├── tests/
 └── tests-node/
 ```
 
 Root `process_emoji_grid.py` only forwards to `scripts/process_emoji_grid.py`.
 
-### One work directory
+### Per-character work directory
+
+Create the folder from the character name first (Chinese names are kept):
+
+```bash
+python3 scripts/character_workspace.py --name '小黑猫'
+```
+
+Write the static sheet, layout, approval, prompts, video, crops, and ZIP into the printed `work_dir`, for example `works/小黑猫/`. See [`works/README.md`](works/README.md).
 
 After approval and a per-cell `tile-plan.json`:
 
 ```bash
 python3 scripts/prepare_workflow.py \
-  --work-dir work \
-  --image "$PWD/static-sheet.png" \
-  --layout "$PWD/layout.json" \
-  --prompts "$PWD/prompts.json" \
-  --state "$PWD/job-state.json" \
-  --tile-plan "$PWD/tile-plan.json"
-
-# Edit work/runtime-tools.json to match tools that are actually callable.
-# Then always use the copies under work/:
+  --character '小黑猫' \
+  --image "$PWD/works/小黑猫/static-sheet.png" \
+  --layout "$PWD/works/小黑猫/layout.json" \
+  --prompts "$PWD/works/小黑猫/prompts.json" \
+  --state "$PWD/works/小黑猫/job-state.json" \
+  --tile-plan "$PWD/works/小黑猫/tile-plan.json"
 
 python3 scripts/probe_video_capabilities.py \
-  --config work/video-providers.json \
-  --tool-manifest work/runtime-tools.json \
-  --output work/capabilities.json
+  --config works/小黑猫/video-providers.json \
+  --tool-manifest works/小黑猫/runtime-tools.json \
+  --output works/小黑猫/capabilities.json
 
 python3 scripts/route_video_provider.py \
-  --config work/video-providers.json \
-  --capabilities work/capabilities.json \
-  --task work/video-task.json \
-  --output work/route.json
+  --config works/小黑猫/video-providers.json \
+  --capabilities works/小黑猫/capabilities.json \
+  --task works/小黑猫/video-task.json \
+  --output works/小黑猫/route.json
 ```
 
 `prepare_workflow.py` rewrites placeholder absolute paths in the example to this repo's `scripts/` directory. Do not point probe at `assets/video-providers.example.json` and execute at a different `video-providers.json`.
@@ -552,19 +559,19 @@ Before any animation:
 
 ```bash
 python3 scripts/manage_job_state.py verify \
-  --state work/job-state.json \
-  --image work/static-sheet.png \
-  --layout work/layout.json
+  --state works/小黑猫/job-state.json \
+  --image works/小黑猫/static-sheet.png \
+  --layout works/小黑猫/layout.json
 ```
 
 User-supplied sheet:
 
 ```bash
 python3 scripts/manage_job_state.py create \
-  --image work/static-sheet.png \
-  --layout work/layout.json \
+  --image works/小黑猫/static-sheet.png \
+  --layout works/小黑猫/layout.json \
   --source-type user-supplied \
-  --output work/job-state.json
+  --output works/小黑猫/job-state.json
 ```
 
 Do not `approve` a user-supplied state that is already `static-approved`.
@@ -574,43 +581,43 @@ Low-confidence override:
 ```bash
 python3 scripts/inspect_sticker_sheet.py sheet.png \
   --override 4x3 \
-  --output work/layout.json \
-  --overlay work/layout-overlay-confirmed.png
+  --output works/小黑猫/layout.json \
+  --overlay works/小黑猫/layout-overlay-confirmed.png
 ```
 
 If a grid video has no layout yet, extract a frame first:
 
 ```bash
-ffmpeg -y -i grid.mp4 -frames:v 1 work/representative-frame.png
-python3 scripts/inspect_sticker_sheet.py work/representative-frame.png \
-  --output work/layout.json \
-  --overlay work/layout-overlay.png
+ffmpeg -y -i grid.mp4 -frames:v 1 works/小黑猫/representative-frame.png
+python3 scripts/inspect_sticker_sheet.py works/小黑猫/representative-frame.png \
+  --output works/小黑猫/layout.json \
+  --overlay works/小黑猫/layout-overlay.png
 ```
 
 Independent stickers, local animation, and delivery assembly:
 
 ```bash
-python3 scripts/process_independent_stickers.py stickers output --fps 6
+python3 scripts/process_independent_stickers.py stickers works/小黑猫/output --fps 6
 
-python3 scripts/keyframe_fallback.py work/static-sheet.png output \
-  --state work/job-state.json \
-  --layout work/layout.json \
+python3 scripts/keyframe_fallback.py works/小黑猫/static-sheet.png works/小黑猫/output \
+  --state works/小黑猫/job-state.json \
+  --layout works/小黑猫/layout.json \
   --fps 6
 
 python3 scripts/assemble_delivery.py \
-  --media-dir output \
-  --audit-dir work \
-  --output delivered \
+  --media-dir works/小黑猫/output \
+  --audit-dir works/小黑猫 \
+  --output works/小黑猫/delivered \
   --require-job-state \
   --require-prompts \
   --require-route
 
 python3 scripts/assemble_prompt_only.py \
-  --static-prompt work/static-prompt.json \
-  --tile-plan work/tile-plan.json \
-  --prompts work/prompts.json \
-  --route work/route.json \
-  --output prompt-only
+  --static-prompt works/小黑猫/static-prompt.json \
+  --tile-plan works/小黑猫/tile-plan.json \
+  --prompts works/小黑猫/prompts.json \
+  --route works/小黑猫/route.json \
+  --output works/小黑猫/prompt-only
 ```
 
 Compile, approve, execute, and crop commands are listed under Included commands in [`SKILL.md`](SKILL.md). Before a contribution, run:

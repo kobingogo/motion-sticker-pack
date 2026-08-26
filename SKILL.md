@@ -37,6 +37,7 @@ Before writing a prompt or an intake/confirmation message, explicitly check that
 - Keep the camera fixed. Each cell moves only inside its own bounds. Do not invent characters, captions, large props, scenery, or cross-cell effects. Small semantic reaction accents are allowed when they support the requested emotion and remain inside the cell. Preserve source elements when they already exist in the approved source unless the user asks to remove them or transparent-sheet/cell-isolation requirements make that technically necessary.
 - Do not trust a video model's apparent transparency. Prefer real alpha when present; otherwise use a uniform high-contrast key background and deterministic local matting.
 - Never put credentials in prompts, config files, reports, command arguments, or logs. Configuration refers to environment-variable names only.
+- Keep every generated artifact for one character under `works/<character-slug>/` in this skill directory. Do not write new job files to the skill root or a shared `work/` folder. Resolve the directory with `scripts/character_workspace.py --name <角色名>` before static generation.
 
 ## Workflow
 
@@ -46,10 +47,10 @@ Before writing a prompt or an intake/confirmation message, explicitly check that
    - grid video → obtain the source sheet/layout or extract a representative frame with `ffmpeg -y -i input.mp4 -frames:v 1 representative-frame.png`, then detect the grid;
    - separate static stickers → do not invent a grid; run `scripts/process_independent_stickers.py <input-dir> <output-dir>`;
    - user-supplied static sheet → create state with `--source-type user-supplied` and skip the explicit approve step; it is already the selected source.
-2. For a character reference, compile the confirmed style and Emoji/text reactions with `scripts/compile_static_prompt.py --reference-image <source-image>`. Call a currently callable image-generation/editing tool that accepts that exact reference image (text-only generation is not sufficient), save the returned sheet as `static-sheet.png`, then inspect it with `scripts/inspect_sticker_sheet.py`. Create a `static-review` job state bound to the image and layout hashes.
+2. For a character reference, choose a short character name (user-supplied, or a label taken from the reference). Run `scripts/character_workspace.py --name <角色名>` and treat the printed `work_dir` as the only generated-asset root. Compile the confirmed style and Emoji/text reactions with `scripts/compile_static_prompt.py --reference-image <source-image> --output <work_dir>/static-prompt.json`. Call a currently callable image-generation/editing tool that accepts that exact reference image (text-only generation is not sufficient), save the returned sheet as `<work_dir>/static-sheet.png`, then inspect it with `scripts/inspect_sticker_sheet.py`. Create a `static-review` job state bound to the image and layout hashes, also inside that directory.
 3. For a generated or regenerated sheet, show the static sheet and detected layout. Offer `确认，继续生成视频` or `重新生成`. Stop and wait. Do not route or call video generation while the sheet is unapproved. For a user-supplied sheet, report the detected layout and continue without asking for a duplicate approval.
 4. After explicit approval of a generated sheet, record it with `scripts/manage_job_state.py approve`; for a user-supplied sheet, use the already `static-approved` state created with `--source-type user-supplied`. In both cases use the exact source image. For animation prompt rules, read [references/prompt-contract.md](references/prompt-contract.md) and write a `tile-plan.json` with exactly one vision-informed entry per detected cell. Compile it with `scripts/prompt_compiler.py`. Do not use generic motions unless explicitly accepting the lower-quality fallback.
-5. For backend discovery and selection, read [references/runtime-routing.md](references/runtime-routing.md). Inspect callable tools/skills in the current runtime first and record their exact names, reference-image support, video support, and cost status in `runtime-tools.json`. Then run `scripts/prepare_workflow.py` to create one work-scoped `video-providers.json` and `video-task.json`; use those same files for probe, route, and execute.
+5. For backend discovery and selection, read [references/runtime-routing.md](references/runtime-routing.md). Inspect callable tools/skills in the current runtime first and record their exact names, reference-image support, video support, and cost status in `<work_dir>/runtime-tools.json`. Then run `scripts/prepare_workflow.py --character <角色名>` so `video-providers.json` and `video-task.json` land in the same `works/<slug>/` directory; use those same files for probe, route, and execute.
 6. Execute the selected mode:
    - `native-video` (`native-tool` in provider configuration): run `manage_job_state.py verify` first, then use a callable local Agent video tool with the approved image and `prompts.json`;
    - `external-video`: execute one selected AI SDK or command route with `scripts/execute_video_route.py`; never execute all attempts automatically;
@@ -77,21 +78,22 @@ Retry only another configured route or the affected sticker. Do not repeatedly c
 ## Included commands
 
 ```bash
-python3 scripts/compile_static_prompt.py --style 3d --expressions '🎸😍🥹😘🥰' --layout 3x3 --reference-image source.png --output static-prompt.json
-python3 scripts/inspect_sticker_sheet.py sheet.png --output layout.json --overlay layout-overlay.png
-python3 scripts/manage_job_state.py create --image sheet.png --layout layout.json --static-prompt static-prompt.json --output job-state.json
-python3 scripts/manage_job_state.py approve --state job-state.json --image sheet.png --layout layout.json --confirmed-by-user
-python3 scripts/prompt_compiler.py --layout layout.json --tile-plan tile-plan.json --output prompts.json
-python3 scripts/prepare_workflow.py --work-dir work --image "$PWD/sheet.png" --layout "$PWD/layout.json" --prompts "$PWD/prompts.json" --state "$PWD/job-state.json" --tile-plan "$PWD/tile-plan.json"
-python3 scripts/probe_video_capabilities.py --config work/video-providers.json --tool-manifest work/runtime-tools.json --output work/capabilities.json
-python3 scripts/route_video_provider.py --config work/video-providers.json --capabilities work/capabilities.json --task work/video-task.json --output work/route.json
-python3 scripts/execute_video_route.py --config work/video-providers.json --task work/video-task.json --route work/route.json --attempt 1 --output work/video-result.json
-python3 scripts/process_emoji_grid.py animation.mp4 output --layout layout.json --fps 6
-python3 scripts/render_keypose_pack.py keyposes output --image sheet.png --state job-state.json --layout layout.json --fps 6
-python3 scripts/keyframe_fallback.py sheet.png output --state job-state.json --layout layout.json --fps 6
-python3 scripts/process_independent_stickers.py stickers output --fps 6
-python3 scripts/assemble_prompt_only.py --static-prompt static-prompt.json --tile-plan tile-plan.json --prompts prompts.json --route route.json --output prompt-only
-python3 scripts/assemble_delivery.py --media-dir output --audit-dir . --output delivered --require-job-state --require-prompts --require-route
+python3 scripts/character_workspace.py --name '小黑猫'
+python3 scripts/compile_static_prompt.py --style 3d --expressions '🎸😍🥹😘🥰' --layout 3x3 --reference-image source.png --output works/小黑猫/static-prompt.json
+python3 scripts/inspect_sticker_sheet.py works/小黑猫/static-sheet.png --output works/小黑猫/layout.json --overlay works/小黑猫/layout-overlay.png
+python3 scripts/manage_job_state.py create --image works/小黑猫/static-sheet.png --layout works/小黑猫/layout.json --static-prompt works/小黑猫/static-prompt.json --output works/小黑猫/job-state.json
+python3 scripts/manage_job_state.py approve --state works/小黑猫/job-state.json --image works/小黑猫/static-sheet.png --layout works/小黑猫/layout.json --confirmed-by-user
+python3 scripts/prompt_compiler.py --layout works/小黑猫/layout.json --tile-plan works/小黑猫/tile-plan.json --output works/小黑猫/prompts.json
+python3 scripts/prepare_workflow.py --character '小黑猫' --image "$PWD/works/小黑猫/static-sheet.png" --layout "$PWD/works/小黑猫/layout.json" --prompts "$PWD/works/小黑猫/prompts.json" --state "$PWD/works/小黑猫/job-state.json" --tile-plan "$PWD/works/小黑猫/tile-plan.json"
+python3 scripts/probe_video_capabilities.py --config works/小黑猫/video-providers.json --tool-manifest works/小黑猫/runtime-tools.json --output works/小黑猫/capabilities.json
+python3 scripts/route_video_provider.py --config works/小黑猫/video-providers.json --capabilities works/小黑猫/capabilities.json --task works/小黑猫/video-task.json --output works/小黑猫/route.json
+python3 scripts/execute_video_route.py --config works/小黑猫/video-providers.json --task works/小黑猫/video-task.json --route works/小黑猫/route.json --attempt 1 --output works/小黑猫/video-result.json
+python3 scripts/process_emoji_grid.py animation.mp4 works/小黑猫/output --layout works/小黑猫/layout.json --fps 6
+python3 scripts/render_keypose_pack.py keyposes works/小黑猫/output --image works/小黑猫/static-sheet.png --state works/小黑猫/job-state.json --layout works/小黑猫/layout.json --fps 6
+python3 scripts/keyframe_fallback.py works/小黑猫/static-sheet.png works/小黑猫/output --state works/小黑猫/job-state.json --layout works/小黑猫/layout.json --fps 6
+python3 scripts/process_independent_stickers.py stickers works/小黑猫/output --fps 6
+python3 scripts/assemble_prompt_only.py --static-prompt works/小黑猫/static-prompt.json --tile-plan works/小黑猫/tile-plan.json --prompts works/小黑猫/prompts.json --route works/小黑猫/route.json --output works/小黑猫/prompt-only
+python3 scripts/assemble_delivery.py --media-dir works/小黑猫/output --audit-dir works/小黑猫 --output works/小黑猫/delivered --require-job-state --require-prompts --require-route
 ```
 
 Use paths relative to this skill directory when invoked from elsewhere. On Windows, run the same scripts with `py -3` (or `python`) if `python3` is not on PATH; `prepare_workflow.py` rewrites example `python3` adapter commands to the current interpreter.

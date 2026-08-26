@@ -34,10 +34,13 @@ Do not call image generation until the user confirms the current proposal. If th
 
 Optional:
 
+- character name, used as `works/<slug>/` for every generated artifact;
 - requested layout, default `3x3`;
 - custom style description;
 - desired symbols or props;
 - local-only/privacy requirement.
+
+If the user does not give a character name, derive a short label from the reference (for example the filename stem or a visible identity word) and confirm it before writing files. Create the directory with `scripts/character_workspace.py --name <角色名>` and keep later outputs inside that folder.
 
 If the host supports forms, chips, cards, or other structured inputs, use them for style and expression selection. Otherwise present a short numbered list and accept natural-language replies. The interaction must remain usable in a plain terminal Agent.
 

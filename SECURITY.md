@@ -8,6 +8,7 @@ Please report suspected vulnerabilities privately through GitHub Security Adviso
 
 - Configure only environment-variable names in Provider JSON.
 - Never commit local `video-providers.json`, `.env` files, generated task reports, or raw private media.
+- Generated character sheets, videos, and sticker packs stay under `works/<character>/` and are gitignored. Do not copy them to the skill root or into git.
 - Rotate a credential immediately if it appears in a prompt, command line, report, CI log, issue, or commit.
 - Review a custom `command` Adapter before enabling it; enabling one authorizes that executable to read the approved task paths and inherited environment.
 - The route executor passes only a small runtime allowlist plus the selected Provider's declared credential variables to child processes; undeclared environment variables are not inherited.

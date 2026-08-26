@@ -70,7 +70,8 @@ Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批�
 - 静态生图必须使用**当前宿主里真正能接收参考图**的工具；不要假设一定存在 `image_edit` 或 `image_gen`。
 - 生成的静图必须先给用户确认。用户自己提供的现成图板用 `--source-type user-supplied`，不要再要求一次 approve。
 - 任何动画（宿主 native 视频、外部 Provider、关键姿态、本地 transform）之前都要 `manage_job_state.py verify`。
-- `probe` → `route` → `execute` 必须使用同一份 `work/video-providers.json` 和 `work/video-task.json`。
+- 每个角色的生成物都放在 `works/<角色名>/`，不要写到 skill 根目录或共用的 `work/`。
+- `probe` → `route` → `execute` 必须使用同一角色目录里的 `video-providers.json` 和 `video-task.json`。
 - 独立贴纸走 `scripts/process_independent_stickers.py`，不要为每张图伪造 `1×1 layout.json`。
 - `native-video` 是工作模式；配置里的 driver 名叫 `native-tool`。两者不是两条路。
 
@@ -501,7 +502,7 @@ output/
 
 ## 给维护者和贡献者
 
-普通用户不需要运行下面的命令。调试 Provider 或单独复用脚本时，以 `work/` 为唯一工作目录，`probe` / `route` / `execute` 使用同一份 config 和 task。
+普通用户不需要运行下面的命令。调试 Provider 或单独复用脚本时，以 `works/<角色名>/` 为该角色的唯一工作目录，`probe` / `route` / `execute` 使用同一份 config 和 task。不要往共用的 `work/` 里继续堆文件。
 
 ### 项目结构
 
@@ -516,38 +517,44 @@ motion-sticker-pack/
 ├── assets/                      # example 配置与 tile-plan 模板
 ├── references/                  # Agent 合同（intake、prompt、routing、output）
 ├── scripts/
+├── works/                       # per-character generated assets
 ├── tests/
 └── tests-node/
 ```
 
 根目录 `process_emoji_grid.py` 只转发到 `scripts/process_emoji_grid.py`。
 
-### 统一工作目录
+### 按角色的工作目录
+
+先用角色名创建目录（中文名可保留）：
+
+```bash
+python3 scripts/character_workspace.py --name '小黑猫'
+```
+
+之后静图、layout、审批、提示词、视频、切图和 ZIP 都写进打印出来的 `work_dir`，例如 `works/小黑猫/`。目录约定见 [`works/README.md`](works/README.md)。
 
 审批和逐格 `tile-plan.json` 就绪后：
 
 ```bash
 python3 scripts/prepare_workflow.py \
-  --work-dir work \
-  --image "$PWD/static-sheet.png" \
-  --layout "$PWD/layout.json" \
-  --prompts "$PWD/prompts.json" \
-  --state "$PWD/job-state.json" \
-  --tile-plan "$PWD/tile-plan.json"
-
-# 按当前宿主实际可调用的工具改 work/runtime-tools.json
-# 然后始终使用 work/ 下同一份文件：
+  --character '小黑猫' \
+  --image "$PWD/works/小黑猫/static-sheet.png" \
+  --layout "$PWD/works/小黑猫/layout.json" \
+  --prompts "$PWD/works/小黑猫/prompts.json" \
+  --state "$PWD/works/小黑猫/job-state.json" \
+  --tile-plan "$PWD/works/小黑猫/tile-plan.json"
 
 python3 scripts/probe_video_capabilities.py \
-  --config work/video-providers.json \
-  --tool-manifest work/runtime-tools.json \
-  --output work/capabilities.json
+  --config works/小黑猫/video-providers.json \
+  --tool-manifest works/小黑猫/runtime-tools.json \
+  --output works/小黑猫/capabilities.json
 
 python3 scripts/route_video_provider.py \
-  --config work/video-providers.json \
-  --capabilities work/capabilities.json \
-  --task work/video-task.json \
-  --output work/route.json
+  --config works/小黑猫/video-providers.json \
+  --capabilities works/小黑猫/capabilities.json \
+  --task works/小黑猫/video-task.json \
+  --output works/小黑猫/route.json
 ```
 
 `prepare_workflow.py` 会把 example 里的占位绝对路径改成本仓库 `scripts/`。不要把 probe 指到 `assets/video-providers.example.json`、却把 execute 指到另一份 `video-providers.json`。
@@ -556,19 +563,19 @@ python3 scripts/route_video_provider.py \
 
 ```bash
 python3 scripts/manage_job_state.py verify \
-  --state work/job-state.json \
-  --image work/static-sheet.png \
-  --layout work/layout.json
+  --state works/小黑猫/job-state.json \
+  --image works/小黑猫/static-sheet.png \
+  --layout works/小黑猫/layout.json
 ```
 
 用户提供的现成图板：
 
 ```bash
 python3 scripts/manage_job_state.py create \
-  --image work/static-sheet.png \
-  --layout work/layout.json \
+  --image works/小黑猫/static-sheet.png \
+  --layout works/小黑猫/layout.json \
   --source-type user-supplied \
-  --output work/job-state.json
+  --output works/小黑猫/job-state.json
 ```
 
 不要对已经 `static-approved` 的 user-supplied 状态再跑 `approve`。
@@ -578,43 +585,43 @@ python3 scripts/manage_job_state.py create \
 ```bash
 python3 scripts/inspect_sticker_sheet.py sheet.png \
   --override 4x3 \
-  --output work/layout.json \
-  --overlay work/layout-overlay-confirmed.png
+  --output works/小黑猫/layout.json \
+  --overlay works/小黑猫/layout-overlay-confirmed.png
 ```
 
 整板视频若还没有 layout，先抽帧：
 
 ```bash
-ffmpeg -y -i grid.mp4 -frames:v 1 work/representative-frame.png
-python3 scripts/inspect_sticker_sheet.py work/representative-frame.png \
-  --output work/layout.json \
-  --overlay work/layout-overlay.png
+ffmpeg -y -i grid.mp4 -frames:v 1 works/小黑猫/representative-frame.png
+python3 scripts/inspect_sticker_sheet.py works/小黑猫/representative-frame.png \
+  --output works/小黑猫/layout.json \
+  --overlay works/小黑猫/layout-overlay.png
 ```
 
 独立贴纸、本地动画、交付装配：
 
 ```bash
-python3 scripts/process_independent_stickers.py stickers output --fps 6
+python3 scripts/process_independent_stickers.py stickers works/小黑猫/output --fps 6
 
-python3 scripts/keyframe_fallback.py work/static-sheet.png output \
-  --state work/job-state.json \
-  --layout work/layout.json \
+python3 scripts/keyframe_fallback.py works/小黑猫/static-sheet.png works/小黑猫/output \
+  --state works/小黑猫/job-state.json \
+  --layout works/小黑猫/layout.json \
   --fps 6
 
 python3 scripts/assemble_delivery.py \
-  --media-dir output \
-  --audit-dir work \
-  --output delivered \
+  --media-dir works/小黑猫/output \
+  --audit-dir works/小黑猫 \
+  --output works/小黑猫/delivered \
   --require-job-state \
   --require-prompts \
   --require-route
 
 python3 scripts/assemble_prompt_only.py \
-  --static-prompt work/static-prompt.json \
-  --tile-plan work/tile-plan.json \
-  --prompts work/prompts.json \
-  --route work/route.json \
-  --output prompt-only
+  --static-prompt works/小黑猫/static-prompt.json \
+  --tile-plan works/小黑猫/tile-plan.json \
+  --prompts works/小黑猫/prompts.json \
+  --route works/小黑猫/route.json \
+  --output works/小黑猫/prompt-only
 ```
 
 其余编译、审批、execute、切图命令见 [`SKILL.md`](SKILL.md) 的 Included commands。贡献前请跑：
