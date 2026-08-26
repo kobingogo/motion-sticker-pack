@@ -2,29 +2,49 @@
 
 [中文](README.md) · [MIT License](LICENSE)
 
-> Upload a character image, pick a style and reactions, approve the static sheet, then get a sendable, packable set of looping transparent stickers.
+> In Codex, upload a character image, generate a real-alpha transparent sticker sheet with GPT-image-2, approve it, then pack looping animated stickers you can actually send.
 
-`motion-sticker-pack` is an [Agent Skill](https://agentskills.io). After install, use it as a conversation: upload an image → choose a style → choose Emoji or a short description → **approve the static sheet** → generate video → split, matte, export WebP/GIF/PNG, and zip.
+`motion-sticker-pack` is a **Codex-first** [Agent Skill](https://agentskills.io). The recommended path is Codex + **GPT-image-2**, which can emit a sticker sheet with a real alpha channel. Grok Imagine and typical text-to-image / image-to-image models usually return opaque backgrounds; local color-key matting then has to guess, and hair, shadows, and translucent accents suffer.
 
-You do not need to run the Python scripts by hand, or understand FFmpeg or provider routing. The agent should follow [`SKILL.md`](SKILL.md) end to end.
+After install, use it as a conversation: upload an image → choose a style → choose Emoji or a short description → **approve the static sheet** → generate video → split, export WebP/GIF/PNG, and zip. You do not need to run the Python scripts by hand. The agent should follow [`SKILL.md`](SKILL.md) end to end.
 
 ```text
 $motion-sticker-pack
 ```
 
+## Why Codex
+
+A sticker pack needs **real transparency**, not a checkerboard preview and not aggressive post-hoc cutout.
+
+| Host / model | Static sticker sheet | Notes |
+|---|---|---|
+| **Codex + GPT-image-2** (recommended) | Can write a PNG sheet with real alpha | Identity lock, transparent plate, and later crops all follow this path |
+| Grok Build / other common image models | Generally **no** real alpha | Key color plus local matting only; fringes and hair are fragile |
+| A user-supplied transparent sheet or singles | No image model required | Any host can detect, animate, and pack |
+
+Grok Build is still useful for **image-to-video** after the sheet is already transparent. It is not the source of a transparent static plate. Other agents (Claude Code, Cursor, and so on) can install this skill for post-processing; do not expect their default image models to produce a usable transparent sticker background.
+
 ## One-line install
+
+Install for Codex (recommended):
+
+```bash
+npx skills add kobingogo/motion-sticker-pack -g -y -a codex
+```
+
+Auto-detect agents on this machine (still use Codex as the primary host):
 
 ```bash
 npx skills add kobingogo/motion-sticker-pack -g -y
 ```
 
-This installs the skill into the **user-level** directories of agents detected on this machine (Grok Build, Codex, Claude Code, Cursor, and others). Grok only:
+Also install for Grok if you want it for video:
 
 ```bash
-npx skills add kobingogo/motion-sticker-pack -g -y -a grok
+npx skills add kobingogo/motion-sticker-pack -g -y -a codex -a grok
 ```
 
-Update:
+On Windows, add `--copy`. Update:
 
 ```bash
 npx skills update motion-sticker-pack -g -y
@@ -32,18 +52,21 @@ npx skills update motion-sticker-pack -g -y
 
 ## Status
 
-The media pipeline is usable: grid detection, hash-bound static approval, sheet splitting, matting, Animated WebP, looping GIF, first-frame PNG, and ZIP are implemented and tested. This repository has verified three video routes:
+The Codex path is usable: GPT-image-2 transparent sheets, grid detection, hash-bound static approval, whole-sheet animation, splitting, Animated WebP, looping GIF, first-frame PNG, and ZIP. If the Codex session has no image-to-video tool, video can fall through to a configured external provider, Grok Build / xAI Videos, or local `transform-local`:
 
 ```text
-Local Grok Build (image_to_video)
+Codex + GPT-image-2 transparent static sheet
+        ↓ user approval
+Host or external image-to-video
         ↓ unavailable or failed
-Direct xAI Videos API
+Grok Build / xAI Videos API
         ↓ unavailable or failed
 Local transform-local fallback motion
 ```
 
 Stable reproduction on another agent depends on the work-directory and approval contracts, not on one successful manual run. The important rules:
 
+- When generating a sheet from a character image, prefer callable **GPT-image-2** in Codex and ask for real alpha. Do not pretend other models already produced a transparent plate.
 - Static generation must use a **host tool that actually accepts the reference image**. Do not assume `image_edit` or `image_gen` exists.
 - A generated sheet must be approved by the user. A user-supplied sheet uses `--source-type user-supplied` and must not be approved a second time.
 - Every animation path (host native video, external provider, key poses, local transform) must run `manage_job_state.py verify` first.
@@ -57,31 +80,22 @@ Threat model, fixed issues, and remaining boundaries: [`docs/adversarial-audit.m
 
 ### 1. Install the Skill
 
-One-line global install (auto-detects agents on this machine):
+Install in Codex (recommended):
 
 ```bash
-npx skills add kobingogo/motion-sticker-pack -g -y
+npx skills add kobingogo/motion-sticker-pack -g -y -a codex
 ```
 
-Install to specific hosts only:
-
-```bash
-npx skills add kobingogo/motion-sticker-pack -g -y -a grok
-npx skills add kobingogo/motion-sticker-pack -g -y -a grok -a codex -a claude-code
-```
-
-That copies the full skill, including `scripts/`, into paths such as `~/.grok/skills/motion-sticker-pack`, `~/.codex/skills/motion-sticker-pack`, and `~/.claude/skills/motion-sticker-pack`. Source: [github.com/kobingogo/motion-sticker-pack](https://github.com/kobingogo/motion-sticker-pack).
+The skill lands in `~/.codex/skills/motion-sticker-pack`. Source: [github.com/kobingogo/motion-sticker-pack](https://github.com/kobingogo/motion-sticker-pack).
 
 For local development you can still symlink a clone:
 
 ```bash
 git clone https://github.com/kobingogo/motion-sticker-pack.git
-ln -s "$PWD/motion-sticker-pack" ~/.grok/skills/motion-sticker-pack
 ln -s "$PWD/motion-sticker-pack" ~/.codex/skills/motion-sticker-pack
-ln -s "$PWD/motion-sticker-pack" ~/.claude/skills/motion-sticker-pack
 ```
 
-Codex can use `$motion-sticker-pack`. Other hosts can say “use the motion-sticker-pack skill”.
+Codex uses `$motion-sticker-pack`. Other hosts can install it for post-processing; generate the transparent static sheet on Codex + GPT-image-2.
 
 ### 2. Install local media dependencies
 
@@ -100,7 +114,7 @@ ffmpeg -version && ffprobe -version
 
 Verified with Python 3.10.12, Pillow 12.3.0, NumPy 2.2.6, and FFmpeg 8.1.2.
 
-To use the bundled xAI / Kling / Seedance / Wan / FAL executors, also run `npm ci` at the skill root (Node 20+). Skip Node if you only probe local agent tools or use fully local animation.
+To use the bundled xAI / Kling / Seedance / Wan / FAL executors, also run `npm ci` at the skill root (Node 22+). Skip Node if you only probe local agent tools or use fully local animation.
 
 ### 3. Start the conversation
 
@@ -108,9 +122,9 @@ To use the bundled xAI / Kling / Seedance / Wan / FAL executors, also run `npm c
 $motion-sticker-pack
 ```
 
-Upload a character reference, pick a style, and type Emoji or a short reaction list. If the host already has a callable image-to-video tool, you do not need an extra model.
+In Codex, run `$motion-sticker-pack`, upload a character reference, pick a style, and type Emoji or a short reaction list. For the static sheet, use **GPT-image-2** and ask for a transparent background / real alpha.
 
-On **Grok Build**, read [Privacy Opt in and ZDR](#grok-build-privacy-opt-in-and-zdr) first. Without Opt in, local `image_to_video` often fails with a ZDR/privacy error. That is not a prompt bug.
+If video goes to Grok Build, read [Privacy Opt in and ZDR](#grok-build-privacy-opt-in-and-zdr) first. Without Opt in, local `image_to_video` often fails with a ZDR/privacy error. That is not a prompt bug.
 
 ## Conversation flow
 
@@ -125,7 +139,7 @@ Use structured controls when the host has them; otherwise use a numbered list. T
         ↓
 4. Choose Emoji, or type short reaction labels
         ↓
-5. Compile the prompt and generate a static grid with a host tool that accepts that reference image
+5. Compile the prompt; in Codex, generate a transparent static grid with GPT-image-2 (must accept the reference image and emit real alpha)
         ↓
 6. Show the sheet and the detected grid
         ↓
@@ -187,7 +201,7 @@ If the first message already has the image, style, and reactions, skip the intak
 
 | You provide | The agent does |
 |---|---|
-| One character reference | Generate a static sheet → detect the grid → wait for approval → animate and pack |
+| One character reference | Codex + GPT-image-2 transparent sheet → detect the grid → wait for approval → animate and pack |
 | One finished static sheet | Detect the grid, `--source-type user-supplied`, no second approval |
 | Several independent transparent stickers | `process_independent_stickers.py`, no fake contact sheet |
 | One grid video | Extract a representative frame if needed, then split, matte, pack |
@@ -195,11 +209,13 @@ If the first message already has the image, style, and reactions, skip the intak
 
 This skill does not invent a character identity from scratch and is not a general NLE. The input should already contain a recognizable character.
 
-Useful extras: reactions or Emoji, style, whether paid external APIs are allowed, local-only, layout preference, duration, fps. Unspecified values stay conservative: small motion, locked camera, loopable, 6 fps, transparent or a clean key color.
+Useful extras: reactions or Emoji, style, whether paid external APIs are allowed, local-only, layout preference, duration, fps. Unspecified values stay conservative: small motion, locked camera, loopable, 6 fps. On Codex, default to a real transparent plate; only fall back to a key color when the current model cannot emit alpha.
 
 On Grok, `image_to_video` only accepts **6 or 10 seconds**. The workflow default is 6. Do not put 3 seconds into a task that will be sent to Grok.
 
 ## Grok Build privacy: Opt in and ZDR
+
+Skip this section if you only generate the transparent sheet in Codex and send video to Codex or an external provider. The notes below apply only when **video** goes to Grok Build.
 
 Grok Build video tools are gated by account privacy. If you see `video tools are unavailable under ZDR`, check privacy settings first. Do not rewrite the prompt, and do not hand-edit `~/.grok` to fake a policy.
 
@@ -280,7 +296,7 @@ Bundled executable AI SDK adapters: xAI, Kling AI, ByteDance/Seedance, Alibaba/W
 
 ```text
 $motion-sticker-pack Make an animated sticker pack from the attached character.
-Include 🎸😍🥹😘🥰 in a rounded 3D toy-sticker style.
+Use GPT-image-2 for a real-alpha transparent static sheet. Include 🎸😍🥹😘🥰 in a rounded 3D toy-sticker style.
 Keep every motion small, independent, and loopable. No camera moves or cross-cell effects.
 Prefer the current agent video tool. Deliver transparent WebP, GIF, PNG, and a ZIP.
 ```
@@ -354,6 +370,19 @@ export XAI_API_KEY='your-key'
 npm ci
 ```
 
+The bundled AI SDK routes have executable defaults below. The model IDs match the SDK versions pinned in `package-lock.json`; re-check the model list for that region after dependency upgrades or region changes. The API key, endpoint, and model must belong to the same region.
+
+| Provider | Default I2V model | Credential environment | `region` |
+| --- | --- | --- | --- |
+| Kling | `kling-v2.6-i2v` | `KLINGAI_API_KEY` | `global` |
+| Seedance | `seedance-1-5-pro-251215` | `ARK_API_KEY` | `international` (BytePlus) or `china` (Volcengine Ark) |
+| Wan | `wan2.6-i2v-flash` | `DASHSCOPE_API_KEY` or `ALIBABA_API_KEY` | `international` (Singapore) or `china` (Beijing) |
+| FAL | `luma-dream-machine/ray-2/image-to-video` | `FAL_API_KEY` or `FAL_KEY` | `global` |
+
+The Gateway explicitly passes the declared credential to the SDK, so Alibaba's common `DASHSCOPE_API_KEY` name and the AI SDK's default `ALIBABA_API_KEY` name both work. `region` maps only to official shared vendor endpoints. Use a `command` adapter for an arbitrary relay or workspace-specific domain so credentials cannot be redirected to an unconstrained URL.
+
+`video-task.json` defaults to `max_retries: 0` to prevent one route from resubmitting a paid generation inside the SDK. `poll_interval_ms` only controls status checks for the same task. A probe proves Node, SDK, config, and credential-variable presence; it does not spend credits and does not prove remote quota or model access. Confirm those with one explicitly authorized execution.
+
 Tell the agent where the config file lives. Full fields and the adapter contract:
 
 - [`assets/video-providers.example.json`](assets/video-providers.example.json)
@@ -363,6 +392,8 @@ Tell the agent where the config file lives. Full fields and the adapter contract
 - [`references/runtime-routing.md`](references/runtime-routing.md)
 
 For an arbitrary relay, write a `command` adapter that takes `--task` and `--output` as absolute paths and writes a normalized result JSON. This skill does not pretend that changing `baseURL` is enough for every vendor.
+
+The Kling / Seedance / Wan / FAL routes here are image-to-video (`.video()`) integrations for the animation stage. Static sticker sheets still come from a callable host image tool that accepts the exact reference image; this Gateway does not treat video providers as a generic still-image API.
 
 ## Privacy, cost, and credentials
 
@@ -397,7 +428,10 @@ output/
 
 Files are numbered row-major. `NN` equals `detected_layout.count`, not the layout you originally asked for.
 
-Do not trust a checkerboard that only looks transparent. Keep real alpha when present; otherwise use a uniform high-contrast key and remove only background-like color connected to the crop edge, so interior face or clothing color is not punched out.
+Treat transparency as two layers. Do not mix them:
+
+1. **Still sheet:** Codex + GPT-image-2 can emit a PNG plate with real alpha. That is this skill's main path. Other image models usually have no real alpha; “looks transparent” is not transparent.
+2. **Video:** do not trust a model's checkerboard preview. Keep real alpha when the source frames already have it; otherwise use a uniform high-contrast key and remove only background-like color connected to the crop edge, so interior face or clothing color is not punched out.
 
 ## Why the grid is not hardcoded as 3×3
 
@@ -412,7 +446,11 @@ If confidence is below `0.75`, inspect the overlay and confirm or `--override`. 
 
 ### The agent did not pick up the skill after install
 
-Confirm the project is in the host skills directory and restart the session. You can also invoke `$motion-sticker-pack` or ask the agent to read `SKILL.md`.
+Confirm the project is in the Codex skills directory (`~/.codex/skills/motion-sticker-pack`) and restart the session. Invoke `$motion-sticker-pack`, or ask the agent to read `SKILL.md`.
+
+### Do I have to use Codex? Do I have to use GPT-image-2?
+
+For a **new** transparent pack from a character image, yes: GPT-image-2 is currently the model that can reliably emit real alpha. If you already have a transparent sheet, or you accept color-key matting, other hosts can still run post-processing.
 
 ### Do I have to configure a video model?
 
@@ -424,7 +462,7 @@ Run `/privacy` and **Opt in**. Team ZDR still needs console-synced S3. See [Grok
 
 ### The static sheet does not look like my character
 
-Static generation must pass the original image into a host tool that accepts a reference. Text-only generation will invent a new character. Have the agent inspect the tool signature, then bind the reference path or attachment handle.
+In Codex, pass the original image into GPT-image-2 (it must accept a reference). Text-only generation will invent a new character. Do not fall back to a model that cannot take a reference and cannot emit alpha.
 
 ### Why isn't this the 3×3 I asked for?
 
@@ -444,10 +482,11 @@ If the route is `prompt-only`, there is no video and no local image processing. 
 
 ### Matting ate part of the character
 
-Use a key color farther from the character. Lower the threshold if edges go transparent; raise it slightly if background remains. Do not use an extreme threshold on a complex scene.
+If the sheet came from GPT-image-2 with real alpha, keep that source alpha; do not run an aggressive second color key. Only on an opaque plate, pick a key farther from the character: lower the threshold if edges go transparent, raise it slightly if background remains. Do not use an extreme threshold on a complex scene.
 
 ## Current limits
 
+- The transparent-sheet path is Codex + GPT-image-2; other image models generally have no real alpha
 - Whole-sheet video can still leak motion across cells
 - Grid detection targets even contact sheets; free layouts need a human check or `--override`
 - `/privacy` Opt out or team ZDR disables Grok Build video tools until you Opt in or configure storage

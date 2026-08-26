@@ -94,4 +94,4 @@ python3 scripts/assemble_prompt_only.py --static-prompt static-prompt.json --til
 python3 scripts/assemble_delivery.py --media-dir output --audit-dir . --output delivered --require-job-state --require-prompts --require-route
 ```
 
-Use paths relative to this skill directory when invoked from elsewhere.
+Use paths relative to this skill directory when invoked from elsewhere. On Windows, run the same scripts with `py -3` (or `python`) if `python3` is not on PATH; `prepare_workflow.py` rewrites example `python3` adapter commands to the current interpreter.

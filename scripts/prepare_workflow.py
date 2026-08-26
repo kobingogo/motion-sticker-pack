@@ -6,9 +6,10 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 from pathlib import Path
 
-from config_contract import validate_provider_config, validate_video_task
+from config_contract import is_python_interpreter, validate_provider_config, validate_video_task
 
 
 def read_json(path: Path) -> dict:
@@ -45,6 +46,9 @@ def usable_provider_config(source: Path, skill_root: Path) -> dict:
                 marker = "/absolute/path/to/motion-sticker-pack/scripts/"
                 if isinstance(value, str) and value.startswith(marker):
                     command[index] = str(skill_root / "scripts" / Path(value).name)
+            first = command[0]
+            if isinstance(first, str) and is_python_interpreter(first) and not Path(first).is_absolute():
+                command[0] = sys.executable
     return validate_provider_config(config)
 
 
@@ -59,7 +63,7 @@ def main() -> int:
     parser.add_argument("--tile-plan", type=Path, required=True)
     parser.add_argument("--provider-template", type=Path)
     parser.add_argument("--tool-manifest-template", type=Path)
-    parser.add_argument("--duration-seconds", type=float, default=6)
+    parser.add_argument("--duration-seconds", type=float, default=5)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 

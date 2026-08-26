@@ -60,24 +60,34 @@
       "driver": "ai-sdk",
       "provider": "klingai",
       "package": "@ai-sdk/klingai",
-      "model": "replace-with-current-model-id",
+      "model": "kling-v2.6-i2v",
+      "region": "global",
       "enabled": false,
       "priority": 80,
       "credentials": {
         "env": ["KLINGAI_API_KEY"]
       },
-      "capabilities": ["image-to-video", "text-to-video"]
+      "provider_options": {
+        "mode": "std"
+      },
+      "capabilities": ["image-to-video"]
     },
     {
       "id": "seedance-primary",
       "driver": "ai-sdk",
       "provider": "bytedance",
       "package": "@ai-sdk/bytedance",
-      "model": "replace-with-current-model-id",
+      "model": "seedance-1-5-pro-251215",
+      "region": "international",
       "enabled": false,
       "priority": 70,
       "credentials": {
         "env": ["ARK_API_KEY"]
+      },
+      "provider_options": {
+        "cameraFixed": true,
+        "generateAudio": false,
+        "watermark": false
       },
       "capabilities": ["image-to-video", "first-last-frame"]
     },
@@ -86,13 +96,20 @@
       "driver": "ai-sdk",
       "provider": "alibaba",
       "package": "@ai-sdk/alibaba",
-      "model": "replace-with-current-model-id",
+      "model": "wan2.6-i2v-flash",
+      "region": "international",
       "enabled": false,
       "priority": 68,
       "credentials": {
         "env": ["DASHSCOPE_API_KEY"]
       },
-      "capabilities": ["image-to-video", "text-to-video", "multi-reference"]
+      "provider_options": {
+        "audio": false,
+        "promptExtend": true,
+        "shotType": "single",
+        "watermark": false
+      },
+      "capabilities": ["image-to-video"]
     },
     {
       "id": "grok-primary",
@@ -100,6 +117,7 @@
       "provider": "xai",
       "package": "@ai-sdk/xai",
       "model": "grok-imagine-video",
+      "region": "global",
       "enabled": false,
       "priority": 65,
       "credentials": {
@@ -112,13 +130,17 @@
       "driver": "ai-sdk",
       "provider": "fal",
       "package": "@ai-sdk/fal",
-      "model": "replace-with-hosted-model-id",
+      "model": "luma-dream-machine/ray-2/image-to-video",
+      "region": "global",
       "enabled": false,
       "priority": 60,
       "credentials": {
-        "env": ["FAL_KEY"]
+        "env": ["FAL_API_KEY"]
       },
-      "capabilities": ["image-to-video", "text-to-video"]
+      "provider_options": {
+        "loop": true
+      },
+      "capabilities": ["image-to-video"]
     },
     {
       "id": "custom-relay",

@@ -32,6 +32,7 @@
           "provider": {"type": "string"},
           "package": {"type": "string"},
           "model": {"type": "string"},
+          "region": {"type": "string"},
           "tool": {"type": "string"},
           "command": {"type": "array", "items": {"type": "string"}, "minItems": 1},
           "adapter_command": {"type": "array", "items": {"type": "string"}, "minItems": 1},

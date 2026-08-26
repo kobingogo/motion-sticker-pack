@@ -9,6 +9,7 @@ import json
 import os
 import shutil
 import subprocess
+from functools import lru_cache
 from pathlib import Path
 
 from config_contract import is_interpreter, object_sha256, read_json_object, validate_provider_config
@@ -16,6 +17,7 @@ from config_contract import is_interpreter, object_sha256, read_json_object, val
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 VIDEO_GATEWAY = Path(__file__).with_name("video_gateway.mjs")
+MIN_AI_SDK_NODE_MAJOR = 22
 
 
 def load_json(path: Path | None, default: dict) -> dict:
@@ -38,8 +40,31 @@ def package_available(package: str | None) -> bool:
     return result.returncode == 0
 
 
+@lru_cache(maxsize=1)
+def node_runtime_status() -> tuple[bool, str | None]:
+    node = shutil.which("node")
+    if not node:
+        return False, None
+    result = subprocess.run(
+        [node, "--version"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        check=False,
+    )
+    version = result.stdout.strip() if result.returncode == 0 else None
+    if not version or not version.startswith("v"):
+        return False, version
+    try:
+        major = int(version[1:].split(".", 1)[0])
+    except ValueError:
+        return False, version
+    return major >= MIN_AI_SDK_NODE_MAJOR, version
+
+
 def ai_sdk_executor_available(provider: dict) -> bool:
-    if not VIDEO_GATEWAY.is_file() or not package_available(provider.get("package")):
+    node_ready, _ = node_runtime_status()
+    if not node_ready or not VIDEO_GATEWAY.is_file() or not package_available(provider.get("package")):
         return False
     command = [
         "node",
@@ -103,6 +128,9 @@ def configured_provider_status(provider: dict, runtime_tools: dict[str, dict]) -
         implementation_ready = ai_sdk_executor_available(provider)
         if not implementation_ready:
             reasons.append("ai-sdk-executor-not-callable")
+        node_ready, _ = node_runtime_status()
+        if not node_ready:
+            reasons.append("node-version-unsupported")
     elif driver == "command":
         implementation_ready = command_available(provider.get("command"))
         if not implementation_ready:
@@ -120,6 +148,7 @@ def configured_provider_status(provider: dict, runtime_tools: dict[str, dict]) -
         "driver": driver,
         "provider": provider.get("provider"),
         "model": provider.get("model"),
+        "region": provider.get("region"),
         "priority": int(provider.get("priority", 0)),
         "capabilities": sorted(set(provider.get("capabilities", []))),
         "available": available,
@@ -215,6 +244,11 @@ def main() -> int:
         "config_sha256": object_sha256(config),
         "providers": providers,
         "local_processing": local_processing,
+        "ai_sdk_runtime": {
+            "node_ready": node_runtime_status()[0],
+            "node_version": node_runtime_status()[1],
+            "minimum_node_major": MIN_AI_SDK_NODE_MAJOR,
+        },
         "notes": [
             "availability proves configuration and implementation presence, not quota or remote service health",
             "credential values were not read into this report",

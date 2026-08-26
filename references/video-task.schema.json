@@ -34,6 +34,8 @@
     "max_input_image_bytes": {"type": "integer", "minimum": 1024},
     "aspect_ratio": {"type": "string", "pattern": "^(source|adaptive|[1-9][0-9]*:[1-9][0-9]*)$"},
     "resolution": {"type": "string", "pattern": "^[1-9][0-9]*x[1-9][0-9]*$"},
-    "fps": {"type": "integer", "minimum": 1, "maximum": 60}
+    "fps": {"type": "integer", "minimum": 1, "maximum": 60},
+    "poll_interval_ms": {"type": "integer", "minimum": 100, "maximum": 60000},
+    "max_retries": {"type": "integer", "minimum": 0, "maximum": 3}
   }
 }

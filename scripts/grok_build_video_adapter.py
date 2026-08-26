@@ -34,13 +34,30 @@ def resolve_grok_home(environ: dict[str, str] | None = None) -> Path:
     return (Path.home() / ".grok").resolve()
 
 
+def _runnable_file(candidate: str | None) -> str | None:
+    if not candidate or not str(candidate).strip():
+        return None
+    path = Path(candidate).expanduser()
+    if path.is_file() and os.access(path, os.X_OK):
+        return str(path.resolve())
+    return None
+
+
 def find_grok(environ: dict[str, str] | None = None) -> str:
     source = os.environ if environ is None else environ
-    configured = source.get("GROK_BIN")
-    candidates = [configured, shutil.which("grok"), str(Path.home() / ".grok" / "bin" / "grok")]
+    grok_home = resolve_grok_home(source)
+    search_path = source.get("PATH")
+    candidates = [
+        source.get("GROK_BIN"),
+        shutil.which("grok", path=search_path),
+        shutil.which("grok.exe", path=search_path),
+        str(grok_home / "bin" / "grok"),
+        str(grok_home / "bin" / "grok.exe"),
+    ]
     for candidate in candidates:
-        if candidate and Path(candidate).is_file() and os.access(candidate, os.X_OK):
-            return str(Path(candidate).resolve())
+        resolved = _runnable_file(candidate)
+        if resolved:
+            return resolved
     raise ContractError("local Grok CLI was not found; install/login to Grok Build first")
 
 

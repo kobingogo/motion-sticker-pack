@@ -13,7 +13,9 @@
   "prompt_file": "/absolute/path/to/prompts.json",
   "approval_file": "/absolute/path/to/job-state.json",
   "output_directory": "/absolute/path/to/raw-video",
-  "duration_seconds": 3,
+  "duration_seconds": 5,
   "timeout_seconds": 900,
+  "poll_interval_ms": 5000,
+  "max_retries": 0,
   "max_output_bytes": 209715200
 }

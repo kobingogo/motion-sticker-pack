@@ -2,29 +2,49 @@
 
 [English](README.en.md) · [MIT License](LICENSE)
 
-> 上传一张角色图，选出风格和表情，确认静态图板后，生成可发送、可打包的透明循环动态表情包。
+> 在 Codex 里上传角色图，用 GPT-image-2 生成带真实 Alpha 的透明静图板，确认后再做成可发送、可打包的循环动态表情包。
 
-`motion-sticker-pack` 是一个 [Agent Skill](https://agentskills.io)。安装后，按对话使用即可：上传图片 → 选择风格 → 选择 Emoji 或短描述 → **确认静态图** → 生成视频 → 自动切图、去背、导出 WebP/GIF/PNG 并打包 ZIP。
+`motion-sticker-pack` 是面向 **Codex** 的 [Agent Skill](https://agentskills.io)。推荐路径是 Codex + **GPT-image-2**：这个模型能直接生成带 alpha 通道的透明贴纸图；Grok Imagine、常见文生图/图生图模型通常只能出不透明底，后面只能靠色键去背，边缘和毛发会差一截。
 
-普通使用不需要手跑 Python 脚本，也不需要理解 FFmpeg 或 Provider 路由。Agent 应读取 [`SKILL.md`](SKILL.md) 完成整条链路。
+安装后按对话使用：上传图片 → 选择风格 → 选择 Emoji 或短描述 → **确认静态图** → 生成视频 → 自动切图、导出 WebP/GIF/PNG 并打包 ZIP。普通使用不需要手跑 Python 脚本。Agent 应读取 [`SKILL.md`](SKILL.md) 完成整条链路。
 
 ```text
 $motion-sticker-pack
 ```
 
+## 为什么推荐 Codex
+
+贴纸包要的是**真实透明**，不是棋盘格预览，也不是后期硬抠。
+
+| 宿主 / 模型 | 静态表情图 | 说明 |
+|---|---|---|
+| **Codex + GPT-image-2**（推荐） | 可输出带 alpha 的透明 PNG 图板 | 身份绑定、透明底、后续切图都走这条主路径 |
+| Grok Build / 其他常见生图模型 | 一般**没有**真实 alpha | 只能要纯色底，再靠本地色键；发丝、阴影、半透明装饰容易伤 |
+| 用户自己提供的透明图板或单图 | 不依赖生图模型 | 任意宿主都可以检测、动画化、打包 |
+
+Grok Build 仍然适合做**图生视频**（静图已经透明之后），不是静图透明底的来源。其他 Agent（Claude Code、Cursor 等）可以安装本 Skill 做后处理，但不要指望它们的默认生图模型给出可用的透明贴纸底。
+
 ## 一键安装
+
+推荐只装到 Codex：
+
+```bash
+npx skills add kobingogo/motion-sticker-pack -g -y -a codex
+```
+
+自动检测本机已有 Agent（仍建议 Codex 为主）：
 
 ```bash
 npx skills add kobingogo/motion-sticker-pack -g -y
 ```
 
-这条命令会把 Skill 装到当前机器已检测到的 Agent（Grok Build、Codex、Claude Code、Cursor 等）的**用户级**目录。只要装 Grok：
+若还要用 Grok 做视频：
 
 ```bash
-npx skills add kobingogo/motion-sticker-pack -g -y -a grok
+npx skills add kobingogo/motion-sticker-pack -g -y -a codex -a grok
 ```
 
-更新：
+Windows 请加 `--copy`。更新：
 
 ```bash
 npx skills update motion-sticker-pack -g -y
@@ -32,18 +52,21 @@ npx skills update motion-sticker-pack -g -y
 
 ## 当前状态
 
-媒体处理主链路已经可用：网格检测、哈希绑定的静态审批、整板切图、去背、Animated WebP、循环 GIF、首帧 PNG 和 ZIP 都有实现和测试。仓库内验证过三条视频路径：
+面向 Codex 的完整链路已经可用：GPT-image-2 出透明静图板、网格检测、哈希绑定的静态审批、整板动画、切图、Animated WebP、循环 GIF、首帧 PNG 和 ZIP。视频阶段若 Codex 会话没有图生视频，可以落到已配置的外部 Provider，或 Grok Build / xAI Videos / 本地 `transform-local`：
 
 ```text
-本机 Grok Build（image_to_video）
+Codex + GPT-image-2 生成透明静图板
+        ↓ 用户确认
+宿主或外部图生视频
         ↓ 失败或不可用
-直连 xAI Videos API
+Grok Build / xAI Videos API
         ↓ 失败或不可用
 本地 transform-local 备用动效
 ```
 
 Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批合同，而不是某一次手工跑通。关键约定：
 
+- 从角色图生成静图时，优先用 Codex 里可调用的 **GPT-image-2**，并要求真实 alpha。其他模型不要假装已经出了透明底。
 - 静态生图必须使用**当前宿主里真正能接收参考图**的工具；不要假设一定存在 `image_edit` 或 `image_gen`。
 - 生成的静图必须先给用户确认。用户自己提供的现成图板用 `--source-type user-supplied`，不要再要求一次 approve。
 - 任何动画（宿主 native 视频、外部 Provider、关键姿态、本地 transform）之前都要 `manage_job_state.py verify`。
@@ -57,31 +80,22 @@ Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批�
 
 ### 1. 安装 Skill
 
-推荐一键安装（全局，自动检测本机 Agent）：
+在 Codex 里安装（推荐）：
 
 ```bash
-npx skills add kobingogo/motion-sticker-pack -g -y
+npx skills add kobingogo/motion-sticker-pack -g -y -a codex
 ```
 
-只装到指定宿主：
-
-```bash
-npx skills add kobingogo/motion-sticker-pack -g -y -a grok
-npx skills add kobingogo/motion-sticker-pack -g -y -a grok -a codex -a claude-code
-```
-
-这会把带 `scripts/` 的完整 Skill 装到例如 `~/.grok/skills/motion-sticker-pack`、`~/.codex/skills/motion-sticker-pack`、`~/.claude/skills/motion-sticker-pack`。仓库在 [github.com/kobingogo/motion-sticker-pack](https://github.com/kobingogo/motion-sticker-pack)。
+Skill 会落到 `~/.codex/skills/motion-sticker-pack`。仓库：[github.com/kobingogo/motion-sticker-pack](https://github.com/kobingogo/motion-sticker-pack)。
 
 从源码开发时也可以自己链接：
 
 ```bash
 git clone https://github.com/kobingogo/motion-sticker-pack.git
-ln -s "$PWD/motion-sticker-pack" ~/.grok/skills/motion-sticker-pack
 ln -s "$PWD/motion-sticker-pack" ~/.codex/skills/motion-sticker-pack
-ln -s "$PWD/motion-sticker-pack" ~/.claude/skills/motion-sticker-pack
 ```
 
-Codex 可使用 `$motion-sticker-pack`；其他宿主直接说“使用 motion-sticker-pack Skill”。
+Codex 使用 `$motion-sticker-pack`。其他宿主可以安装后处理用，但透明静图请仍在 Codex + GPT-image-2 上生成。
 
 ### 2. 安装本地媒体依赖
 
@@ -102,7 +116,7 @@ ffmpeg -version && ffprobe -version
 
 当前验证环境：Python 3.10.12、Pillow 12.3.0、NumPy 2.2.6、FFmpeg 8.1.2。
 
-若要使用仓库内置的 xAI / Kling / Seedance / Wan / FAL 执行器，再在 Skill 根目录执行 `npm ci`（需要 Node 20+）。只探测本地 Agent 工具或只用本地动画时可以不装 Node 依赖。
+若要使用仓库内置的 xAI / Kling / Seedance / Wan / FAL 执行器，再在 Skill 根目录执行 `npm ci`（需要 Node 22+）。只探测本地 Agent 工具或只用本地动画时可以不装 Node 依赖。
 
 ### 3. 开始对话
 
@@ -110,9 +124,9 @@ ffmpeg -version && ffprobe -version
 $motion-sticker-pack
 ```
 
-上传角色参考图，按提示选择风格并输入 Emoji 或短描述。宿主已经有可调用的图生视频工具时，不必再配外部模型。
+在 Codex 中调用 `$motion-sticker-pack`，上传角色参考图，按提示选择风格并输入 Emoji 或短描述。静图阶段应使用 **GPT-image-2**，并明确要求透明背景 / 真实 alpha。
 
-使用 **Grok Build** 时，请先看下面的 [隐私 Opt in](#grok-build-隐私opt-in-与-zdr)。未 Opt in 时，本机 `image_to_video` 常会直接报 ZDR/隐私错误，这不是提示词问题。
+视频若交给 Grok Build，请先看 [隐私 Opt in](#grok-build-隐私opt-in-与-zdr)。未 Opt in 时本机 `image_to_video` 常会报 ZDR/隐私错误，这不是提示词问题。
 
 ## 对话流程
 
@@ -127,7 +141,7 @@ $motion-sticker-pack
         ↓
 4. 选择 Emoji，或输入简短表情描述
         ↓
-5. 组装提示词，用「能接收该参考图」的宿主工具生成静态网格图
+5. 组装提示词；在 Codex 中用 GPT-image-2（能接收该参考图、能出真实 alpha）生成透明静态网格图
         ↓
 6. 展示静图和实际网格检测结果
         ↓
@@ -189,7 +203,7 @@ Agent：[verify → 选择视频能力 → 生成 → 切图去背 → 输出 ZI
 
 | 你提供的内容 | Agent 怎么处理 |
 |---|---|
-| 一张角色参考图 | 生成静图板 → 检测网格 → 等你确认 → 动画化并打包 |
+| 一张角色参考图 | Codex + GPT-image-2 生成透明静图板 → 检测网格 → 等你确认 → 动画化并打包 |
 | 一张现成静图板 | 检测网格，`--source-type user-supplied`，不再二次 approve |
 | 多张独立透明贴纸 | `process_independent_stickers.py`，不伪造九宫格 |
 | 一段整板动画视频 | 必要时先抽代表帧做网格检测，再切分、去背、打包 |
@@ -197,11 +211,13 @@ Agent：[verify → 选择视频能力 → 生成 → 切图去背 → 输出 ZI
 
 它不负责从零建立角色身份，也不是通用剪辑器。输入里最好已经有一个可识别的角色。
 
-建议同时告诉 Agent：情绪或 Emoji、视觉风格、是否允许外部付费 API、是否必须完全本地、布局偏好、时长和帧率。未提供的参数用保守默认值：小动作、固定镜头、可循环、6 fps、透明或便于去背的纯色背景。
+建议同时告诉 Agent：情绪或 Emoji、视觉风格、是否允许外部付费 API、是否必须完全本地、布局偏好、时长和帧率。未提供的参数用保守默认值：小动作、固定镜头、可循环、6 fps。在 Codex 上默认要真实透明底；只有当前模型不能出 alpha 时，才退到便于去背的纯色背景。
 
-Grok 宿主上的 `image_to_video` 只接受 **6 或 10 秒**；工作流默认写 6 秒。不要把 3 秒写进将交给 Grok 的 task。
+Grok 上的 `image_to_video` 只接受 **6 或 10 秒**；工作流默认写 6 秒。不要把 3 秒写进将交给 Grok 的 task。
 
 ## Grok Build 隐私：Opt in 与 ZDR
+
+只用 Codex 生成透明静图、视频也走 Codex/外部 Provider 时，可以跳过本节。下面只在把**视频**交给 Grok Build 时需要。
 
 Grok Build 的视频工具受账户隐私策略约束。报 `video tools are unavailable under ZDR` 时，先查隐私设置，不要改提示词、也不要手改 `~/.grok`。
 
@@ -284,7 +300,7 @@ Skill 按下面顺序选路，除非你点名某个 Provider：
 
 ```text
 $motion-sticker-pack 使用附件角色制作一套动态表情包。
-融入 🎸😍🥹😘🥰，圆润 3D 玩具贴纸风。
+用 GPT-image-2 生成带真实 alpha 的透明静图板，融入 🎸😍🥹😘🥰，圆润 3D 玩具贴纸风。
 每个动作都要轻微、独立、可循环，禁止镜头运动和跨格。
 优先使用当前 Agent 的视频能力，最后输出透明 WebP、GIF、PNG 和 ZIP。
 ```
@@ -358,6 +374,19 @@ export XAI_API_KEY='your-key'
 npm ci
 ```
 
+内置 AI SDK 路由的可执行配置如下。示例模型 ID 与 `package-lock.json` 锁定的 SDK 版本匹配；升级依赖或切换区域后应重新核对该区域的模型列表。API Key、端点与模型必须属于同一区域。
+
+| Provider | 默认 I2V 模型 | 凭证环境变量 | `region` |
+| --- | --- | --- | --- |
+| Kling | `kling-v2.6-i2v` | `KLINGAI_API_KEY` | `global` |
+| Seedance | `seedance-1-5-pro-251215` | `ARK_API_KEY` | `international`（BytePlus）或 `china`（火山方舟） |
+| Wan | `wan2.6-i2v-flash` | `DASHSCOPE_API_KEY` 或 `ALIBABA_API_KEY` | `international`（新加坡）或 `china`（北京） |
+| FAL | `luma-dream-machine/ray-2/image-to-video` | `FAL_API_KEY` 或 `FAL_KEY` | `global` |
+
+Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `DASHSCOPE_API_KEY` 与 AI SDK 默认命名 `ALIBABA_API_KEY` 都可用。`region` 只映射到厂商官方公共端点；任意中转站或工作区专属域名仍应使用 `command` Adapter，避免把密钥发送到未受约束的 URL。
+
+`video-task.json` 默认 `max_retries: 0`，避免一次路由在 SDK 内部重复提交付费任务；`poll_interval_ms` 只控制同一任务的状态查询。Probe 只证明 Node、SDK、配置和凭证变量存在，不会产生费用，也不代表远端配额与模型权限正常。真实可用性必须以一次显式授权的单任务执行为准。
+
 把配置路径告诉 Agent。完整字段与 Adapter 协议见：
 
 - [`assets/video-providers.example.json`](assets/video-providers.example.json)
@@ -367,6 +396,8 @@ npm ci
 - [`references/runtime-routing.md`](references/runtime-routing.md)
 
 自定义中转站请写 `command` Adapter，接收 `--task` / `--output` 两个绝对路径，并归一化结果 JSON。Skill 不会假装只改一个 `baseURL` 就能兼容所有中转站。
+
+这里的 Kling / Seedance / Wan / FAL 接入是图生视频（`.video()`），用于动画阶段。静态表情图仍通过宿主可调用、支持参考图的图像生成工具产生；本 Gateway 不把视频 Provider 当作通用静态生图接口。
 
 ## 隐私、费用与凭证
 
@@ -401,7 +432,10 @@ output/
 
 文件按行优先编号。`NN` 等于 `detected_layout.count`，不等于最初口头请求的格数。
 
-不要相信视频模型里看起来像透明的棋盘格。有真实 Alpha 就保留；否则用统一高对比纯色背景，只去掉与裁切边缘连通的相似色，避免挖空角色内部。
+透明底分两层，不要混为一谈：
+
+1. **静图**：Codex + GPT-image-2 可以直接生成带 alpha 的 PNG 图板，这是本 Skill 的主路径。其他生图模型通常没有真实 alpha，不要把「看起来像透明」当成透明。
+2. **视频**：不要相信视频模型里的棋盘格预览。源帧已有真实 Alpha 就保留；否则用统一高对比纯色背景，只去掉与裁切边缘连通的相似色，避免挖空角色内部。
 
 ## 为什么不固定 3×3
 
@@ -416,7 +450,11 @@ output/
 
 ### 安装后 Agent 没有自动使用？
 
-确认项目在宿主 Skill 目录并重开会话。也可显式 `$motion-sticker-pack`，或让 Agent 读 `SKILL.md`。
+确认项目在 Codex 的 Skill 目录（`~/.codex/skills/motion-sticker-pack`）并重开会话。显式 `$motion-sticker-pack`，或让 Agent 读 `SKILL.md`。
+
+### 必须用 Codex 吗？必须用 GPT-image-2 吗？
+
+从角色图**新做**一套透明表情包时，是的：目前只有 GPT-image-2 能稳定给出真实 alpha。已经有透明图板、或接受色键去背时，其他宿主也可以跑后处理。
 
 ### 必须配置视频模型吗？
 
@@ -428,7 +466,7 @@ output/
 
 ### 生成的静图不像我上传的角色？
 
-静态生图必须把原图交给「接受参考图」的宿主工具。纯文生图会另造一个角色。让 Agent 先检查工具签名，再绑定参考图路径或附件句柄。
+在 Codex 里把原图交给 GPT-image-2（必须能接收参考图）。纯文生图会另造一个角色。不要改用没有参考图、也没有 alpha 的模型凑合。
 
 ### 为什么不是我要求的 3×3？
 
@@ -448,10 +486,11 @@ output/
 
 ### 去背挖空了角色？
 
-换与角色主色差更大的纯色背景。边缘变透明就降低阈值；背景残留可适度提高。不要用极高阈值处理复杂场景。
+若静图是 GPT-image-2 出的真实 alpha，优先保留源 alpha，不要再套一层激进色键。只有不透明底才换与角色主色差更大的纯色背景：边缘变透明就降低阈值，背景残留可适度提高。不要用极高阈值处理复杂场景。
 
 ## 当前边界
 
+- 透明静图主路径绑定 Codex + GPT-image-2；其他生图模型一般没有真实 alpha
 - 整板视频仍可能跨格污染
 - 网格检测针对等分图板；自由排版需要人工确认或 `--override`
 - `/privacy` Opt out 或团队 ZDR 会关掉 Grok Build 视频工具，直到 Opt in 或配好存储

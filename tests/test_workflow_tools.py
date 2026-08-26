@@ -40,6 +40,13 @@ class WorkflowToolTests(unittest.TestCase):
             self.assertTrue(Path(task["output_directory"]).is_absolute())
             self.assertTrue((work / "video-providers.json").is_file())
             self.assertTrue((work / "runtime-tools.json").is_file())
+            providers = json.loads((work / "video-providers.json").read_text())["providers"]
+            python_commands = [
+                item["command"][0]
+                for item in providers
+                if item.get("id") in {"grok-build-local", "xai-direct"}
+            ]
+            self.assertEqual(python_commands, [PYTHON, PYTHON])
 
     def test_independent_stickers_produce_numbered_media_and_zip(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

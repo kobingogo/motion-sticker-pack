@@ -19,15 +19,68 @@ KNOWN_AI_SDK_PACKAGES = {
     "alibaba": "@ai-sdk/alibaba",
     "fal": "@ai-sdk/fal",
 }
+AI_SDK_AUTH_ENV_SETS = {
+    "xai": {("XAI_API_KEY",)},
+    "klingai": {
+        ("KLINGAI_API_KEY",),
+        ("KLINGAI_ACCESS_KEY", "KLINGAI_SECRET_KEY"),
+    },
+    "bytedance": {("ARK_API_KEY",)},
+    # The Vercel provider names ALIBABA_API_KEY, while Alibaba's own examples
+    # commonly use DASHSCOPE_API_KEY. The gateway explicitly maps either name.
+    "alibaba": {("ALIBABA_API_KEY",), ("DASHSCOPE_API_KEY",)},
+    "fal": {("FAL_API_KEY",), ("FAL_KEY",)},
+}
+AI_SDK_REGIONS = {
+    "xai": {"global"},
+    "klingai": {"global"},
+    "bytedance": {"international", "china"},
+    "alibaba": {"international", "china"},
+    "fal": {"global"},
+}
+AI_SDK_PROVIDER_OPTION_FIELDS = {
+    "xai": {"mode", "videoUrl", "referenceImageUrls", "referenceVoiceIds", "resolution", "user"},
+    "klingai": {
+        "mode", "negativePrompt", "sound", "cfgScale", "cameraControl", "imageTail", "staticMask",
+        "dynamicMasks", "multiShot", "shotType", "multiPrompt", "elementList", "voiceList",
+        "watermarkEnabled", "videoUrl", "characterOrientation", "keepOriginalSound",
+    },
+    "bytedance": {
+        "watermark", "generateAudio", "cameraFixed", "returnLastFrame", "serviceTier", "draft",
+        "lastFrameImage", "referenceImages", "referenceVideos", "referenceAudio",
+    },
+    "alibaba": {
+        "negativePrompt", "audioUrl", "promptExtend", "shotType", "watermark", "audio",
+        "referenceUrls", "media", "ratio",
+    },
+    "fal": {"loop", "motionStrength", "resolution", "negativePrompt", "promptOptimizer"},
+}
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 ENV_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 PLACEHOLDER_RE = re.compile(r"replace-with|your-|example", re.IGNORECASE)
-SECRET_FIELD_RE = re.compile(r"(?:api[_-]?key|secret|token|password|credential)", re.IGNORECASE)
+SECRET_FIELD_RE = re.compile(
+    r"(?:api[_-]?key|secret|token|password|credential|authorization|auth(?:entication)?)",
+    re.IGNORECASE,
+)
+
+
+def executable_stem(executable: str) -> str:
+    # pathlib follows the host OS and therefore does not split a Windows path
+    # when validation runs on macOS/Linux. Normalize both separators first.
+    name = executable.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    if name.endswith(".exe"):
+        name = name[:-4]
+    return name
 
 
 def is_interpreter(executable: str) -> bool:
-    name = Path(executable).name
-    return name in {"node", "bun", "deno", "python"} or name.startswith("python3")
+    name = executable_stem(executable)
+    return name in {"node", "bun", "deno", "python", "python3", "py"} or name.startswith("python3")
+
+
+def is_python_interpreter(executable: str) -> bool:
+    name = executable_stem(executable)
+    return name in {"python", "python3", "py"} or name.startswith("python3")
 
 
 class ContractError(ValueError):
@@ -94,7 +147,7 @@ def validate_provider_config(config: dict[str, Any]) -> dict[str, Any]:
             raise ContractError(f"{prefix} must be an object")
         allowed_provider_fields = {
             "id", "driver", "enabled", "priority", "capabilities", "credentials", "provider",
-            "package", "model", "tool", "command", "adapter_command", "provider_options",
+            "package", "model", "region", "tool", "command", "adapter_command", "provider_options",
         }
         unknown_provider = set(provider) - allowed_provider_fields
         if unknown_provider:
@@ -148,8 +201,46 @@ def validate_provider_config(config: dict[str, Any]) -> dict[str, Any]:
                 raise ContractError(f"{prefix}.package must be {expected!r} for provider {provider_name!r}")
             if not env_names:
                 raise ContractError(f"{prefix}.credentials.env must name at least one credential variable")
+            accepted_auth = AI_SDK_AUTH_ENV_SETS[provider_name]
+            if tuple(env_names) not in accepted_auth:
+                readable = [" + ".join(names) for names in sorted(accepted_auth)]
+                raise ContractError(
+                    f"{prefix}.credentials.env must be one supported authentication set for "
+                    f"{provider_name!r}: {readable}"
+                )
+            region = provider.get("region")
+            if region is not None:
+                region = _nonempty_string(region, f"{prefix}.region")
+                allowed_regions = AI_SDK_REGIONS[provider_name]
+                if region not in allowed_regions:
+                    raise ContractError(
+                        f"{prefix}.region must be one of {sorted(allowed_regions)} for provider {provider_name!r}"
+                    )
             if provider.get("enabled") and PLACEHOLDER_RE.search(model):
                 raise ContractError(f"{prefix}.model is still a placeholder while the provider is enabled")
+            if provider.get("enabled") and "image-to-video" in provider.get("capabilities", []):
+                lowered_model = model.lower()
+                incompatible = (
+                    (provider_name == "klingai" and ("-t2v" in lowered_model or "motion-control" in lowered_model))
+                    or (provider_name == "bytedance" and "-t2v-" in lowered_model)
+                    or (provider_name == "alibaba" and ("-t2v" in lowered_model or "-r2v" in lowered_model))
+                    or (
+                        provider_name == "fal"
+                        and lowered_model
+                        in {
+                            "minimax-video",
+                            "minimax-video-01",
+                            "luma-dream-machine",
+                            "luma-ray-2",
+                            "luma-ray-2-flash",
+                            "luma-dream-machine/ray-2",
+                        }
+                    )
+                )
+                if incompatible:
+                    raise ContractError(
+                        f"{prefix}.model {model!r} is not an image-to-video model but the provider claims that capability"
+                    )
             options = provider.get("provider_options", {})
             if not isinstance(options, dict):
                 raise ContractError(f"{prefix}.provider_options must be an object")
@@ -165,6 +256,12 @@ def validate_provider_config(config: dict[str, Any]) -> dict[str, Any]:
                         stack.append((f"{location}.{key}", child))
                 elif isinstance(value, list):
                     stack.extend((f"{location}[]", child) for child in value)
+            unknown_options = set(options) - AI_SDK_PROVIDER_OPTION_FIELDS[provider_name]
+            if unknown_options:
+                raise ContractError(
+                    f"{prefix}.provider_options contains unsupported fields for {provider_name!r}: "
+                    f"{sorted(unknown_options)}"
+                )
         elif driver == "command":
             command = _string_list(provider.get("command"), f"{prefix}.command")
             if is_interpreter(command[0]):
@@ -183,7 +280,7 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
         "$schema", "version", "operation", "required_capabilities", "prefer_capabilities", "require_alpha",
         "allow_key_background", "allow_fallback", "provider", "input_image", "layout_file", "prompt_file",
         "approval_file", "output_directory", "duration_seconds", "timeout_seconds", "max_output_bytes",
-        "max_input_image_bytes", "aspect_ratio", "resolution", "fps",
+        "max_input_image_bytes", "aspect_ratio", "resolution", "fps", "poll_interval_ms", "max_retries",
     }
     unknown = set(task) - allowed_fields
     if unknown:
@@ -208,7 +305,7 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
             value = Path(_nonempty_string(task.get(field), field)).expanduser()
             if not value.is_absolute():
                 raise ContractError(f"{field} must be an absolute path")
-        duration = task.get("duration_seconds", 3)
+        duration = task.get("duration_seconds", 5)
         if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not 1 <= duration <= 30:
             raise ContractError("duration_seconds must be between 1 and 30")
         timeout = task.get("timeout_seconds", 900)
@@ -217,6 +314,20 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
         fps = task.get("fps")
         if fps is not None and (not isinstance(fps, int) or isinstance(fps, bool) or not 1 <= fps <= 60):
             raise ContractError("fps must be an integer from 1 to 60")
+        poll_interval = task.get("poll_interval_ms", 5000)
+        if (
+            not isinstance(poll_interval, int)
+            or isinstance(poll_interval, bool)
+            or not 100 <= poll_interval <= 60000
+        ):
+            raise ContractError("poll_interval_ms must be an integer from 100 to 60000")
+        max_retries = task.get("max_retries", 0)
+        if (
+            not isinstance(max_retries, int)
+            or isinstance(max_retries, bool)
+            or not 0 <= max_retries <= 3
+        ):
+            raise ContractError("max_retries must be an integer from 0 to 3")
         for field, default in (("max_output_bytes", 200 * 1024 * 1024), ("max_input_image_bytes", 25 * 1024 * 1024)):
             value = task.get(field, default)
             if not isinstance(value, int) or isinstance(value, bool) or value < 1024:

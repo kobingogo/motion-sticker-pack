@@ -13,10 +13,18 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-from config_contract import ContractError, object_sha256, validate_provider_config  # noqa: E402
+from config_contract import (  # noqa: E402
+    ContractError,
+    is_interpreter,
+    is_python_interpreter,
+    object_sha256,
+    validate_provider_config,
+    validate_video_task,
+)
 from execute_video_route import child_environment, diagnostic_tail, execute_attempt  # noqa: E402
 from grok_build_video_adapter import (  # noqa: E402
     annotate_error,
+    find_grok,
     grok_command,
     parse_structured,
     resolve_grok_home,
@@ -54,6 +62,91 @@ class AdversarialContractTests(unittest.TestCase):
         config["providers"] = [provider, dict(provider)]
         with self.assertRaisesRegex(ContractError, "duplicate provider"):
             validate_provider_config(config)
+
+    def test_windows_and_py_launcher_names_count_as_interpreters(self) -> None:
+        for name in (
+            "python",
+            "python3",
+            "python3.12",
+            "py",
+            "python.exe",
+            "python3.exe",
+            "python3.12.exe",
+            "py.exe",
+            "C:\\Python312\\python.exe",
+            "/usr/bin/python3",
+            "node.exe",
+        ):
+            with self.subTest(name=name):
+                self.assertTrue(is_interpreter(name))
+        self.assertTrue(is_python_interpreter("py.exe"))
+        self.assertTrue(is_python_interpreter(r"C:\Users\me\AppData\Local\Programs\Python\Python312\python.exe"))
+        self.assertFalse(is_python_interpreter("node.exe"))
+        self.assertFalse(is_interpreter("grok.exe"))
+
+    def test_python_exe_command_requires_absolute_entrypoint(self) -> None:
+        config = base_config()
+        config["providers"] = [
+            {
+                "id": "relay",
+                "driver": "command",
+                "enabled": False,
+                "priority": 1,
+                "command": ["python.exe", "adapter.py"],
+                "capabilities": ["image-to-video"],
+            }
+        ]
+        with self.assertRaisesRegex(ContractError, "absolute path"):
+            validate_provider_config(config)
+
+    def test_adapter_inherits_windows_runtime_variables_without_secrets(self) -> None:
+        provider = {"credentials": {"env": ["XAI_API_KEY"]}}
+        child = child_environment(
+            provider,
+            {
+                "PATH": "/bin",
+                "SYSTEMROOT": r"C:\Windows",
+                "USERPROFILE": r"C:\Users\bingo",
+                "XAI_API_KEY": "allowed",
+                "AWS_SECRET_ACCESS_KEY": "blocked",
+            },
+        )
+        self.assertEqual(child["SYSTEMROOT"], r"C:\Windows")
+        self.assertEqual(child["USERPROFILE"], r"C:\Users\bingo")
+        self.assertEqual(child["XAI_API_KEY"], "allowed")
+        self.assertNotIn("AWS_SECRET_ACCESS_KEY", child)
+
+    def test_windows_env_keys_are_matched_case_insensitively(self) -> None:
+        with patch("execute_video_route.os.name", "nt"):
+            child = child_environment(
+                {"credentials": {"env": []}},
+                {
+                    "Path": r"C:\Windows\System32",
+                    "SystemRoot": r"C:\Windows",
+                    "AWS_SECRET_ACCESS_KEY": "blocked",
+                },
+            )
+        self.assertEqual(child["Path"], r"C:\Windows\System32")
+        self.assertEqual(child["SystemRoot"], r"C:\Windows")
+        self.assertNotIn("AWS_SECRET_ACCESS_KEY", child)
+
+    def test_find_grok_accepts_exe_under_grok_home_bin(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            binary = home / "bin" / "grok.exe"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"")
+            binary.chmod(0o755)
+            found = find_grok({"GROK_HOME": str(home), "PATH": str(home / "missing")})
+            self.assertEqual(Path(found), binary.resolve())
+
+    def test_find_grok_honors_grok_bin_even_when_named_exe(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            binary = Path(temporary) / "custom-grok.exe"
+            binary.write_bytes(b"")
+            binary.chmod(0o755)
+            found = find_grok({"GROK_BIN": str(binary), "GROK_HOME": str(Path(temporary) / "empty"), "PATH": ""})
+            self.assertEqual(Path(found), binary.resolve())
 
     def test_adapter_inherits_only_declared_credential(self) -> None:
         provider = {"credentials": {"env": ["XAI_API_KEY"]}}
@@ -297,6 +390,79 @@ class AdversarialContractTests(unittest.TestCase):
         ]
         with self.assertRaisesRegex(ContractError, "secret-like"):
             validate_provider_config(config)
+
+    def test_unknown_provider_option_is_rejected_before_execution(self) -> None:
+        config = base_config()
+        config["providers"] = [
+            {
+                "id": "seedance",
+                "driver": "ai-sdk",
+                "enabled": True,
+                "priority": 1,
+                "provider": "bytedance",
+                "package": "@ai-sdk/bytedance",
+                "model": "seedance-1-5-pro-251215",
+                "capabilities": ["image-to-video"],
+                "credentials": {"env": ["ARK_API_KEY"]},
+                "provider_options": {"cameraFiexed": True},
+            }
+        ]
+        with self.assertRaisesRegex(ContractError, "unsupported fields"):
+            validate_provider_config(config)
+
+    def test_ai_sdk_auth_alias_region_and_i2v_model_are_validated(self) -> None:
+        config = base_config()
+        config["providers"] = [
+            {
+                "id": "wan",
+                "driver": "ai-sdk",
+                "enabled": True,
+                "priority": 1,
+                "provider": "alibaba",
+                "package": "@ai-sdk/alibaba",
+                "model": "wan2.6-i2v-flash",
+                "region": "china",
+                "capabilities": ["image-to-video"],
+                "credentials": {"env": ["DASHSCOPE_API_KEY"]},
+            }
+        ]
+        self.assertEqual(validate_provider_config(config), config)
+
+        config["providers"][0]["credentials"] = {"env": ["UNRELATED_API_KEY"]}
+        with self.assertRaisesRegex(ContractError, "supported authentication set"):
+            validate_provider_config(config)
+
+        config["providers"][0]["credentials"] = {"env": ["ALIBABA_API_KEY"]}
+        config["providers"][0]["region"] = "global"
+        with self.assertRaisesRegex(ContractError, "region must be one of"):
+            validate_provider_config(config)
+
+        config["providers"][0]["region"] = "international"
+        config["providers"][0]["model"] = "wan2.6-t2v"
+        with self.assertRaisesRegex(ContractError, "not an image-to-video model"):
+            validate_provider_config(config)
+
+    def test_video_task_polling_and_retry_limits_are_validated(self) -> None:
+        task = {
+            "version": 1,
+            "operation": "image-to-video",
+            "input_image": "/tmp/sheet.png",
+            "layout_file": "/tmp/layout.json",
+            "prompt_file": "/tmp/prompts.json",
+            "approval_file": "/tmp/job-state.json",
+            "output_directory": "/tmp/raw",
+            "poll_interval_ms": 100,
+            "max_retries": 0,
+        }
+        self.assertEqual(validate_video_task(task, require_execution_fields=True), task)
+        for field, value, message in (
+            ("poll_interval_ms", 99, "poll_interval_ms"),
+            ("max_retries", 4, "max_retries"),
+        ):
+            invalid = dict(task)
+            invalid[field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(ContractError, message):
+                validate_video_task(invalid, require_execution_fields=True)
 
     def test_stale_capability_report_is_rejected(self) -> None:
         config = base_config()

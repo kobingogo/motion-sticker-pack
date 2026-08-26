@@ -26,7 +26,23 @@ PASSTHROUGH_ENV = {
     "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "TZ",
     "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
     "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy",
+    # Windows child processes need these for Path.home(), TLS, and PATHEXT lookup.
+    "USERPROFILE", "USERNAME", "APPDATA", "LOCALAPPDATA",
+    "HOMEDRIVE", "HOMEPATH", "HOMESHARE",
+    "SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "COMSPEC", "PATHEXT", "OS",
+    "PROCESSOR_ARCHITECTURE", "PROCESSOR_ARCHITEW6432",
+    "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMW6432", "PROGRAMDATA",
+    "PUBLIC", "ALLUSERSPROFILE", "COMPUTERNAME", "NUMBER_OF_PROCESSORS",
 }
+
+
+def _env_key_allowed(key: str, allowed: set[str]) -> bool:
+    if key in allowed:
+        return True
+    if os.name != "nt":
+        return False
+    allowed_upper = {name.upper() for name in allowed}
+    return key.upper() in allowed_upper
 
 
 def child_environment(provider: dict, environ: dict[str, str] | None = None) -> dict[str, str]:
@@ -37,7 +53,7 @@ def child_environment(provider: dict, environ: dict[str, str] | None = None) -> 
         | set(credentials.get("env", []))
         | set(credentials.get("optional_env", []))
     )
-    return {key: value for key, value in source.items() if key in allowed}
+    return {key: value for key, value in source.items() if _env_key_allowed(key, allowed)}
 
 
 def diagnostic_tail(raw: bytes, limit: int = 4000) -> str:
