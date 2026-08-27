@@ -36,6 +36,26 @@ class AnimationExportTests(unittest.TestCase):
                 self.assertGreaterEqual(getattr(animation, "n_frames", 1), 2)
             self.assertGreater(gif.stat().st_size, 0)
 
+    def test_gif_keeps_opaque_black_interior(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            frames = []
+            for index in range(3):
+                image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+                draw = ImageDraw.Draw(image)
+                inset = 12 + (index % 2)
+                draw.ellipse((inset, inset, 64 - inset, 64 - inset), fill=(18, 14, 16, 255))
+                path = root / f"{index:04d}.png"
+                image.save(path)
+                frames.append(path)
+            gif = root / "black.gif"
+            encode_gif(frames, gif, 6)
+            with Image.open(gif) as animation:
+                animation.seek(0)
+                alpha = animation.convert("RGBA").getchannel("A")
+                interior = alpha.crop((24, 24, 40, 40))
+                self.assertGreaterEqual(min(interior.getextrema()), 250)
+
 
 if __name__ == "__main__":
     unittest.main()

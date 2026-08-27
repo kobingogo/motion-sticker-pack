@@ -96,7 +96,7 @@ def _encode_gif_ffmpeg(frame_paths: list[Path], target: Path, fps: int) -> None:
             str(root / "%04d.png"),
             "-vf",
             "split[s0][s1];[s0]palettegen=reserve_transparent=1:max_colors=255[p];"
-            "[s1][p]paletteuse=dither=bayer:bayer_scale=4:alpha_threshold=32",
+            "[s1][p]paletteuse=dither=none:diff_mode=rectangle:alpha_threshold=32",
             "-loop",
             "0",
             str(target),

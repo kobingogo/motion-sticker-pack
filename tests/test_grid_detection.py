@@ -57,6 +57,16 @@ class GridDetectionTests(unittest.TestCase):
         self.assertEqual(int(rgba[0, 0, 3]), 0)
         self.assertEqual(int(rgba[25, 25, 3]), 255)
 
+    def test_black_subject_on_black_plate_keeps_interior_opaque(self) -> None:
+        rgb = np.zeros((80, 80, 3), dtype=np.uint8)
+        rgb[18:62, 18:62] = (32, 24, 28)
+        rgb[28:52, 28:52] = (48, 36, 40)
+        rgba = np.asarray(remove_edge_background(rgb))
+        interior = rgba[30:50, 30:50, 3]
+        self.assertEqual(int(rgba[0, 0, 3]), 0)
+        self.assertGreaterEqual(int(interior.min()), 250)
+        self.assertGreaterEqual(float(np.mean(interior == 255)), 0.99)
+
     def test_blank_sheet_never_reports_high_confidence(self) -> None:
         image = Image.new("RGB", (400, 400), (255, 255, 255))
         report = detect_layout(image, [(2, 2), (3, 3), (4, 3)])

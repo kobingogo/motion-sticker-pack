@@ -117,6 +117,28 @@ def median_background(rgb: np.ndarray) -> np.ndarray:
     return np.median(samples, axis=0).astype(np.float32)
 
 
+def plate_key_tolerances(
+    background: np.ndarray,
+    hard_tolerance: float,
+    soft_tolerance: float,
+) -> tuple[float, float]:
+    """Tighten the key when the plate is near-black or near-white.
+
+    Default RGB radii (38/72) are meant for chroma plates such as green. On a
+    black plate they also match black fur, so edge-connected matting eats the
+    subject and GIF binary transparency turns those pixels into holes.
+    """
+    plate = np.asarray(background, dtype=np.float32).reshape(-1)[:3]
+    chroma = float(np.max(plate) - np.min(plate))
+    luma = float(0.299 * plate[0] + 0.587 * plate[1] + 0.114 * plate[2])
+    if chroma < 40.0 and (luma <= 40.0 or luma >= 215.0):
+        hard_tolerance = min(hard_tolerance, 12.0)
+        soft_tolerance = min(soft_tolerance, 28.0)
+        if soft_tolerance <= hard_tolerance:
+            soft_tolerance = hard_tolerance + 8.0
+    return hard_tolerance, soft_tolerance
+
+
 def remove_edge_background(
     rgb: np.ndarray,
     background: np.ndarray | None = None,
@@ -126,6 +148,7 @@ def remove_edge_background(
     """Remove only background-like pixels connected to the crop boundary."""
     height, width, _ = rgb.shape
     background = median_background(rgb) if background is None else background.astype(np.float32)
+    hard_tolerance, soft_tolerance = plate_key_tolerances(background, hard_tolerance, soft_tolerance)
     distance = np.sqrt(np.sum((rgb.astype(np.float32) - background) ** 2, axis=2))
     candidate = distance <= soft_tolerance
     connected = np.zeros((height, width), dtype=bool)
