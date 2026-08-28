@@ -114,6 +114,28 @@ After installing the Skill above, prepare the local media dependencies and start
 
 A full pack needs Python 3.10+, Pillow, NumPy, FFmpeg, and FFprobe:
 
+#### Let an agent configure everything in one pass (recommended)
+
+After installing the Skill, paste the full instruction below into Codex or another terminal-capable agent. It tells the agent to locate the Skill, install only missing dependencies, and verify the result. It must not call an image or video provider, so this setup step does not incur generation charges.
+
+```text
+Configure the local runtime dependencies for the motion-sticker-pack Skill I just installed.
+
+1. Locate the installed Skill root first; do not assume the current directory is the Skill root.
+2. Check for Python 3.10+, pip, Pillow, NumPy, FFmpeg, and FFprobe.
+3. Install only missing items. Use this Skill's requirements.txt for Python packages and an available package manager for system media tools.
+4. If a system install needs sudo, administrator access, or a global environment change, show me the command first.
+5. Only if I need the xAI, Kling, Seedance, Wan, or FAL executors, check for Node 22+ and run npm ci in the Skill root.
+6. Print the installed versions of Python, Pillow, NumPy, FFmpeg, FFprobe, and optional Node/npm, then run the repository tests.
+7. Do not call any image or video generation provider. Do not read or change API keys, Grok /privacy, or other account settings.
+
+When finished, report what was installed, what was skipped, whether verification passed, and any permissions I still need to handle.
+```
+
+For local splitting, matting, and lightweight motion only, keep step 5 disabled; Node dependencies are unnecessary.
+
+#### Manual installation
+
 ```bash
 python3 -m pip install -r requirements.txt
 ```

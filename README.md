@@ -114,6 +114,28 @@ ln -s "$PWD/motion-sticker-pack" ~/.codex/skills/motion-sticker-pack
 
 完整交付需要 Python 3.10+、Pillow、NumPy、FFmpeg 和 FFprobe：
 
+#### 让 Agent 一次配置完成（推荐）
+
+Skill 安装完成后，把下面整段复制给 Codex 或其他具备终端能力的 Agent。它会定位 Skill 目录、只补齐缺失依赖并运行验证；这一步不会调用图片或视频 Provider，也不会产生生成费用。
+
+```text
+请为刚安装的 motion-sticker-pack 配置本机运行依赖。
+
+1. 先定位已安装的 Skill 根目录，不要假设当前目录就是 Skill；
+2. 检查 Python 3.10+、pip、Pillow、NumPy、FFmpeg 和 FFprobe；
+3. 只安装缺失项：Python 包使用该 Skill 的 requirements.txt，系统媒体工具使用当前操作系统可用的包管理器；
+4. 如果系统安装需要 sudo、管理员权限或会修改全局环境，先告诉我将执行的命令；
+5. 只有我需要 xAI / Kling / Seedance / Wan / FAL 执行器时，才检查 Node 22+ 并在 Skill 根目录运行 npm ci；
+6. 安装后打印 Python、Pillow、NumPy、FFmpeg、FFprobe，以及可选 Node/npm 的版本，并运行仓库测试；
+7. 不要调用任何图片或视频生成 Provider，不要读取或修改 API Key、Grok /privacy 或其他账户设置。
+
+完成后告诉我：安装了什么、跳过了什么、验证是否通过，以及仍需我处理的权限问题。
+```
+
+如果你只需要本地切图、去背和轻量动画，可以把第 5 步保持为“跳过”，无需安装 Node 依赖。
+
+#### 手动安装
+
 ```bash
 python3 -m pip install -r requirements.txt
 ```
