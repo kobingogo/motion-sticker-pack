@@ -34,7 +34,7 @@ Scope: Agent interaction, static approval, layout detection, prompt compilation,
 
 - No paid API request was made. Authentication validity, account quota, billing, remote moderation, remote model availability, and actual video quality remain unproven until the user authorizes a real generation.
 - Whole-sheet video models can still create cross-cell attention leakage despite strict prompts. Visual review and per-cell regeneration remain necessary.
-- Edge-connected color matting is deliberately conservative and is not a replacement for a dedicated video matting model on hair, motion blur, shadows, or textured scenes.
+- Edge-connected color matting is deliberately conservative and is not a replacement for a dedicated video matting model on hair, motion blur, shadows, or textured scenes. Near-black and near-white plates now use a tighter key, and `processing.json` warns `subject-alpha-eaten-by-key` when subject-colored pixels stay weak. Still composite GIFs onto a light background before delivery; binary GIF transparency can hide the same damage on black.
 - A custom `command` Adapter is executable code chosen by the user. Environment filtering reduces accidental credential exposure but does not sandbox filesystem or network access.
 - Native tool manifests are assertions from the host Agent runtime and cannot be independently proven by this repository.
 - Vercel AI SDK video generation remains experimental, so pinned dependency upgrades require contract retesting.

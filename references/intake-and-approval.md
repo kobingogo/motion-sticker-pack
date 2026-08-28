@@ -1,6 +1,6 @@
 # Intake and approval flow
 
-Read this reference when the user starts from a character image or asks to create a new static sticker sheet.
+Read this reference when the user starts from a character image, names or describes a character without an image, or asks to create a new static sticker sheet.
 
 ## Agent-side interaction
 
@@ -8,17 +8,17 @@ Collect only the missing fields. Do not ask a long questionnaire.
 
 Required before static generation:
 
-1. one reference image the user supplied;
+1. either one user-supplied reference image or a usable character name/description;
 2. one style choice;
 3. one or more Emoji or short reaction descriptions.
 
-Before compiling the prompt, inspect the reference image for the IP's stable visual features—face, hair or fur, silhouette, proportions, colors, clothing, accessories, existing props, pose language, scene cues, and mood—and carry those features into the prompt. Treat the supplied image as the source of truth. Preserve them by default and only change them when the user asks.
+When an image exists, inspect it for the IP's stable visual features—face, hair or fur, silhouette, proportions, colors, clothing, accessories, existing props, pose language, scene cues, and mood—and treat it as the source of truth. Without an image, compile the user's named/textual character definition and keep that identity consistent across every cell. Do not generate a separate character concept image first.
 
 Do not add unsolicited moral, modesty, sexualization, age, wardrobe, pose-cleanup, or scene-removal constraints. Do not rewrite the reference into “得体、日常、非性感化” clothing or remove cars, night scenes, backgrounds, or ambiguous poses unless the user explicitly requests those changes. Use a neutral reference label such as `所附图像`.
 
 ## Confirmation for vague requests
 
-If the user provides a character image but leaves style or reactions unspecified, pause before generation and show this concise proposal:
+If the user provides or defines a character but leaves style or reactions unspecified, pause before generation and show this concise proposal. For a text-defined character, replace the attachment sentence with the supplied character definition and state that the complete sheet will be generated directly:
 
 ```text
 我将按以下设置制作：
@@ -40,7 +40,7 @@ Optional:
 - desired symbols or props;
 - local-only/privacy requirement.
 
-If the user does not give a character name, derive a short label from the reference (for example the filename stem or a visible identity word) and confirm it before writing files. Create the directory with `scripts/character_workspace.py --name <角色名>` and keep later outputs inside that folder.
+If the user does not give a character name, derive a short label from the reference or textual definition and confirm it before writing files. Create the directory with `scripts/character_workspace.py --name <角色名>` and keep later outputs inside that folder.
 
 If the host supports forms, chips, cards, or other structured inputs, use them for style and expression selection. Otherwise present a short numbered list and accept natural-language replies. The interaction must remain usable in a plain terminal Agent.
 
@@ -70,11 +70,16 @@ Emoji are semantic/motif hints, not commands to paste literal Unicode glyphs int
 
 ## Static generation
 
-Compile the user selections with `scripts/compile_static_prompt.py --reference-image <source-image>`. Generate one transparent sticker sheet using a callable image-generation or image-editing backend that accepts that exact reference image. Text-only generation is not sufficient for identity preservation. Save the result as `static-sheet.png`; the requested grid is only a preference.
+Compile the user selections with `scripts/compile_static_prompt.py --reference-image <source-image>` when an image exists, or `--character-description <definition>` otherwise. The text-defined route directly generates the complete grid; it must not first generate a standalone character image. A reference-image route must use a backend that accepts that exact image.
+
+The compiled `image_generation_request` always declares `background` and `output_format`. After inspecting the callable schema, run `scripts/prepare_image_gen_call.py` with every exposed field as a repeated `--supported-argument`. Use its transparent-first `call_arguments` for `image_gen` even when either native argument is omitted: prompt-driven real Alpha remains possible, with or without a reference image. The helper also records an `opaque_fallback_call` for one bounded retry. The runtime must judge the returned pixels, not the schema omission or the model's claim: preserve valid native alpha, locally matte only a uniform high-contrast chroma key, and reject checkerboard/two-tone previews or unsafe opaque backgrounds. Only such pixel-validation failure may run the recorded fallback with the same prompt/reference, exact `#00FF00` instruction, and supported `background: opaque` / `output_format: png`. Normalize again; if fallback validation fails, stop and ask for regeneration rather than sending the sheet downstream.
 
 Immediately inspect the returned image with `scripts/inspect_sticker_sheet.py` and create:
 
 - `static-sheet.png`;
+- `static-sheet-source.png`;
+- `static-generation.json`;
+- `static-alpha.json`;
 - `layout.json`;
 - `layout-overlay.png` when review benefits from visible boundaries;
 - `static-prompt.json`.

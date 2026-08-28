@@ -583,6 +583,8 @@
 
       <div data-hf-id="hf-7enh" id="gallery-host" data-composition-id="character-gallery" data-composition-src="compositions/character-gallery.html" data-layout-allow-overlap="" data-layout-allow-occlusion="" data-start="12" data-duration="30" data-track-index="10" data-width="1080" data-height="1350"></div>
 
+      <audio data-hf-id="hf-rjp3" id="promo-bgm" src="assets/audio/promo-bgm.mp3" data-start="0" data-duration="42" data-track-index="20" preload="auto"></audio>
+
       <script>
         (() => {
           const tl = gsap.timeline({ paused: true });
@@ -617,6 +619,19 @@
           tl.from(".format-chip", { scale: 0.7, opacity: 0, duration: 0.38, stagger: 0.08, ease: "back.out(1.5)" }, 9.0);
           tl.from(".footer-cta", { y: 18, opacity: 0, duration: 0.5, ease: "power3.out" }, 10.05);
           tl.from(".footer-mark", { x: 18, opacity: 0, duration: 0.45, ease: "power2.out" }, 10.25);
+
+          tl.fromTo("#promo-bgm", { volume: 0 }, { volume: 0.24, duration: 0.8, ease: "power2.out" }, 0);
+          tl.to("#promo-bgm", { volume: 0.18, duration: 0.35, ease: "power2.out" }, 11.55);
+          tl.to("#promo-bgm", { volume: 0.24, duration: 0.35, ease: "power2.inOut" }, 12.0);
+          tl.to("#promo-bgm", { volume: 0.18, duration: 0.35, ease: "power2.out" }, 17.55);
+          tl.to("#promo-bgm", { volume: 0.24, duration: 0.35, ease: "power2.inOut" }, 18.0);
+          tl.to("#promo-bgm", { volume: 0.18, duration: 0.35, ease: "power2.out" }, 23.55);
+          tl.to("#promo-bgm", { volume: 0.24, duration: 0.35, ease: "power2.inOut" }, 24.0);
+          tl.to("#promo-bgm", { volume: 0.18, duration: 0.35, ease: "power2.out" }, 29.55);
+          tl.to("#promo-bgm", { volume: 0.24, duration: 0.35, ease: "power2.inOut" }, 30.0);
+          tl.to("#promo-bgm", { volume: 0.18, duration: 0.35, ease: "power2.out" }, 35.55);
+          tl.to("#promo-bgm", { volume: 0.24, duration: 0.35, ease: "power2.inOut" }, 36.0);
+          tl.to("#promo-bgm", { volume: 0, duration: 1.0, ease: "power2.in" }, 41.0);
 
           window.__timelines = window.__timelines || {};
           window.__timelines.main = tl;

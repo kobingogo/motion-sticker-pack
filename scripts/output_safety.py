@@ -8,7 +8,16 @@ from pathlib import Path
 
 
 NUMBERED_ARTIFACT = re.compile(r"^\d{2,}\.(?:png|webp|gif)$")
-KNOWN_REPORTS = {"layout.json", "processing.json", "prompts.json", "route.json", "job-state.json"}
+DELIVERY_VARIANT_DIRECTORY = re.compile(r"^\d+(?:\.\d+)?s$")
+KNOWN_REPORTS = {
+    "layout.json",
+    "processing.json",
+    "prompts.json",
+    "route.json",
+    "job-state.json",
+    "preview.png",
+    "sticker-production.json",
+}
 
 
 def validate_archive_name(value: str) -> str:
@@ -24,6 +33,7 @@ def is_generated_artifact(path: Path, archive_names: set[str]) -> bool:
         or path.name in KNOWN_REPORTS
         or path.name in archive_names
         or path.name == "frames"
+        or (path.is_dir() and DELIVERY_VARIANT_DIRECTORY.fullmatch(path.name) is not None)
     )
 
 

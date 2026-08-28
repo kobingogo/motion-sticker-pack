@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/motion-sticker-pack/sticker-production.schema.json",
+  "title": "Motion sticker production settings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "generation", "duration_profiles", "canvas", "gif", "webp", "budget", "trial", "unexpected_duration"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": 1},
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "resolution", "key_color", "max_retries", "motion_timeline"],
+      "oneOf": [
+        {"required": ["provider_duration_seconds"]},
+        {"required": ["request_duration_seconds"]}
+      ],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "provider_duration_seconds": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9-]*$": {"type": "integer", "minimum": 1, "maximum": 15}
+          }
+        },
+        "request_duration_seconds": {"type": "integer", "minimum": 1, "maximum": 15},
+        "resolution": {"enum": ["480p", "720p"]},
+        "key_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "max_retries": {"const": 0},
+        "motion_timeline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start_hold_seconds", "action_end_seconds", "return_end_seconds", "final_hold_seconds"],
+          "properties": {
+            "start_hold_seconds": {"type": "number", "minimum": 0},
+            "action_end_seconds": {"type": "number", "exclusiveMinimum": 0},
+            "return_end_seconds": {"type": "number", "exclusiveMinimum": 0},
+            "final_hold_seconds": {"type": "number", "minimum": 0}
+          }
+        }
+      }
+    },
+    "delivery_variants": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9-]*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["short_duration_seconds"],
+          "properties": {
+            "short_duration_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 15},
+            "loop_difference_max": {"type": "number", "minimum": 0, "maximum": 1, "deprecated": true},
+            "cycle_search_seconds": {
+              "type": "object",
+              "deprecated": true,
+              "additionalProperties": false,
+              "required": ["minimum_seconds", "maximum_seconds"],
+              "properties": {
+                "minimum_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 15},
+                "maximum_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 15}
+              }
+            }
+          }
+        }
+      }
+    },
+    "duration_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "match_duration", "output"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "match_duration": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["minimum_seconds", "maximum_seconds"],
+            "properties": {
+              "minimum_seconds": {"type": "number", "minimum": 0.1},
+              "maximum_seconds": {"type": "number", "minimum": 0.1}
+            }
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["duration_mode", "width", "height", "fps", "gif"],
+            "properties": {
+              "duration_mode": {"const": "full"},
+              "width": {"type": "integer", "minimum": 16, "maximum": 2048},
+              "height": {"type": "integer", "minimum": 16, "maximum": 2048},
+              "fps": {"type": "integer", "minimum": 1, "maximum": 60},
+              "gif": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["max_colors", "dither"],
+                "properties": {
+                  "max_colors": {"type": "integer", "minimum": 2, "maximum": 256},
+                  "dither": {"enum": ["none", "bayer"]}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "canvas": {"type": "object"},
+    "gif": {"type": "object"},
+    "webp": {"type": "object"},
+    "budget": {"type": "object"},
+    "trial": {"type": "object"},
+    "unexpected_duration": {"type": "object"}
+  }
+}

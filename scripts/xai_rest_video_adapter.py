@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from config_contract import ContractError
-from video_adapter_common import copy_video, download_video, load_task_and_prompt, write_result
+from video_adapter_common import copy_video, download_video, duration_for_provider, load_task_and_prompt, write_result
 
 
 PROVIDER_ID = "xai-direct"
@@ -95,7 +95,7 @@ def main() -> int:
             raise ContractError("XAI_API_KEY is required")
         task, prompt = load_task_and_prompt(args.task)
         image = Path(task["input_image"]).resolve()
-        duration = max(1, min(15, round(float(task.get("duration_seconds", 6)))))
+        duration = duration_for_provider(task, PROVIDER_ID, default=3)
         model = os.environ.get("XAI_VIDEO_MODEL", "grok-imagine-video")
         resolution = os.environ.get("XAI_VIDEO_RESOLUTION", "480p")
         if resolution not in {"480p", "720p"}:

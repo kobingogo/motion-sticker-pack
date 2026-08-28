@@ -56,6 +56,12 @@ delivered/
 # Legacy shared folder
 work/
 
+# Local development links and generated promo caches
+/AGENTS.md
+/motion-sticker-pack
+promo-x-4x5/.waveform-cache/
+promo-x-4x5/assets/audio/*.wav
+
 # Per-character generated assets (keep the convention README only)
 works/*
 !works/README.md

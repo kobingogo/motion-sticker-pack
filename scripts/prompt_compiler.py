@@ -9,6 +9,9 @@ import re
 from pathlib import Path
 
 
+DEFAULT_KEY_COLOR = "#00FF00"
+
+
 def load_layout(path: Path, allow_low_confidence: bool = False) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     detected = data.get("detected_layout", data)
@@ -60,6 +63,21 @@ def load_tile_plan(path: Path | None, count: int, allow_generic: bool = False) -
     return normalized
 
 
+def validate_key_color(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+        raise ValueError("key color must use #RRGGBB notation")
+    red = int(value[1:3], 16)
+    green = int(value[3:5], 16)
+    blue = int(value[5:7], 16)
+    chroma = max(red, green, blue) - min(red, green, blue)
+    luma = 0.299 * red + 0.587 * green + 0.114 * blue
+    if chroma < 40 and (luma <= 40 or luma >= 215):
+        raise ValueError("key color must contrast with the subject; do not use a near-black or near-white plate")
+    return value
+
+
 def compile_prompts(layout: dict, tiles: list[dict], key_color: str | None) -> dict:
     columns, rows, count = layout["columns"], layout["rows"], layout["count"]
     grid = f"{columns} 列 × {rows} 行"
@@ -70,7 +88,10 @@ def compile_prompts(layout: dict, tiles: list[dict], key_color: str | None) -> d
     background = (
         f"若无法输出真实透明通道，统一使用纯色 {key_color}，无阴影、渐变或纹理。"
         if key_color
-        else "优先输出真实透明通道；若模型不支持，执行前必须选择与所有角色颜色高对比的单一纯色键背景。"
+        else (
+            "优先输出真实透明通道；若模型不支持，执行前必须选择与所有角色主色都高对比的单一色键"
+            "（优先绿或品红；禁止用接近角色颜色的黑、白或灰底板）。"
+        )
     )
     video_prompt = f"""严格保持输入图像实际检测到的 {grid} 网格布局不变，共 {count} 格，并将这张表情图板动画化。
 
@@ -79,7 +100,9 @@ def compile_prompts(layout: dict, tiles: list[dict], key_color: str | None) -> d
 逐格动作（按从左到右、从上到下编号）：
 {motions}
 
-每格动作自然、简洁、适合聊天，结束时回到初始姿势或按指定循环策略闭合。任何主体和已有道具都不能触碰或越过格子边界。{background} 不要用棋盘格模拟透明，不要产生白边、黑边、残留背景或半透明脏边。"""
+每格只完成一个原地微动作。动作必须在视频开始后的前 2 秒内完成并回到初始姿势；余下时间保持近乎静止，仅允许极轻微呼吸。角色身体中心和脚底基线固定，不得持续漂移。不要使用大幅甩动、长距离位移或跨边界运动。
+
+每格动作自然、简洁、适合聊天，结束时回到初始姿势或按指定循环策略闭合。任何主体和已有道具都不能触碰或越过格子边界。{background} 从第一帧到最后一帧都必须保持同一纯色底板；不要用棋盘格模拟透明，不要产生白边、黑边、残留背景或半透明脏边。"""
     negative_prompt = (
         "camera motion, zoom, pan, tilt, roll, shake, global animation, synchronized board movement, "
         "cross-cell interaction, layout change, extra character, extra limb, duplicate prop, text, caption, "
@@ -104,16 +127,15 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--layout", type=Path, required=True)
     parser.add_argument("--tile-plan", type=Path)
-    parser.add_argument("--key-color", type=str)
+    parser.add_argument("--key-color", type=str, default=DEFAULT_KEY_COLOR)
     parser.add_argument("--allow-generic-motions", action="store_true")
     parser.add_argument("--allow-low-confidence", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if args.key_color and not re.fullmatch(r"#[0-9A-Fa-f]{6}", args.key_color):
-        raise ValueError("key color must use #RRGGBB notation")
+    key_color = validate_key_color(args.key_color)
     layout = load_layout(args.layout, args.allow_low_confidence)
     tiles = load_tile_plan(args.tile_plan, layout["count"], args.allow_generic_motions)
-    compiled = compile_prompts(layout, tiles, args.key_color)
+    compiled = compile_prompts(layout, tiles, key_color)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(compiled, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(args.output), "count": layout["count"]}, ensure_ascii=False))

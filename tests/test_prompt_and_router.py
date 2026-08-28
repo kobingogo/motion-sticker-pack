@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import json
 import unittest
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-from prompt_compiler import compile_prompts  # noqa: E402
+from prompt_compiler import compile_prompts, validate_key_color  # noqa: E402
 from probe_video_capabilities import command_available  # noqa: E402
 from route_video_provider import route  # noqa: E402
 
@@ -46,6 +47,21 @@ def add_xai(provider_config: dict, provider_id: str, priority: int = 50) -> None
 
 
 class PromptAndRouterTests(unittest.TestCase):
+    def test_shipped_video_task_requires_grok_and_disables_local_fallback(self) -> None:
+        task = json.loads((Path(__file__).resolve().parents[1] / "assets" / "video-task.example.json").read_text())
+        self.assertEqual(task["provider"], "grok-build-local")
+        self.assertFalse(task["allow_fallback"])
+        self.assertEqual(task["key_color"], "#00FF00")
+        self.assertEqual(task["duration_seconds"], 6)
+        self.assertEqual(
+            task["provider_duration_seconds"],
+            {"grok-build-local": 6, "xai-direct": 3},
+        )
+        self.assertIn("production_settings_file", task)
+        self.assertEqual(task["max_retries"], 0)
+        self.assertEqual(task["min_guard_fraction"], 0.10)
+        self.assertEqual(task["max_foreground_bbox_fraction"], 0.80)
+
     def test_command_adapter_requires_absolute_entrypoint_to_exist(self) -> None:
         self.assertFalse(command_available(["node", "/definitely/missing/video-adapter.mjs"]))
 
@@ -60,7 +76,22 @@ class PromptAndRouterTests(unittest.TestCase):
         self.assertIn("4 列 × 3 行", prompt)
         self.assertIn("共 12 格", prompt)
         self.assertNotIn("共 9 格", prompt)
+        self.assertIn("前 2 秒内完成", prompt)
+        self.assertIn("脚底基线固定", prompt)
         self.assertEqual(len(result["tile_plan"]), 12)
+
+    def test_key_color_must_contrast_with_the_subject(self) -> None:
+        self.assertEqual(validate_key_color("#00FF00"), "#00FF00")
+        self.assertEqual(validate_key_color("#FF00FF"), "#FF00FF")
+        for unsafe in ("#000000", "#FFFFFF", "#111111", "#FAFAFA"):
+            with self.subTest(unsafe=unsafe):
+                with self.assertRaisesRegex(ValueError, "near-black or near-white"):
+                    validate_key_color(unsafe)
+        layout = {"columns": 3, "rows": 3, "count": 9, "confidence": 0.9}
+        tiles = [{"id": f"{index:02d}", "motion": "点头"} for index in range(1, 10)]
+        fallback = compile_prompts(layout, tiles, None)["grid_video_prompt"]
+        self.assertIn("绿或品红", fallback)
+        self.assertIn("黑、白或灰底板", fallback)
 
     def test_native_route_precedes_higher_priority_external_route(self) -> None:
         provider_config = config()

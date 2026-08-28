@@ -11,6 +11,7 @@ from pathlib import Path
 
 from character_workspace import character_workspace, write_character_manifest
 from config_contract import is_python_interpreter, validate_provider_config, validate_video_task
+from sticker_production_config import default_settings_path, load_production_settings
 
 
 def read_json(path: Path) -> dict:
@@ -65,7 +66,14 @@ def main() -> int:
     parser.add_argument("--tile-plan", type=Path, required=True)
     parser.add_argument("--provider-template", type=Path)
     parser.add_argument("--tool-manifest-template", type=Path)
-    parser.add_argument("--duration-seconds", type=float, default=5)
+    parser.add_argument("--duration-seconds", type=float)
+    parser.add_argument(
+        "--settings",
+        type=Path,
+        default=default_settings_path(),
+        help="single editable sticker-production settings JSON",
+    )
+    parser.add_argument("--key-color", help="one-off override for generation.key_color")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
@@ -83,8 +91,17 @@ def main() -> int:
     for path in (args.image, args.layout, args.prompts, args.state, args.tile_plan, provider_template, manifest_template):
         if not path.expanduser().is_file():
             raise FileNotFoundError(path)
-    if not 1 <= args.duration_seconds <= 30:
-        raise ValueError("duration-seconds must be between 1 and 30")
+    settings_source = args.settings.expanduser().resolve()
+    settings = load_production_settings(settings_source)
+    provider = settings["generation"]["provider"]
+    provider_durations = dict(settings["generation"]["provider_duration_seconds"])
+    duration_seconds = provider_durations[provider]
+    if args.duration_seconds is not None:
+        rounded_duration = round(args.duration_seconds)
+        if rounded_duration != args.duration_seconds or not 1 <= rounded_duration <= 15:
+            raise ValueError("duration-seconds must be an integer between 1 and 15")
+        duration_seconds = rounded_duration
+        provider_durations[provider] = rounded_duration
 
     config = usable_provider_config(provider_template.expanduser().resolve(), skill_root)
     write_json(work / "video-providers.json", config, overwrite=args.overwrite)
@@ -92,17 +109,30 @@ def main() -> int:
     if not runtime_manifest.exists() or args.overwrite:
         copy_file(manifest_template.expanduser().resolve(), runtime_manifest, overwrite=args.overwrite)
     copy_file(args.tile_plan.expanduser().resolve(), work / "tile-plan.json", overwrite=args.overwrite)
+    settings_snapshot = work / "sticker-production.json"
+    copy_file(settings_source, settings_snapshot, overwrite=args.overwrite)
 
     output_directory = (work / "raw-video").resolve()
     task = read_json(skill_root / "assets" / "video-task.example.json")
     task.update(
         {
+            "provider": provider,
+            "max_retries": settings["generation"]["max_retries"],
             "input_image": str(args.image.expanduser().resolve()),
             "layout_file": str(args.layout.expanduser().resolve()),
             "prompt_file": str(args.prompts.expanduser().resolve()),
             "approval_file": str(args.state.expanduser().resolve()),
             "output_directory": str(output_directory),
-            "duration_seconds": args.duration_seconds,
+            "duration_seconds": duration_seconds,
+            "provider_duration_seconds": provider_durations,
+            "key_color": args.key_color or settings["generation"]["key_color"],
+            "production_settings_file": str(settings_snapshot.resolve()),
+            "safe_grid_scale": 0.80,
+            "min_guard_fraction": 0.10,
+            "max_foreground_bbox_fraction": 0.80,
+            "motion_active_seconds": 2.0,
+            "loop_min_seconds": 1.5,
+            "loop_max_seconds": 2.5,
         }
     )
     write_json(work / "video-task.json", validate_video_task(task, require_execution_fields=True), overwrite=args.overwrite)
@@ -111,6 +141,7 @@ def main() -> int:
         "config": str((work / "video-providers.json").resolve()),
         "runtime_tools": str((work / "runtime-tools.json").resolve()),
         "tile_plan": str((work / "tile-plan.json").resolve()),
+        "production_settings": str(settings_snapshot.resolve()),
         "task": str((work / "video-task.json").resolve()),
     }
     manifest = work / "character.json"

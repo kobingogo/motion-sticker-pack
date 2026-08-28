@@ -29,7 +29,7 @@ It also includes two command adapters for Grok Imagine:
 - `scripts/grok_build_video_adapter.py` launches the logged-in local Grok Build CLI and instructs its internal `image_to_video` tool exactly once. Current Grok CLI flags are `--always-approve` and `--permission-mode bypassPermissions`; `--yolo` is not portable across releases. The adapter pins `--leader-socket` under `GROK_HOME` so a parent Grok/Codex session cannot reuse another leader's config. By default it removes `XAI_API_KEY` so an ambient key cannot silently replace the grok.com login. Set `GROK_USE_XAI_API_KEY=1` only when that behavior is intentional. Optional `GROK_DEBUG_FILE` / `GROK_LOG_FILE` capture CLI diagnostics without putting secrets in the result JSON.
 - `scripts/xai_rest_video_adapter.py` calls the xAI Videos REST API directly, polls boundedly, and downloads or copies the resulting MP4. `XAI_VIDEO_REQUEST_ID` resumes polling an existing request without submitting or charging for another generation.
 
-For the standard three-tier setup, assign priorities so the order is `grok-build-local` → `xai-direct` → `transform-local`. The shipped example demonstrates that order.
+For a general setup, assign priorities so the order is `grok-build-local` → `xai-direct` → `transform-local`. For a Grok-mandated job, use the shipped task defaults (`provider: grok-build-local`, `allow_fallback: false`) so a failed Grok generation cannot be replaced by a local animation.
 
 ## xAI Zero Data Retention
 
@@ -57,7 +57,7 @@ Missing `alpha-output` is not fatal when local post-processing is available and 
 
 An explicit provider selection is honored first. Fallback occurs only when `allow_fallback` is true. Respect `max_attempts`; selection does not authorize unbounded paid retries.
 
-`scripts/execute_video_route.py` executes exactly one numbered attempt. AI SDK attempts are delegated to `scripts/video_gateway.mjs`; command and HTTP-job attempts are delegated to their configured executable. The Gateway verifies the approved image/layout hashes before importing a provider or submitting a request. AI SDK retries default to zero so one route means one paid submission attempt, while bounded status polling continues for that same request. The task output-size limit is applied during download, not only after the response has already been loaded into memory.
+`scripts/execute_video_route.py` executes exactly one numbered route attempt. AI SDK attempts are delegated to `scripts/video_gateway.mjs`; command and HTTP-job attempts are delegated to their configured executable. The Gateway verifies the approved image/layout hashes before importing a provider or submitting a request. Non-alpha video results are checked on all native frames with `scripts/video_background_qc.py` before post-processing; a result that is not a uniform declared key color is rejected. Seam crossings are recorded for downstream recovery and do not trigger a paid regeneration. Grok requires `max_retries: 0`. The task output-size limit is applied during download, not only after the response has already been loaded into memory.
 
 ## Adapter result contract
 
@@ -68,7 +68,12 @@ For `command` adapters, the gateway appends `--task <absolute-task-json> --outpu
   "operation": "image-to-video",
   "input_image": "/absolute/path/to/sheet.png",
   "prompt_file": "/absolute/path/to/prompts.json",
-  "duration_seconds": 5,
+  "duration_seconds": 6,
+  "provider_duration_seconds": {
+    "grok-build-local": 6,
+    "xai-direct": 3
+  },
+  "production_settings_file": "/absolute/path/to/sticker-production.json",
   "aspect_ratio": "source",
   "output_directory": "/absolute/path/to/raw"
 }

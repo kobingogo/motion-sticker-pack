@@ -14,6 +14,22 @@ from typing import Any
 from config_contract import ContractError, read_json_object, validate_video_task
 
 
+def duration_for_provider(task: dict[str, Any], provider_id: str, *, default: int) -> int:
+    """Resolve an integer generation duration for one provider, with legacy fallback."""
+    durations = task.get("provider_duration_seconds")
+    if durations is not None and not isinstance(durations, dict):
+        raise ContractError("provider_duration_seconds must be an object")
+    value = durations.get(provider_id) if isinstance(durations, dict) else None
+    if value is None:
+        value = task.get("duration_seconds", default)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ContractError(f"{provider_id} duration must be numeric")
+    duration = round(float(value))
+    if duration != float(value) or not 1 <= duration <= 15:
+        raise ContractError(f"{provider_id} duration must be an integer from 1 to 15 seconds")
+    return duration
+
+
 def load_task_and_prompt(task_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     task = validate_video_task(read_json_object(task_path), require_execution_fields=True)
     prompt = read_json_object(Path(task["prompt_file"]))

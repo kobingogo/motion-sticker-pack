@@ -2,15 +2,25 @@
 
 [English](README.en.md) · [MIT License](LICENSE)
 
-> 在 Codex 里上传角色图，用 GPT-image-2 生成带真实 Alpha 的透明静图板，确认后再做成可发送、可打包的循环动态表情包。
+> 在 Codex 里上传角色图或直接描述角色，用 GPT-image-2 生成带真实 Alpha 的透明静图板，确认后再做成可发送、可打包的循环动态表情包。
 
 `motion-sticker-pack` 是面向 **Codex** 的 [Agent Skill](https://agentskills.io)。推荐路径是 Codex + **GPT-image-2**：这个模型能直接生成带 alpha 通道的透明贴纸图；Grok Imagine、常见文生图/图生图模型通常只能出不透明底，后面只能靠色键去背，边缘和毛发会差一截。
 
-安装后按对话使用：上传图片 → 选择风格 → 选择 Emoji 或短描述 → **确认静态图** → 生成视频 → 自动切图、导出 WebP/GIF/PNG 并打包 ZIP。普通使用不需要手跑 Python 脚本。Agent 应读取 [`SKILL.md`](SKILL.md) 完成整条链路。
+安装后按对话使用：上传图片或描述角色 → 选择风格 → 选择 Emoji 或短描述 → **确认静态图** → 生成视频 → 自动切图、导出 WebP/GIF/PNG 并打包 ZIP。普通使用不需要手跑 Python 脚本。Agent 应读取 [`SKILL.md`](SKILL.md) 完成整条链路。
 
 ```text
 $motion-sticker-pack
 ```
+
+## v0.2.0 更新
+
+- **两种建形入口**：既可上传角色参考图，也可只用文字定义角色；文字路线直接生成完整表情图板。
+- **透明底可验证**：静图先请求真实 Alpha，再以本地像素检查决定是否需要一次 `#00FF00` 兜底，不把棋盘格预览当透明。
+- **视频后处理更稳**：按 Provider 区分请求时长，Grok 保留完整 6 秒版并附带初始 24 帧的 3 秒版；固定镜头默认关闭逐帧整数注册，报告静止段位移，减少微抖。
+- **交付不再重复**：只保留一个规范源视频和一个 `delivered/` 成品目录；最终 ZIP 不再嵌套 `3s/sticker-pack.zip`。
+- **更严格的质量门**：原生帧绿幕检查、跨格实例分配、稳定画布、WebP/GIF 解码复检、GIF 体积预算都进入可审计报告。
+
+完整变化与升级提醒见 [`RELEASE_NOTES.md`](RELEASE_NOTES.md)。
 
 ## 案例集
 
@@ -127,7 +137,7 @@ ffmpeg -version && ffprobe -version
 $motion-sticker-pack
 ```
 
-在 Codex 中调用 `$motion-sticker-pack`，上传角色参考图，按提示选择风格并输入 Emoji 或短描述。静图阶段应使用 **GPT-image-2**，并明确要求透明背景 / 真实 alpha。
+在 Codex 中调用 `$motion-sticker-pack`，可以上传角色参考图，也可以只提供角色名称或文字描述；无参考图时直接生成完整九宫格，不先生成单张角色图。按提示选择风格并输入 Emoji 或短描述。静图阶段应使用 **GPT-image-2**：请求契约预设 `background: transparent` 与 `output_format: png`，运行时支持就透传；不支持这些参数时只记录省略，仍通过提示词优先请求真实 Alpha。参数缺失或参考图存在都不会直接切换绿底，只有实际像素质检失败才执行一次 `#00FF00` 兜底。
 
 视频若交给 Grok Build，请先看 [隐私 Opt in](#grok-build-隐私opt-in-与-zdr)。未 Opt in 时本机 `image_to_video` 常会报 ZDR/隐私错误，这不是提示词问题。
 
@@ -241,9 +251,9 @@ Agent：[verify → 选择视频能力 → 生成 → 切图去背 → 输出 ZI
 
 它不负责从零建立角色身份，也不是通用剪辑器。输入里最好已经有一个可识别的角色。
 
-建议同时告诉 Agent：情绪或 Emoji、视觉风格、是否允许外部付费 API、是否必须完全本地、布局偏好、时长和帧率。未提供的参数用保守默认值：小动作、固定镜头、可循环、6 fps。在 Codex 上默认要真实透明底；只有当前模型不能出 alpha 时，才退到便于去背的纯色背景。
+建议同时告诉 Agent：情绪或 Emoji、视觉风格、是否允许外部付费 API、是否必须完全本地、布局偏好、时长和帧率。未提供时由 `assets/sticker-production.default.json` 的 `generation.provider_duration_seconds` 统一控制：Grok Build 请求 6 秒，xAI 直连请求 3 秒；两者统一导出 240×240、8 fps、GIF 最多 192 色。Grok 保留完整 6 秒版，并从同一源视频的初始 24 个采样帧附带一个 3 秒版；不做加速、倒放或第二次付费生成。直连 API 的 3 秒结果按原时长保留。先试产第 01 格并检查所有应交付版本的 1 MiB GIF 目标，通过后才用同一源视频制作整组；整组中其他 GIF 略超目标只记录警告，不阻断交付。在 Codex 上默认要真实透明底；只有实际像素检查确认没有可用 Alpha 时，才退到便于去背的纯色背景。
 
-Grok 上的 `image_to_video` 只接受 **6 或 10 秒**；工作流默认写 6 秒。不要把 3 秒写进将交给 Grok 的 task。
+实测 Grok Build 当前会在生成前拒绝 4 秒请求，并明确只接受 6 秒或 10 秒；[xAI Videos API 官方文档](https://docs.x.ai/developers/model-capabilities/video/generation#duration)则支持 1–15 秒。因此请求时长按 Provider 分开配置，后处理仍按实际返回时长分流。其他时长默认停止并报告。修改默认值时只编辑 `assets/sticker-production.default.json`，每个任务会保存一份配置快照以便复现。
 
 ## Grok Build 隐私：Opt in 与 ZDR
 
@@ -350,7 +360,7 @@ $motion-sticker-pack 动画化这张表情图板。
 ```text
 $motion-sticker-pack 把附件视频切成独立动态表情。
 没有对应静图时，先抽一帧做网格检测，再按检测结果切图。
-输出 6 fps 透明 Animated WebP、GIF、首帧 PNG 和 ZIP。
+完整保留源视频时长、源帧率和全部原生帧，输出透明 Animated WebP、GIF、首帧 PNG 和 ZIP。
 ```
 
 ### 多张独立贴纸
@@ -440,16 +450,20 @@ Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `
 ## 最终会得到什么
 
 ```text
-output/
-├── 01.webp ... NN.webp
-├── 01.gif  ... NN.gif
-├── 01.png  ... NN.png
-├── layout.json
-├── job-state.json               # 发生静态审批时
-├── prompts.json                 # 发生生成时
-├── route.json                   # 发生路由时
-├── processing.json
-└── sticker-pack.zip
+works/<character-slug>/
+├── raw-video/
+│   └── <provider>.mp4           # 唯一被接受的规范源视频
+└── delivered/
+    ├── 01.webp ... NN.webp
+    ├── 01.gif  ... NN.gif
+    ├── 01.png  ... NN.png
+    ├── 3s/                      # Grok：初始 24 帧短版本，不含嵌套 ZIP
+    ├── layout.json
+    ├── job-state.json           # 发生静态审批时
+    ├── prompts.json             # 发生生成时
+    ├── route.json               # 发生路由时
+    ├── processing.json
+    └── sticker-pack.zip
 ```
 
 - `.webp`：循环 Animated WebP，保留较完整 Alpha
@@ -457,7 +471,9 @@ output/
 - `.png`：第一帧透明 PNG
 - `layout.json`：实际检测布局
 - `job-state.json` / `prompts.json` / `route.json`：审批、提示词与路由审计；由 `assemble_delivery.py` 拷入最终目录和 ZIP
-- `processing.json`：尺寸、帧率、Alpha、越界和循环质量
+- `processing.json`：尺寸、帧率、Alpha、越界、静止段位移和循环质量
+
+`output/` 只作为编码中间目录。`assemble_delivery.py --cleanup-media-dir` 在最终 ZIP 成功后删除它，因此正常交付只留下 `delivered/`。被接受的 Grok attempt 会直接提升为规范文件名，不再复制出一份字节相同的视频；失败 attempt 仍可保留用于排错。
 
 文件按行优先编号。`NN` 等于 `detected_layout.count`，不等于最初口头请求的格数。
 
@@ -642,7 +658,8 @@ python3 scripts/assemble_delivery.py \
   --output works/小黑猫/delivered \
   --require-job-state \
   --require-prompts \
-  --require-route
+  --require-route \
+  --cleanup-media-dir
 
 python3 scripts/assemble_prompt_only.py \
   --static-prompt works/小黑猫/static-prompt.json \
@@ -670,7 +687,7 @@ npm audit --audit-level=high
 - 逐格视频与单格重试
 - 可选插帧、时序 Alpha 平滑、复杂视频抠图
 - 微信 240 GIF、Telegram WebM、Discord APNG 等平台画布
-- 体积预算、整包预览和可视化 QC
+- 平台专用体积档位、整包动效预览和更丰富的可视化 QC
 
 欢迎提交真实案例（输入、实际布局、路由、失败与修正），而不仅是最终效果图。
 

@@ -6,17 +6,28 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from config_contract import ContractError
-from video_adapter_common import copy_video, download_video, load_task_and_prompt, write_result
+from sticker_production_config import default_settings_path, load_production_settings
+from video_adapter_common import copy_video, download_video, duration_for_provider, load_task_and_prompt, write_result
+from video_background_qc import (
+    materialize_green_input,
+    validate_grok_input,
+    validate_video_background,
+    validate_video_grid_safety,
+)
 
 
 PROVIDER_ID = "grok-build-local"
+DEFAULT_KEY_COLOR = "#00FF00"
+MAX_GROK_INSTRUCTION_BYTES = 3800
 ZDR_HELP = (
     "Grok Build refuses video tools when the account uses team ZDR or /privacy "
     "data-retention opt-out, unless [tools.zdr_video_output_s3] is loaded from "
@@ -61,6 +72,18 @@ def find_grok(environ: dict[str, str] | None = None) -> str:
     raise ContractError("local Grok CLI was not found; install/login to Grok Build first")
 
 
+def grok_session_videos(grok_home: Path, output_dir: Path) -> list[Path]:
+    """Find videos produced by Grok before its agent tries to copy them."""
+    scope = grok_home / "sessions" / quote(str(output_dir.resolve()), safe="")
+    if not scope.is_dir():
+        return []
+    return sorted(
+        (path.resolve() for path in scope.glob("*/videos/*.mp4") if path.is_file()),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+
+
 def parse_structured(stdout: bytes) -> dict[str, Any]:
     text = stdout.decode("utf-8", errors="replace").strip()
     try:
@@ -99,22 +122,67 @@ def parse_structured(stdout: bytes) -> dict[str, Any]:
     raise ContractError("Grok response is missing a valid JSON final response")
 
 
-def build_instruction(task: dict[str, Any], prompt: dict[str, Any], target: Path, duration: int, resolution: str) -> str:
-    return f"""Use your image_to_video tool exactly once to generate a video from this approved image:
-{Path(task['input_image']).resolve()}
+def _motion_schedule(timeline: dict[str, Any] | None = None) -> str:
+    values = timeline or {
+        "start_hold_seconds": 0.3,
+        "action_end_seconds": 1.8,
+        "return_end_seconds": 2.6,
+        "final_hold_seconds": 0.4,
+    }
+    expression_end = float(values["return_end_seconds"]) + float(values["final_hold_seconds"])
+    return (
+        f"hold the start pose until {float(values['start_hold_seconds']):g}s, "
+        f"complete the action by {float(values['action_end_seconds']):g}s, "
+        f"return to the start pose by {float(values['return_end_seconds']):g}s, "
+        f"then hold through {expression_end:g}s"
+    )
 
-Motion prompt:
-{prompt['grid_video_prompt'].strip()}
 
-Requirements:
-- Use duration={duration} seconds and resolution_name={resolution}.
-- Treat the source image as the locked first frame. Preserve the complete sticker grid, cell boundaries, character identity, outfit, and transparent-looking/key background composition.
-- Keep motion subtle, loop-friendly, and independent inside each cell. Do not crop, reorder, merge, or redraw the grid.
-- Do not call any other generation tool and do not retry if generation fails.
-- If the tool returns a downloadable video URL, download the MP4 to exactly: {target}
-- Do not claim that generation started or succeeded unless the tool call actually occurred and returned success.
-- Finish with only one JSON object: status=ok plus output set to an existing absolute local MP4 path; if local download is impossible, status=ok plus url. On tool failure use status=failed and copy its concise error into message.
+def compact_motion_prompt(
+    prompt: dict[str, Any], timeline: dict[str, Any] | None = None
+) -> str:
+    """Build a short Grok prompt from the approved, vision-informed tile plan."""
+    layout = prompt.get("detected_layout")
+    tiles = prompt.get("tile_plan")
+    if isinstance(layout, dict) and isinstance(tiles, list) and tiles:
+        columns = int(layout.get("columns", 0))
+        rows = int(layout.get("rows", 0))
+        count = int(layout.get("count", columns * rows))
+        motions = []
+        for index, tile in enumerate(tiles, start=1):
+            if not isinstance(tile, dict):
+                continue
+            motion = tile.get("grok_motion", tile.get("motion"))
+            if isinstance(motion, str) and motion.strip():
+                normalized_motion = re.sub(r"\s+", " ", motion).strip()
+                motions.append(f"{index:02d}:{normalized_motion}")
+        if len(motions) == count:
+            return (
+                f"{columns}x{rows} grid, {count} cells. Fixed camera/canvas; preserve each cell's identity, "
+                f"outfit, props, pose and placement. Each cell: one small in-place action; {_motion_schedule(timeline)}. "
+                "No crop, reorder, cross-cell motion, new content, text or backdrop. "
+                "Cell actions: " + "; ".join(motions)
+            )
+    return re.sub(r"\s+", " ", str(prompt["grid_video_prompt"])).strip()
+
+
+def build_instruction(
+    task: dict[str, Any], prompt: dict[str, Any], target: Path, duration: int, resolution: str,
+    key_color: str, source_image: Path | None = None, timeline: dict[str, Any] | None = None,
+) -> str:
+    source = source_image or Path(task["input_image"])
+    instruction = f"""Use image_to_video exactly once on this approved image: {source.resolve()}
+Settings: duration={duration}s, resolution_name={resolution}.
+Motion: {compact_motion_prompt(prompt, timeline)}
+Hard rules: keep the full grid and every cell's identity, outfit, props, pose and placement. Fixed camera/canvas. Keep each action subtle, independent and inside its cell; {_motion_schedule(timeline)}. After that loop-ready cycle, keep holding the start pose through {duration}s; do not repeat the action. No crop, reorder, merge, cross-cell motion, new character/content, text, backdrop, shadow or camera move.
+This is green screen, not transparency: render every empty/background pixel as exactly one flat RGB color: {key_color}. Never draw a checkerboard. Keep {key_color} uniform in every frame, including corners and grid gutters; keep foreground away from seams.
+Do not call another generation tool; do not retry; this task permits exactly one image_to_video generation. Save a successful MP4 to exactly {target}. Finish with one JSON object only: status=ok plus an existing absolute local MP4 path (or url); on failure use status=failed plus a concise message.
 """
+    if len(instruction.encode("utf-8")) > MAX_GROK_INSTRUCTION_BYTES:
+        raise ContractError(
+            f"compact Grok instruction exceeds {MAX_GROK_INSTRUCTION_BYTES} UTF-8 bytes; shorten tile motions"
+        )
+    return instruction
 
 
 def grok_command(
@@ -161,6 +229,19 @@ def annotate_error(message: str) -> str:
     return message
 
 
+def promote_accepted_video(candidate: Path, target: Path, max_bytes: int) -> Path:
+    """Promote one accepted attempt without retaining a byte-identical duplicate."""
+    candidate = candidate.expanduser().resolve()
+    target = target.expanduser().resolve()
+    size = candidate.stat().st_size
+    if size < 1 or size > max_bytes:
+        raise ContractError("accepted video is empty or exceeds max_output_bytes")
+    if candidate.parent == target.parent:
+        candidate.replace(target)
+        return target
+    return copy_video(candidate, target, max_bytes)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=Path, required=True)
@@ -168,64 +249,132 @@ def main() -> int:
     args = parser.parse_args()
     try:
         task, prompt = load_task_and_prompt(args.task)
-        duration = 6 if float(task.get("duration_seconds", 6)) <= 6 else 10
-        resolution = os.environ.get("GROK_VIDEO_RESOLUTION", "480p")
+        settings_path = Path(task.get("production_settings_file") or default_settings_path())
+        settings = load_production_settings(settings_path)
+        configured_generation = settings["generation"]
+        duration = duration_for_provider(task, PROVIDER_ID, default=6)
+        resolution = os.environ.get("GROK_VIDEO_RESOLUTION", configured_generation["resolution"])
         if resolution not in {"480p", "720p"}:
             raise ContractError("GROK_VIDEO_RESOLUTION must be 480p or 720p")
         output_dir = Path(task["output_directory"]).resolve()
+        key_color = str(task.get("key_color") or DEFAULT_KEY_COLOR).upper()
+        if key_color != DEFAULT_KEY_COLOR:
+            raise ContractError("Grok image-to-video requires the exact #00FF00 key color")
+        validate_grok_input(Path(task["input_image"]), key_color)
+        green_input = output_dir / "grok-input-green.png"
+        layout_data = json.loads(Path(task["layout_file"]).read_text(encoding="utf-8"))
+        input_report = materialize_green_input(
+            Path(task["input_image"]),
+            green_input,
+            key_color,
+            layout=layout_data,
+            safe_scale=float(task.get("safe_grid_scale", 0.80)),
+            min_guard_fraction=float(task.get("min_guard_fraction", 0.10)),
+            max_foreground_bbox_fraction=float(task.get("max_foreground_bbox_fraction", 0.80)),
+        )
         target = output_dir / "grok-build-local.mp4"
         if target.exists():
             raise ContractError(f"refusing to overwrite existing video: {target}")
-        before = {path.resolve() for path in output_dir.glob("*.mp4")}
         grok_home = resolve_grok_home()
         child_env = dict(os.environ)
         child_env["GROK_HOME"] = str(grok_home)
         if os.environ.get("GROK_USE_XAI_API_KEY") != "1":
             child_env.pop("XAI_API_KEY", None)
-        command = grok_command(
-            find_grok(),
-            build_instruction(task, prompt, target, duration, resolution),
-            output_dir,
-            grok_home,
-        )
         timeout = float(task.get("timeout_seconds", 900))
-        completed = subprocess.run(
-            command,
-            env=child_env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-            timeout=timeout,
-        )
-        if completed.returncode:
-            detail = completed.stderr.decode("utf-8", errors="replace")[-3000:].strip()
-            raise ContractError(
-                annotate_error(
-                    f"Grok Build exited with code {completed.returncode}: {detail or 'no diagnostic output'}"
-                )
-            )
-        structured = parse_structured(completed.stdout)
-        if structured.get("status") != "ok":
-            raise ContractError(
-                annotate_error(str(structured.get("message") or "Grok Build reported generation failure"))
-            )
         max_bytes = int(task.get("max_output_bytes", 200 * 1024 * 1024))
-        returned_path = structured.get("output")
-        if isinstance(returned_path, str) and returned_path.strip() and Path(returned_path).expanduser().is_file():
-            video = copy_video(Path(returned_path).expanduser(), target, max_bytes)
-        elif isinstance(structured.get("url"), str) and structured["url"].startswith(("https://", "http://")):
-            video = download_video(structured["url"], target, max_bytes)
-        elif target.is_file():
-            video = copy_video(target, target, max_bytes)
-        else:
-            created = sorted(
-                (path for path in output_dir.glob("*.mp4") if path.resolve() not in before),
-                key=lambda path: path.stat().st_mtime,
-                reverse=True,
+        max_background_retries = int(task.get("max_retries", 0))
+        if max_background_retries != 0:
+            raise ContractError("Grok grid generation requires max_retries=0; one source produces one video")
+        attempts: list[dict[str, Any]] = []
+        video = None
+        structured: dict[str, Any] = {}
+        for retry_number in range(1, 2):
+            attempt_target = output_dir / f"grok-build-local-attempt-{retry_number}.mp4"
+            if attempt_target.exists():
+                raise ContractError(f"refusing to overwrite existing video: {attempt_target}")
+            before = {path.resolve() for path in output_dir.glob("*.mp4")}
+            before_session = set(grok_session_videos(grok_home, output_dir))
+            command = grok_command(
+                find_grok(),
+                build_instruction(
+                    task, prompt, attempt_target, duration, resolution, key_color,
+                    Path(input_report["path"]), configured_generation["motion_timeline"],
+                ),
+                output_dir,
+                grok_home,
             )
-            if not created:
-                raise ContractError("Grok Build returned success but no local MP4 or downloadable URL")
-            video = copy_video(created[0], target, max_bytes)
+            completed = subprocess.run(
+                command,
+                env=child_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=timeout,
+            )
+            recovered = [
+                path for path in grok_session_videos(grok_home, output_dir)
+                if path not in before_session
+            ]
+            if completed.returncode and not recovered:
+                detail = completed.stderr.decode("utf-8", errors="replace")[-3000:].strip()
+                raise ContractError(
+                    annotate_error(
+                        f"Grok Build exited with code {completed.returncode}: {detail or 'no diagnostic output'}"
+                    )
+                )
+            if completed.returncode:
+                structured = {
+                    "status": "ok",
+                    "recovered_from_grok_session": True,
+                    "cli_exit_code": completed.returncode,
+                }
+            else:
+                structured = parse_structured(completed.stdout)
+            if structured.get("status") != "ok":
+                raise ContractError(
+                    annotate_error(str(structured.get("message") or "Grok Build reported generation failure"))
+                )
+            returned_path = structured.get("output")
+            if recovered:
+                candidate = copy_video(recovered[0], attempt_target, max_bytes)
+            elif isinstance(returned_path, str) and returned_path.strip() and Path(returned_path).expanduser().is_file():
+                candidate = copy_video(Path(returned_path).expanduser(), attempt_target, max_bytes)
+            elif isinstance(structured.get("url"), str) and structured["url"].startswith(("https://", "http://")):
+                candidate = download_video(structured["url"], attempt_target, max_bytes)
+            elif attempt_target.is_file():
+                candidate = attempt_target.resolve()
+            else:
+                created = sorted(
+                    (path for path in output_dir.glob("*.mp4") if path.resolve() not in before),
+                    key=lambda path: path.stat().st_mtime,
+                    reverse=True,
+                )
+                if not created:
+                    raise ContractError("Grok Build returned success but no local MP4 or downloadable URL")
+                candidate = copy_video(created[0], attempt_target, max_bytes)
+            try:
+                qc = validate_video_background(candidate, key_color)
+                grid_qc = validate_video_grid_safety(
+                    candidate, key_color, layout_data, fail_on_crossing=False
+                )
+            except ContractError as exc:
+                attempts.append({"attempt": retry_number, "status": "rejected", "reason": str(exc)})
+                raise ContractError(
+                    f"Grok generated video failed the uniform {key_color} background gate: {exc}"
+                ) from exc
+            video = promote_accepted_video(candidate, target, max_bytes)
+            attempts.append(
+                {
+                    "attempt": retry_number,
+                    "status": "accepted",
+                    "background_qc": qc,
+                    "grid_safety_qc": grid_qc,
+                    "recovered_from_grok_session": bool(structured.get("recovered_from_grok_session")),
+                }
+            )
+            break
+        if video is None:
+            raise ContractError("Grok video generation ended without an accepted video")
         write_result(
             args.output,
             {
@@ -237,6 +386,11 @@ def main() -> int:
                 "resolution": resolution,
                 "request_id": structured.get("request_id"),
                 "has_alpha": False,
+                "grok_input": input_report,
+                "background_qc": attempts[-1].get("background_qc"),
+                "grid_safety_qc": attempts[-1].get("grid_safety_qc"),
+                "generation_attempts": attempts,
+                "production_settings": settings["_meta"],
             },
         )
         print(json.dumps({"status": "succeeded", "output": str(video)}, ensure_ascii=False))

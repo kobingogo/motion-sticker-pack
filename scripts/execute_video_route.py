@@ -18,6 +18,7 @@ from config_contract import (
     validate_video_task,
 )
 from manage_job_state import read_state, verify_state
+from video_background_qc import validate_video_background, validate_video_grid_safety
 
 
 GATEWAY = Path(__file__).with_name("video_gateway.mjs")
@@ -153,6 +154,20 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
         raise ContractError("adapter output must be an existing absolute file")
     if result.get("provider") not in (None, provider["id"]):
         raise ContractError("adapter result provider does not match the selected route")
+    if task.get("allow_key_background") and not bool(result.get("has_alpha", False)):
+        key_color = str(task.get("key_color") or "#00FF00").upper()
+        try:
+            background_qc = validate_video_background(generated, key_color)
+            grid_safety_qc = validate_video_grid_safety(
+                generated, key_color, layout, fail_on_crossing=False
+            )
+        except ContractError as exc:
+            raise ContractError(
+                f"generated video was rejected before post-processing: {exc}"
+            ) from exc
+        result["background_qc"] = background_qc
+        result["grid_safety_qc"] = grid_safety_qc
+        output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:

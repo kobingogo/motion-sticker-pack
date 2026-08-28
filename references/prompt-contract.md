@@ -17,9 +17,11 @@ Before image generation, wording such as “prefer a 3 columns × 3 rows grid”
 
 ## Static sticker sheet
 
-Collect the image, style, and Emoji/text reactions according to [intake-and-approval.md](intake-and-approval.md), then compile them with `scripts/compile_static_prompt.py`. Preserve the user's character identity and requested symbols. Ask for one square or explicitly sized transparent sheet with wide, empty gutters. Use rounded toy-like geometry, polished materials, soft studio lighting, and subtle ambient occlusion only when the user selects the 3D toy style.
+Collect the optional image or text-defined character, style, and Emoji/text reactions according to [intake-and-approval.md](intake-and-approval.md), then compile them with `scripts/compile_static_prompt.py`. Preserve the user's character identity and requested symbols. With no reference image, generate the complete grid directly and do not create a standalone character image first. Ask for one square or explicitly sized transparent sheet with wide, empty gutters. Use rounded toy-like geometry, polished materials, soft studio lighting, and subtle ambient occlusion only when the user selects the 3D toy style.
 
-Each cell must contain one complete reaction with safe padding. Small semantic decorative accents are encouraged when they clarify the reaction or match the selected style—for example hearts, music notes, sparkles, tears, blush marks, sweat drops, stars, or motion lines—but use them selectively and keep them inside the cell. Avoid captions and avoid objects crossing gutters. A transparent result is preferred; a single clean key color is acceptable when real alpha is unavailable.
+Treat `image_generation_request.arguments` as the provider request contract. Use a transparent-first call for reference-image and text-only generation alike, passing `background: transparent` and `output_format: png` when the runtime tool exposes them. Omission for an older schema must be recorded together with the prepared opaque fallback, but omission does not imply that prompt-driven transparency is unavailable: the first call must still request real Alpha. Inspect the returned pixels. A visible checkerboard is an opaque two-tone preview background, never proof of transparency: reject it and use the fallback call instead of attempting to matte the checkerboard.
+
+Each cell must contain one complete reaction with safe padding. Small semantic decorative accents are encouraged when they clarify the reaction or match the selected style—for example hearts, music notes, sparkles, tears, blush marks, sweat drops, stars, or motion lines—but use them selectively and keep them inside the cell. Avoid captions and avoid objects crossing gutters. A transparent result is preferred; a single clean, uniform, high-contrast key color is acceptable only as the explicit fallback when real alpha is unavailable. For this workflow the fallback is exact `#00FF00` unless the configured subject-specific key says otherwise. The key must contrast with every character; do not use black for a dark subject or white for a light one.
 
 Do not claim an exact returned count until the image is inspected.
 
@@ -35,9 +37,13 @@ Compile from the actual image and a per-cell motion plan. Include:
 - one small, independent, loopable action for every numbered cell;
 - explicit prohibition of global motion, cross-cell motion, new content, borders, scenery, simulated checkerboards, and camera moves;
 - return-to-start behavior or another declared loop strategy;
-- real alpha when supported, otherwise the selected uniform key color.
+- real alpha when supported, otherwise the selected uniform key color that contrasts with the character.
 
 Describe each cell in row-major order. Motions must be inferred from what is actually visible: e.g. a guitar may be strummed, a kiss may lean forward slightly, and teary eyes may blink once. Do not invent a prop merely because an emoji appeared in the original request.
+
+For a single Grok grid video, use the motion timeline from the job's `sticker-production.json`: by default hold the start pose to 0.3 seconds, complete one small in-place action by 1.8 seconds, return by 2.6 seconds, and hold through 3 seconds. For a 6-second Grok request, keep holding that start pose for the remaining time and do not repeat the action. This encourages a clean first 3 seconds while retaining a complete 6-second source. Lock the camera, body center, and foot baseline. Keep the exact configured `#00FF00` plate unchanged in every frame. These instructions reduce risk but never replace native-frame full-frame matting, instance assignment, duration-profile sampling, short-variant endpoint auditing, and encoded-output QC.
+
+The Grok command adapter uses a compact prompt derived from `tile_plan`, rather than sending the full verbose prompt plus repeated operational prose. Preserve one concise action per detected cell and the hard output rules, and keep the final UTF-8 instruction under 3,800 bytes (below Grok's 4,096-byte CLI limit). Validate the byte budget before making the single provider call.
 
 ## Per-cell motion plan
 

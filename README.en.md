@@ -2,15 +2,25 @@
 
 [中文](README.md) · [MIT License](LICENSE)
 
-> In Codex, upload a character image, generate a real-alpha transparent sticker sheet with GPT-image-2, approve it, then pack looping animated stickers you can actually send.
+> In Codex, upload a character image or describe one in text, generate a real-alpha transparent sticker sheet with GPT-image-2, approve it, then pack looping animated stickers you can actually send.
 
 `motion-sticker-pack` is a **Codex-first** [Agent Skill](https://agentskills.io). The recommended path is Codex + **GPT-image-2**, which can emit a sticker sheet with a real alpha channel. Grok Imagine and typical text-to-image / image-to-image models usually return opaque backgrounds; local color-key matting then has to guess, and hair, shadows, and translucent accents suffer.
 
-After install, use it as a conversation: upload an image → choose a style → choose Emoji or a short description → **approve the static sheet** → generate video → split, export WebP/GIF/PNG, and zip. You do not need to run the Python scripts by hand. The agent should follow [`SKILL.md`](SKILL.md) end to end.
+After install, use it as a conversation: upload an image or describe a character → choose a style → choose Emoji or a short description → **approve the static sheet** → generate video → split, export WebP/GIF/PNG, and zip. You do not need to run the Python scripts by hand. The agent should follow [`SKILL.md`](SKILL.md) end to end.
 
 ```text
 $motion-sticker-pack
 ```
+
+## What's new in v0.2.0
+
+- **Two character-entry paths:** use a reference image or define a character in text; the text-only path generates the complete sheet directly.
+- **Verifiable transparency:** request real alpha first, inspect the returned pixels locally, and use one `#00FF00` fallback only when that inspection fails.
+- **More stable video processing:** provider-specific durations, a complete 6-second Grok output plus a 24-frame 3-second derivative, registration disabled by default for locked cameras, and hold-jitter metrics in the report.
+- **No duplicate delivery trees:** keep one canonical source video and one `delivered/` directory; the final ZIP no longer contains a nested `3s/sticker-pack.zip`.
+- **Stronger quality gates:** native-frame key-screen checks, instance-aware seam handling, stable canvases, decoded WebP/GIF validation, and GIF size budgets.
+
+See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the complete release notes and upgrade details.
 
 ## Example gallery
 
@@ -125,7 +135,7 @@ To use the bundled xAI / Kling / Seedance / Wan / FAL executors, also run `npm c
 $motion-sticker-pack
 ```
 
-In Codex, run `$motion-sticker-pack`, upload a character reference, pick a style, and type Emoji or a short reaction list. For the static sheet, use **GPT-image-2** and ask for a transparent background / real alpha.
+In Codex, run `$motion-sticker-pack`, upload a character reference or describe the character in text, pick a style, and type Emoji or a short reaction list. A text-only request generates the complete sheet directly. For the static sheet, use **GPT-image-2**: pass `background: transparent` and `output_format: png` when the runtime exposes those fields, but still request real alpha in the prompt when it does not. Only local pixel inspection may select the one-shot `#00FF00` fallback.
 
 If video goes to Grok Build, read [Privacy Opt in and ZDR](#grok-build-privacy-opt-in-and-zdr) first. Without Opt in, local `image_to_video` often fails with a ZDR/privacy error. That is not a prompt bug.
 
@@ -237,11 +247,11 @@ If the first message already has the image, style, and reactions, skip the intak
 | One grid video | Extract a representative frame if needed, then split, matte, pack |
 | Several independent videos | Skip grid splitting, post-process each clip |
 
-This skill does not invent a character identity from scratch and is not a general NLE. The input should already contain a recognizable character.
+This skill can define a reusable character from text for one sticker-pack job, but it is not a general identity-management studio or a general NLE.
 
-Useful extras: reactions or Emoji, style, whether paid external APIs are allowed, local-only, layout preference, duration, fps. Unspecified values stay conservative: small motion, locked camera, loopable, 6 fps. On Codex, default to a real transparent plate; only fall back to a key color when the current model cannot emit alpha.
+Useful extras: reactions or Emoji, style, whether paid external APIs are allowed, local-only, layout preference, duration, and fps. Defaults come from `assets/sticker-production.default.json`: Grok Build requests 6 seconds, xAI direct requests 3 seconds, and both export at 240×240, 8 fps, with a 192-color GIF ceiling. Grok keeps the complete 6-second result and derives a 3-second version from the first 24 sampled frames of that same source—no acceleration, reverse synthesis, or second paid generation. The direct API keeps its native 3-second result. Run the configured trial cell before the full pack. On Codex, default to a real transparent plate and fall back to a key color only after pixel validation shows that alpha is unusable.
 
-On Grok, `image_to_video` only accepts **6 or 10 seconds**. The workflow default is 6. Do not put 3 seconds into a task that will be sent to Grok.
+In the currently tested Grok Build CLI, generation accepts **6 or 10 seconds** and rejects a 4-second request before submission; the official [xAI Videos API documentation](https://docs.x.ai/developers/model-capabilities/video/generation#duration) allows 1–15 seconds. Keep request duration provider-specific and stop on an unexpected returned duration.
 
 ## Grok Build privacy: Opt in and ZDR
 
@@ -436,16 +446,20 @@ The Kling / Seedance / Wan / FAL routes here are image-to-video (`.video()`) int
 ## What you get
 
 ```text
-output/
-├── 01.webp ... NN.webp
-├── 01.gif  ... NN.gif
-├── 01.png  ... NN.png
-├── layout.json
-├── job-state.json               # when static approval was required
-├── prompts.json                 # when generation ran
-├── route.json                   # when routing ran
-├── processing.json
-└── sticker-pack.zip
+works/<character-slug>/
+├── raw-video/
+│   └── <provider>.mp4           # one accepted canonical source video
+└── delivered/
+    ├── 01.webp ... NN.webp
+    ├── 01.gif  ... NN.gif
+    ├── 01.png  ... NN.png
+    ├── 3s/                      # Grok: 24-frame derivative, no nested ZIP
+    ├── layout.json
+    ├── job-state.json           # when static approval was required
+    ├── prompts.json             # when generation ran
+    ├── route.json               # when routing ran
+    ├── processing.json
+    └── sticker-pack.zip
 ```
 
 - `.webp`: looping Animated WebP with a fuller alpha channel
@@ -453,7 +467,9 @@ output/
 - `.png`: transparent first frame
 - `layout.json`: detected grid
 - `job-state.json` / `prompts.json` / `route.json`: approval, prompt, and route audit, copied into the final directory and ZIP by `assemble_delivery.py`
-- `processing.json`: size, fps, alpha, edge, and loop-quality notes
+- `processing.json`: size, fps, alpha, edge, hold-jitter, and loop-quality notes
+
+`output/` is an encoding staging directory. After the final ZIP succeeds, `assemble_delivery.py --cleanup-media-dir` removes it so normal delivery leaves only `delivered/`. An accepted Grok attempt is promoted to the canonical filename rather than copied into a byte-identical duplicate; rejected attempts may remain for diagnosis.
 
 Files are numbered row-major. `NN` equals `detected_layout.count`, not the layout you originally asked for.
 
@@ -638,7 +654,8 @@ python3 scripts/assemble_delivery.py \
   --output works/小黑猫/delivered \
   --require-job-state \
   --require-prompts \
-  --require-route
+  --require-route \
+  --cleanup-media-dir
 
 python3 scripts/assemble_prompt_only.py \
   --static-prompt works/小黑猫/static-prompt.json \
@@ -666,7 +683,7 @@ Do not put live secrets, private media, or paid API responses in fixtures.
 - Per-cell video and single-cell retry
 - Optional interpolation, temporal alpha smoothing, dedicated video matting
 - WeChat 240 GIF, Telegram WebM, Discord APNG canvases
-- Size budgets, pack preview, visual QC
+- Platform-specific size profiles, animated pack preview, and richer visual QC
 
 Real case write-ups are welcome: input, detected layout, route, failures, and fixes — not only the final frames.
 

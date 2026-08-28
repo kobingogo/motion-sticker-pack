@@ -57,6 +57,7 @@ AI_SDK_PROVIDER_OPTION_FIELDS = {
 }
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 ENV_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 PLACEHOLDER_RE = re.compile(r"replace-with|your-|example", re.IGNORECASE)
 SECRET_FIELD_RE = re.compile(
     r"(?:api[_-]?key|secret|token|password|credential|authorization|auth(?:entication)?)",
@@ -278,9 +279,11 @@ def validate_provider_config(config: dict[str, Any]) -> dict[str, Any]:
 def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool = False) -> dict[str, Any]:
     allowed_fields = {
         "$schema", "version", "operation", "required_capabilities", "prefer_capabilities", "require_alpha",
-        "allow_key_background", "allow_fallback", "provider", "input_image", "layout_file", "prompt_file",
-        "approval_file", "output_directory", "duration_seconds", "timeout_seconds", "max_output_bytes",
+        "allow_key_background", "key_color", "allow_fallback", "provider", "input_image", "layout_file", "prompt_file",
+        "approval_file", "output_directory", "duration_seconds", "provider_duration_seconds", "timeout_seconds", "max_output_bytes",
         "max_input_image_bytes", "aspect_ratio", "resolution", "fps", "poll_interval_ms", "max_retries",
+        "safe_grid_scale", "min_guard_fraction", "max_foreground_bbox_fraction",
+        "motion_active_seconds", "loop_min_seconds", "loop_max_seconds", "production_settings_file",
     }
     unknown = set(task) - allowed_fields
     if unknown:
@@ -297,15 +300,59 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
     provider = task.get("provider", "auto")
     if provider != "auto" and (not isinstance(provider, str) or not ID_RE.fullmatch(provider)):
         raise ContractError("task.provider must be auto or a valid provider id")
+    provider_durations = task.get("provider_duration_seconds")
+    if provider_durations is not None:
+        if not isinstance(provider_durations, dict) or not provider_durations:
+            raise ContractError("provider_duration_seconds must be a non-empty object")
+        for provider_id, duration in provider_durations.items():
+            if not isinstance(provider_id, str) or not ID_RE.fullmatch(provider_id):
+                raise ContractError("provider_duration_seconds keys must be valid provider ids")
+            if isinstance(duration, bool) or not isinstance(duration, int) or not 1 <= duration <= 15:
+                raise ContractError("provider_duration_seconds values must be integers from 1 to 15")
+        if provider != "auto" and provider not in provider_durations:
+            raise ContractError(f"provider_duration_seconds is missing selected provider {provider}")
     for field in ("allow_fallback", "require_alpha", "allow_key_background"):
         if field in task and not isinstance(task[field], bool):
             raise ContractError(f"{field} must be boolean")
+    if "key_color" in task and (
+        not isinstance(task["key_color"], str) or not HEX_COLOR_RE.fullmatch(task["key_color"])
+    ):
+        raise ContractError("key_color must use #RRGGBB notation")
+    if "safe_grid_scale" in task:
+        scale = task["safe_grid_scale"]
+        if isinstance(scale, bool) or not isinstance(scale, (int, float)) or not 0.75 <= scale <= 0.95:
+            raise ContractError("safe_grid_scale must be between 0.75 and 0.95")
+    numeric_ranges = {
+        "min_guard_fraction": (0.05, 0.20),
+        "max_foreground_bbox_fraction": (0.60, 0.90),
+        "motion_active_seconds": (0.5, 4.0),
+        "loop_min_seconds": (0.5, 5.0),
+        "loop_max_seconds": (0.5, 6.0),
+    }
+    for field, (minimum, maximum) in numeric_ranges.items():
+        if field not in task:
+            continue
+        value = task[field]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not minimum <= value <= maximum:
+            raise ContractError(f"{field} must be between {minimum} and {maximum}")
+    if task.get("loop_min_seconds", 1.5) > task.get("loop_max_seconds", 2.5):
+        raise ContractError("loop_min_seconds must not exceed loop_max_seconds")
+    guard = float(task.get("min_guard_fraction", 0.10))
+    foreground = float(task.get("max_foreground_bbox_fraction", 0.80))
+    if foreground > 1.0 - 2.0 * guard + 1e-6:
+        raise ContractError("max_foreground_bbox_fraction exceeds the requested two-sided guard")
     if require_execution_fields:
         for field in ("input_image", "layout_file", "prompt_file", "approval_file", "output_directory"):
             value = Path(_nonempty_string(task.get(field), field)).expanduser()
             if not value.is_absolute():
                 raise ContractError(f"{field} must be an absolute path")
-        duration = task.get("duration_seconds", 5)
+        if "production_settings_file" in task:
+            settings_file = Path(
+                _nonempty_string(task.get("production_settings_file"), "production_settings_file")
+            ).expanduser()
+            if not settings_file.is_absolute():
+                raise ContractError("production_settings_file must be an absolute path")
+        duration = task.get("duration_seconds", 6)
         if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not 1 <= duration <= 30:
             raise ContractError("duration_seconds must be between 1 and 30")
         timeout = task.get("timeout_seconds", 900)

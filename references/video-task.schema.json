@@ -21,6 +21,13 @@
     "prefer_capabilities": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "require_alpha": {"type": "boolean"},
     "allow_key_background": {"type": "boolean"},
+    "key_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+    "safe_grid_scale": {"type": "number", "minimum": 0.75, "maximum": 0.95},
+    "min_guard_fraction": {"type": "number", "minimum": 0.05, "maximum": 0.20},
+    "max_foreground_bbox_fraction": {"type": "number", "minimum": 0.60, "maximum": 0.90},
+    "motion_active_seconds": {"type": "number", "minimum": 0.5, "maximum": 4.0},
+    "loop_min_seconds": {"type": "number", "minimum": 0.5, "maximum": 5.0},
+    "loop_max_seconds": {"type": "number", "minimum": 0.5, "maximum": 6.0},
     "allow_fallback": {"type": "boolean"},
     "provider": {"type": "string", "pattern": "^(auto|[a-z0-9][a-z0-9-]*)$"},
     "input_image": {"type": "string", "minLength": 1},
@@ -28,7 +35,16 @@
     "prompt_file": {"type": "string", "minLength": 1},
     "approval_file": {"type": "string", "minLength": 1},
     "output_directory": {"type": "string", "minLength": 1},
+    "production_settings_file": {"type": "string", "minLength": 1},
     "duration_seconds": {"type": "number", "minimum": 1, "maximum": 30},
+    "provider_duration_seconds": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9-]*$": {"type": "integer", "minimum": 1, "maximum": 15}
+      }
+    },
     "timeout_seconds": {"type": "number", "minimum": 30, "maximum": 3600},
     "max_output_bytes": {"type": "integer", "minimum": 1024},
     "max_input_image_bytes": {"type": "integer", "minimum": 1024},

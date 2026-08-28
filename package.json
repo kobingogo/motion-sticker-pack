@@ -1,9 +1,9 @@
 {
   "name": "motion-sticker-pack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
-  "description": "Agent Skill that turns a character image into a looping transparent sticker pack",
+  "description": "Agent Skill that turns a character image or text-defined character into a looping transparent sticker pack",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kobingogo/motion-sticker-pack.git"

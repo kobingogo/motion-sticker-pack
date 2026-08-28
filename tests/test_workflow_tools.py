@@ -38,6 +38,14 @@ class WorkflowToolTests(unittest.TestCase):
             task = json.loads((work / "video-task.json").read_text())
             self.assertEqual(Path(task["input_image"]), image.resolve())
             self.assertTrue(Path(task["output_directory"]).is_absolute())
+            self.assertEqual(task["duration_seconds"], 6)
+            self.assertEqual(
+                task["provider_duration_seconds"],
+                {"grok-build-local": 6, "xai-direct": 3},
+            )
+            self.assertTrue(Path(task["production_settings_file"]).is_file())
+            self.assertEqual(task["max_retries"], 0)
+            self.assertEqual(task["min_guard_fraction"], 0.10)
             self.assertTrue((work / "video-providers.json").is_file())
             self.assertTrue((work / "runtime-tools.json").is_file())
             providers = json.loads((work / "video-providers.json").read_text())["providers"]
@@ -98,7 +106,19 @@ class WorkflowToolTests(unittest.TestCase):
                 (media / f"01.{suffix}").write_bytes(b"media")
             (media / "layout.json").write_text(json.dumps({"detected_layout": {"columns": 1, "rows": 1, "count": 1, "confidence": 1.0}}))
             (media / "processing.json").write_text("{}")
-            for name in ("job-state.json", "prompts.json", "route.json"):
+            short = media / "3s"
+            short.mkdir()
+            (short / "01.gif").write_bytes(b"short-media")
+            (short / "processing.json").write_text("{}")
+            (short / "sticker-pack.zip").write_bytes(b"redundant nested archive")
+            for name in (
+                "job-state.json",
+                "prompts.json",
+                "route.json",
+                "static-prompt.json",
+                "static-generation.json",
+                "static-alpha.json",
+            ):
                 (audit / name).write_text("{}")
             output = root / "delivered"
             subprocess.run([
@@ -107,7 +127,40 @@ class WorkflowToolTests(unittest.TestCase):
                 "--require-job-state", "--require-prompts", "--require-route",
             ], check=True, stdout=subprocess.DEVNULL)
             with zipfile.ZipFile(output / "sticker-pack.zip") as bundle:
-                self.assertTrue({"job-state.json", "prompts.json", "route.json"}.issubset(bundle.namelist()))
+                self.assertTrue(
+                    {
+                        "job-state.json",
+                        "prompts.json",
+                        "route.json",
+                        "static-prompt.json",
+                        "static-generation.json",
+                        "static-alpha.json",
+                        "3s/01.gif",
+                        "3s/processing.json",
+                    }.issubset(bundle.namelist())
+                )
+                self.assertNotIn("3s/sticker-pack.zip", bundle.namelist())
+            self.assertFalse((output / "3s" / "sticker-pack.zip").exists())
+
+    def test_delivery_assembler_can_remove_intermediate_media(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            media = root / "media"
+            audit = root / "audit"
+            media.mkdir()
+            audit.mkdir()
+            for suffix in ("png", "webp", "gif"):
+                (media / f"01.{suffix}").write_bytes(b"media")
+            (media / "layout.json").write_text("{}")
+            (media / "processing.json").write_text("{}")
+            output = root / "delivered"
+            subprocess.run([
+                PYTHON, str(ROOT / "scripts" / "assemble_delivery.py"),
+                "--media-dir", str(media), "--audit-dir", str(audit),
+                "--output", str(output), "--cleanup-media-dir",
+            ], check=True, stdout=subprocess.DEVNULL)
+            self.assertFalse(media.exists())
+            self.assertTrue((output / "sticker-pack.zip").is_file())
 
     def test_prompt_only_delivery_is_explicitly_non_video(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

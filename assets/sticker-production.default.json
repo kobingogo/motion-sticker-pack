@@ -1,0 +1,91 @@
+{
+  "$schema": "../references/sticker-production.schema.json",
+  "version": 1,
+  "generation": {
+    "provider": "grok-build-local",
+    "provider_duration_seconds": {
+      "grok-build-local": 6,
+      "xai-direct": 3
+    },
+    "resolution": "720p",
+    "key_color": "#00FF00",
+    "max_retries": 0,
+    "motion_timeline": {
+      "start_hold_seconds": 0.3,
+      "action_end_seconds": 1.8,
+      "return_end_seconds": 2.6,
+      "final_hold_seconds": 0.4
+    }
+  },
+  "delivery_variants": {
+    "grok-build-local": {
+      "short_duration_seconds": 3
+    }
+  },
+  "duration_profiles": [
+    {
+      "id": "returned-3s",
+      "match_duration": {
+        "minimum_seconds": 2.75,
+        "maximum_seconds": 3.25
+      },
+      "output": {
+        "duration_mode": "full",
+        "width": 240,
+        "height": 240,
+        "fps": 8,
+        "gif": {
+          "max_colors": 192,
+          "dither": "none"
+        }
+      }
+    },
+    {
+      "id": "returned-6s",
+      "match_duration": {
+        "minimum_seconds": 5.75,
+        "maximum_seconds": 6.25
+      },
+      "output": {
+        "duration_mode": "full",
+        "width": 240,
+        "height": 240,
+        "fps": 8,
+        "gif": {
+          "max_colors": 192,
+          "dither": "none"
+        }
+      }
+    }
+  ],
+  "canvas": {
+    "resize_mode": "contain",
+    "preserve_aspect_ratio": true,
+    "margin_fraction": 0.05,
+    "premultiplied_alpha_resize": true
+  },
+  "gif": {
+    "alpha_threshold_candidates": [96, 128, 160, 192],
+    "optimize_delta_frames": true,
+    "loop": 0
+  },
+  "webp": {
+    "enabled": true,
+    "lossless": true,
+    "quality": 85,
+    "method": 4,
+    "loop": 0
+  },
+  "budget": {
+    "gif_max_bytes": 1048576,
+    "on_exceeded": "stop-trial-and-warn-pack"
+  },
+  "trial": {
+    "enabled": true,
+    "cell_id": "01",
+    "continue_pack_when_passed": true
+  },
+  "unexpected_duration": {
+    "action": "stop-and-report"
+  }
+}

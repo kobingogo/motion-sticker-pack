@@ -24,9 +24,13 @@ from config_contract import (  # noqa: E402
 from execute_video_route import child_environment, diagnostic_tail, execute_attempt  # noqa: E402
 from grok_build_video_adapter import (  # noqa: E402
     annotate_error,
+    build_instruction,
+    compact_motion_prompt,
     find_grok,
     grok_command,
+    grok_session_videos,
     parse_structured,
+    promote_accepted_video,
     resolve_grok_home,
 )
 from manage_job_state import atomic_write, create_state, verify_state  # noqa: E402
@@ -45,6 +49,17 @@ def base_config() -> dict:
 
 
 class AdversarialContractTests(unittest.TestCase):
+    def test_accepted_grok_attempt_is_moved_to_canonical_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            attempt = root / "grok-build-local-attempt-1.mp4"
+            target = root / "grok-build-local.mp4"
+            attempt.write_bytes(b"video")
+            promoted = promote_accepted_video(attempt, target, 1024)
+            self.assertEqual(promoted, target.resolve())
+            self.assertFalse(attempt.exists())
+            self.assertEqual(target.read_bytes(), b"video")
+
     def test_shipped_provider_example_satisfies_runtime_contract(self) -> None:
         example = Path(__file__).resolve().parents[1] / "assets" / "video-providers.example.json"
         validate_provider_config(json.loads(example.read_text(encoding="utf-8")))
@@ -148,6 +163,18 @@ class AdversarialContractTests(unittest.TestCase):
             found = find_grok({"GROK_BIN": str(binary), "GROK_HOME": str(Path(temporary) / "empty"), "PATH": ""})
             self.assertEqual(Path(found), binary.resolve())
 
+    def test_grok_session_video_recovery_uses_the_output_directory_scope(self) -> None:
+        from urllib.parse import quote
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            home = root / "grok-home"
+            output = root / "works" / "奶油兔" / "raw-video"
+            video = home / "sessions" / quote(str(output.resolve()), safe="") / "session-id" / "videos" / "1.mp4"
+            video.parent.mkdir(parents=True)
+            video.write_bytes(b"generated")
+            self.assertEqual(grok_session_videos(home, output), [video.resolve()])
+
     def test_adapter_inherits_only_declared_credential(self) -> None:
         provider = {"credentials": {"env": ["XAI_API_KEY"]}}
         child = child_environment(
@@ -250,6 +277,47 @@ class AdversarialContractTests(unittest.TestCase):
         )
         self.assertIn("managed_config.toml", message)
         self.assertIn("docs.x.ai/build/settings/zdr-video-storage", message)
+
+    def test_grok_instruction_makes_green_screen_a_hard_output_contract(self) -> None:
+        instruction = build_instruction(
+            {"input_image": "/tmp/approved.png"},
+            {"grid_video_prompt": "small independent loops"},
+            Path("/tmp/grok.mp4"),
+            6,
+            "480p",
+            "#00FF00",
+        )
+        self.assertIn("duration=6s", instruction)
+        self.assertIn("exactly one flat RGB color: #00FF00", instruction)
+        self.assertIn("Never draw a checkerboard", instruction)
+        self.assertIn("exactly one image_to_video generation", instruction)
+        self.assertIn("complete the action by 1.8s", instruction)
+        self.assertIn("return to the start pose by 2.6s", instruction)
+        self.assertIn("then hold through 3s", instruction)
+        self.assertIn("keep holding the start pose through 6s", instruction)
+        self.assertIn("do not retry", instruction)
+
+    def test_grok_instruction_compacts_approved_tile_plan_under_cli_budget(self) -> None:
+        prompt = {
+            "detected_layout": {"columns": 3, "rows": 3, "count": 9},
+            "tile_plan": [
+                {"id": f"{index:02d}", "motion": f"small in-place action {index}"}
+                for index in range(1, 10)
+            ],
+            "grid_video_prompt": "verbose fallback prompt " * 500,
+        }
+        compact = compact_motion_prompt(prompt)
+        self.assertIn("3x3 grid, 9 cells", compact)
+        self.assertIn("01:small in-place action 1", compact)
+        instruction = build_instruction(
+            {"input_image": "/tmp/approved.png"},
+            prompt,
+            Path("/tmp/grok.mp4"),
+            6,
+            "480p",
+            "#00FF00",
+        )
+        self.assertLessEqual(len(instruction.encode("utf-8")), 3800)
 
     def test_command_adapter_executes_one_hash_bound_route_with_filtered_environment(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -458,11 +526,35 @@ class AdversarialContractTests(unittest.TestCase):
         for field, value, message in (
             ("poll_interval_ms", 99, "poll_interval_ms"),
             ("max_retries", 4, "max_retries"),
+            ("min_guard_fraction", 0.25, "min_guard_fraction"),
+            ("max_foreground_bbox_fraction", 0.95, "max_foreground_bbox_fraction"),
         ):
             invalid = dict(task)
             invalid[field] = value
             with self.subTest(field=field), self.assertRaisesRegex(ContractError, message):
                 validate_video_task(invalid, require_execution_fields=True)
+
+        invalid = {**task, "min_guard_fraction": 0.10, "max_foreground_bbox_fraction": 0.85}
+        with self.assertRaisesRegex(ContractError, "two-sided guard"):
+            validate_video_task(invalid, require_execution_fields=True)
+
+    def test_video_task_duration_map_must_include_selected_provider(self) -> None:
+        task = {
+            "version": 1,
+            "operation": "image-to-video",
+            "provider": "grok-build-local",
+            "input_image": "/tmp/sheet.png",
+            "layout_file": "/tmp/layout.json",
+            "prompt_file": "/tmp/prompts.json",
+            "approval_file": "/tmp/job-state.json",
+            "output_directory": "/tmp/raw",
+            "duration_seconds": 6,
+            "provider_duration_seconds": {"xai-direct": 3},
+        }
+        with self.assertRaisesRegex(ContractError, "missing selected provider"):
+            validate_video_task(task, require_execution_fields=True)
+        task["provider_duration_seconds"] = {"grok-build-local": 6, "xai-direct": 3}
+        self.assertEqual(validate_video_task(task, require_execution_fields=True), task)
 
     def test_stale_capability_report_is_rejected(self) -> None:
         config = base_config()
