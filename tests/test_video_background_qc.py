@@ -18,12 +18,33 @@ from PIL import Image, ImageDraw
 from video_background_qc import (  # noqa: E402
     BackgroundQCError,
     materialize_green_input,
+    probe_video_alpha,
     validate_frame_background,
     validate_video_grid_safety,
 )
 
 
 class VideoBackgroundQCTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg is required")
+    def test_alpha_probe_distinguishes_real_alpha_from_opaque_video(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source.png"
+            image = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+            ImageDraw.Draw(image).rectangle((8, 8, 24, 24), fill=(255, 0, 0, 255))
+            image.save(source)
+            alpha_video = root / "alpha.mov"
+            opaque_video = root / "opaque.mp4"
+            subprocess.run(
+                ["ffmpeg", "-v", "error", "-loop", "1", "-i", str(source), "-t", "0.25", "-c:v", "qtrle", "-pix_fmt", "argb", str(alpha_video)],
+                check=True,
+            )
+            subprocess.run(
+                ["ffmpeg", "-v", "error", "-loop", "1", "-i", str(source), "-t", "0.25", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(opaque_video)],
+                check=True,
+            )
+            self.assertTrue(probe_video_alpha(alpha_video)["has_meaningful_alpha"])
+            self.assertFalse(probe_video_alpha(opaque_video)["has_meaningful_alpha"])
     def test_uniform_green_background_passes(self) -> None:
         frame = np.zeros((128, 128, 3), dtype=np.uint8)
         frame[:, :] = (0, 255, 0)

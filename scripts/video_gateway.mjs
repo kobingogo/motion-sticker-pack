@@ -199,8 +199,8 @@ export function validateImageToVideoModel(providerName, model) {
   if (incompatible) fail(`model ${model} is not compatible with image-to-video`);
 }
 
-export function validateProviderTaskSettings(providerName, model, task) {
-  const duration = Number(task.duration_seconds ?? 5);
+export function validateProviderTaskSettings(providerName, model, task, providerId = undefined) {
+  const duration = Number(task.provider_execution?.[providerId]?.duration_seconds ?? task.duration_seconds ?? 5);
   if (!Number.isInteger(duration)) fail(`provider ${providerName} requires an integer duration_seconds`);
   const normalized = String(model).toLowerCase();
   if (providerName === 'bytedance') {
@@ -268,6 +268,20 @@ function requestIdFromMetadata(providerName, metadata) {
   return undefined;
 }
 
+function tierResolution(providerName, tier, aspectRatio = '1:1') {
+  if (!['480p', '720p'].includes(tier)) fail(`unsupported resolution tier: ${tier}`);
+  const portrait = aspectRatio === '9:16' || aspectRatio === '3:4';
+  const square = aspectRatio === '1:1';
+  if (tier === '720p') {
+    if (square) return '960x960';
+    if (aspectRatio === '4:3') return providerName === 'alibaba' ? '1088x832' : '1112x834';
+    if (aspectRatio === '3:4') return providerName === 'alibaba' ? '832x1088' : '834x1112';
+    return portrait ? '720x1280' : '1280x720';
+  }
+  if (square) return '624x624';
+  return portrait ? '480x832' : '832x480';
+}
+
 export async function execute({ configFile, taskFile, providerId, resultFile }) {
   const config = await readJson(configFile, 'provider config');
   const task = await readJson(taskFile, 'video task');
@@ -281,7 +295,7 @@ export async function execute({ configFile, taskFile, providerId, resultFile }) 
     fail(`provider ${providerId} has no concrete model id`);
   }
   validateImageToVideoModel(providerConfig.provider, providerConfig.model);
-  validateProviderTaskSettings(providerConfig.provider, providerConfig.model, task);
+  validateProviderTaskSettings(providerConfig.provider, providerConfig.model, task, providerId);
   const optionStack = [providerConfig.provider_options ?? {}];
   while (optionStack.length) {
     const value = optionStack.pop();
@@ -316,7 +330,8 @@ export async function execute({ configFile, taskFile, providerId, resultFile }) 
   await mkdir(outputDirectory, { recursive: true });
   await access(outputDirectory, fsConstants.W_OK);
 
-  const duration = Number(task.duration_seconds ?? 5);
+  const execution = task.provider_execution?.[providerId] ?? {};
+  const duration = Number(execution.duration_seconds ?? task.provider_duration_seconds?.[providerId] ?? task.duration_seconds ?? 5);
   if (!Number.isFinite(duration) || duration < 1 || duration > 30) fail('duration_seconds must be between 1 and 30');
   const timeoutSeconds = Number(task.timeout_seconds ?? 900);
   if (!Number.isFinite(timeoutSeconds) || timeoutSeconds < 30 || timeoutSeconds > 3600) {
@@ -355,12 +370,16 @@ export async function execute({ configFile, taskFile, providerId, resultFile }) 
       });
     }
   }
-  if (task.resolution) {
-    if (providerConfig.provider === 'fal') {
-      const [width, height] = task.resolution.split('x').map(Number);
-      const shortSide = Math.min(width, height);
+  const requestedResolution = execution.resolution ?? task.resolution;
+  if (requestedResolution) {
+    if (requestedResolution.endsWith('p') && providerConfig.provider === 'xai') {
+      providerOptionValues.resolution = requestedResolution;
+    } else if (providerConfig.provider === 'fal') {
+      const shortSide = requestedResolution.endsWith('p')
+        ? Number(requestedResolution.slice(0, -1))
+        : Math.min(...requestedResolution.split('x').map(Number));
       if (![540, 720, 1080].includes(shortSide)) {
-        fail(`FAL resolution ${task.resolution} cannot be mapped to 540p, 720p, or 1080p`);
+        fail(`FAL resolution ${requestedResolution} cannot be mapped to 540p, 720p, or 1080p`);
       }
       providerOptionValues.resolution = `${shortSide}p`;
     } else if (providerConfig.provider === 'klingai') {
@@ -369,7 +388,9 @@ export async function execute({ configFile, taskFile, providerId, resultFile }) 
         message: 'Kling image-to-video does not support a requested resolution; task resolution was ignored',
       });
     } else {
-      options.resolution = task.resolution;
+      options.resolution = requestedResolution.endsWith('p')
+        ? tierResolution(providerConfig.provider, requestedResolution, task.aspect_ratio)
+        : requestedResolution;
     }
   }
   if (task.fps) {

@@ -18,7 +18,7 @@ import numpy as np
 from PIL import Image
 
 from animation_export import choose_gif_alpha_threshold, encode_gif_images, encode_webp_images
-from output_safety import prepare_output, validate_archive_name
+from output_safety import prepare_output, validate_archive_name, validate_output_boundaries
 from sticker_production_config import load_production_settings, match_duration_profile
 from video_background_qc import validate_frame_background
 
@@ -910,7 +910,12 @@ def read_animation_frames(path: Path) -> list[np.ndarray]:
     return frames
 
 
-def validate_encoded_animation(path: Path, *, expected_size: tuple[int, int]) -> dict:
+def validate_encoded_animation(
+    path: Path,
+    *,
+    expected_size: tuple[int, int],
+    max_alpha_coverage_delta: float = 0.15,
+) -> dict:
     frames = read_animation_frames(path)
     if len(frames) < 2:
         raise GridBoundaryError(f"encoded {path.suffix} is not animated")
@@ -926,7 +931,7 @@ def validate_encoded_animation(path: Path, *, expected_size: tuple[int, int]) ->
             raise GridBoundaryError(f"encoded frame {index} touches the canvas boundary")
         coverages.append(coverage)
         borders.append(border)
-    if max(coverages) - min(coverages) > 0.15:
+    if max(coverages) - min(coverages) > max_alpha_coverage_delta:
         raise GridBoundaryError("encoded alpha coverage flickers across frames")
     centroids: list[tuple[float, float]] = []
     for frame in frames:
@@ -950,6 +955,7 @@ def validate_encoded_animation(path: Path, *, expected_size: tuple[int, int]) ->
     ]
     return {
         "frames_checked": len(frames),
+        "max_alpha_coverage_delta": round(max_alpha_coverage_delta, 6),
         "alpha_coverage_min": round(min(coverages), 6),
         "alpha_coverage_max": round(max(coverages), 6),
         "border_coverage_max": round(max(borders), 6),
@@ -979,6 +985,11 @@ def encode_sticker_images(
     webp_settings = settings["webp"] if settings else {
         "enabled": True, "lossless": True, "quality": 85, "method": 4, "loop": 0,
     }
+    max_alpha_coverage_delta = (
+        float(settings["gif"].get("max_alpha_coverage_delta", 0.15))
+        if settings
+        else 0.15
+    )
     names: list[str] = []
     if webp_settings["enabled"]:
         encode_webp_images(
@@ -1003,11 +1014,17 @@ def encode_sticker_images(
     )
     names.extend([gif_name, png_name])
     encoded_qc = {
-        "gif": validate_encoded_animation(output / gif_name, expected_size=target_size),
+        "gif": validate_encoded_animation(
+            output / gif_name,
+            expected_size=target_size,
+            max_alpha_coverage_delta=max_alpha_coverage_delta,
+        ),
     }
     if webp_settings["enabled"]:
         encoded_qc["webp"] = validate_encoded_animation(
-            output / webp_name, expected_size=target_size
+            output / webp_name,
+            expected_size=target_size,
+            max_alpha_coverage_delta=max_alpha_coverage_delta,
         )
     gif_bytes = (output / gif_name).stat().st_size
     budget_report = None
@@ -1184,6 +1201,10 @@ def main() -> int:
         raise ValueError("effective output fps must be between 1 and 60")
     if width * height > args.max_pixels:
         raise ValueError(f"video frame exceeds max-pixels ({width}x{height})")
+    args.output = validate_output_boundaries(
+        args.output,
+        [args.video, args.layout, *([args.settings] if args.settings else [])],
+    )
     prepare_output(args.output, overwrite=args.overwrite, archive_names={args.zip_name})
     delivery_variant = None
     delivery_variant_name = None

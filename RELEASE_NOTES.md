@@ -1,4 +1,27 @@
-# Motion Sticker Pack v0.2.0
+# Motion Sticker Pack v0.2.1
+
+发布日期：2026-08-30
+
+v0.2.1 是一次审计闭环版本，重点处理任务级 Provider 选择、xAI 配置漂移、fallback 异构参数、媒体真实性检查和覆盖写入安全。
+
+## 主要更新
+
+- `prepare_workflow.py` 新增 `--provider`、有序 `--fallback-provider`、`--provider-duration`、`--provider-resolution` 和显式 fallback 开关。
+- `video-task.json` 新增 `provider_chain` 与 `provider_execution`；AI SDK 和命令适配器都读取当前 attempt 自己的时长与分辨率。
+- xAI model 改从 Provider 配置读取，分辨率改从任务快照读取；移除 `XAI_VIDEO_MODEL`、`XAI_VIDEO_RESOLUTION`、`GROK_VIDEO_RESOLUTION` 漂移入口。
+- route 绑定输入图、layout、prompt、审批状态和生产配置内容哈希，修改依赖后旧 route 拒绝执行。
+- 外部视频统一经过本地可解码性与真实 Alpha 探测，opaque 视频才进入色键背景和网格安全检查。
+- 主处理、关键帧、独立贴纸、prompt-only 与最终组装链路统一拒绝输入/输出目录重叠，堵住 `--overwrite` 删除源素材。
+- 静图来源 CLI 强制参考图与文字定义二选一；参考图在实际调用前复核 SHA-256；非 3×3 提示不再残留“九宫格”。
+- `gif.max_alpha_coverage_delta` 在 Python 运行时与 Schema 中都限制为 0–1。
+
+## 验证
+
+本版本不包含真实付费 Provider 请求；远端配额、账户权限和隐私策略仍需在用户明确授权后单次验证。
+
+---
+
+## Motion Sticker Pack v0.2.0
 
 发布日期：2026-08-28
 

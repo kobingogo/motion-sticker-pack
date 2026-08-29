@@ -15,13 +15,13 @@ The requested layout and returned layout are different fields:
 
 Before image generation, wording such as “prefer a 3 columns × 3 rows grid” is allowed. After generation, never repeat that preference as fact. Inspect the returned image and compile the video prompt from `detected_layout`.
 
-## Static sticker sheet
+## Static illustrated-card sheet
 
-Collect the optional image or text-defined character, style, and Emoji/text reactions according to [intake-and-approval.md](intake-and-approval.md), then compile them with `scripts/compile_static_prompt.py`. Preserve the user's character identity and requested symbols. With no reference image, generate the complete grid directly and do not create a standalone character image first. Ask for one square or explicitly sized transparent sheet with wide, empty gutters. Use rounded toy-like geometry, polished materials, soft studio lighting, and subtle ambient occlusion only when the user selects the 3D toy style.
+Collect the optional image or text-defined character, style, and Emoji/text reactions according to [intake-and-approval.md](intake-and-approval.md), then compile them with `scripts/compile_static_prompt.py`. Preserve the user's character identity and requested symbols. With no reference image, generate the complete grid directly and do not create a standalone character image first. Ask for one square or explicitly sized transparent illustrated-card sheet with wide, empty gutters, no white border or heavy outline, and subtle local background accents inside each cell when they support the reaction. Use rounded toy-like geometry, polished materials, soft studio lighting, and subtle ambient occlusion only when the user selects the 3D toy style.
 
 Treat `image_generation_request.arguments` as the provider request contract. Use a transparent-first call for reference-image and text-only generation alike, passing `background: transparent` and `output_format: png` when the runtime tool exposes them. Omission for an older schema must be recorded together with the prepared opaque fallback, but omission does not imply that prompt-driven transparency is unavailable: the first call must still request real Alpha. Inspect the returned pixels. A visible checkerboard is an opaque two-tone preview background, never proof of transparency: reject it and use the fallback call instead of attempting to matte the checkerboard.
 
-Each cell must contain one complete reaction with safe padding. Small semantic decorative accents are encouraged when they clarify the reaction or match the selected style—for example hearts, music notes, sparkles, tears, blush marks, sweat drops, stars, or motion lines—but use them selectively and keep them inside the cell. Avoid captions and avoid objects crossing gutters. A transparent result is preferred; a single clean, uniform, high-contrast key color is acceptable only as the explicit fallback when real alpha is unavailable. For this workflow the fallback is exact `#00FF00` unless the configured subject-specific key says otherwise. The key must contrast with every character; do not use black for a dark subject or white for a light one.
+Each cell must contain one complete reaction with safe padding. Short reaction text is an intake preference: default to avoiding it, allow the user to opt in, and never reject a sheet merely because the model added text. Existing text is part of the reviewed source and should be preserved in later animation. Small semantic decorative accents are encouraged when they clarify the reaction or match the selected style—for example hearts, music notes, sparkles, tears, blush marks, sweat drops, stars, or motion lines—but use them selectively and keep them inside the cell. Avoid adding new captions during animation and avoid objects crossing gutters. A transparent result is preferred; a single clean, uniform, high-contrast key color is acceptable only as the explicit fallback when real alpha is unavailable. For this workflow the fallback is exact `#00FF00` unless the configured subject-specific key says otherwise. The key must contrast with every character; do not use black for a dark subject or white for a light one.
 
 Do not claim an exact returned count until the image is inspected.
 
@@ -64,7 +64,7 @@ If a motion would cross a cell boundary, reduce its amplitude or replace it. Do 
 
 The following concepts belong in the negative prompt or strict constraints:
 
-`camera motion, zoom, pan, tilt, roll, shake, global animation, synchronized board movement, cross-cell interaction, layout change, extra character, extra limb, duplicate prop, text, caption, border, scene, floor, gradient, shadow backdrop, checkerboard transparency, white fringe, black fringe, dirty semi-transparent edge`.
+`camera motion, zoom, pan, tilt, roll, shake, global animation, synchronized board movement, cross-cell interaction, layout change, extra character, extra limb, duplicate prop, new caption, border, scene, floor, gradient, shadow backdrop, checkerboard transparency, white fringe, black fringe, dirty semi-transparent edge`.
 
 ## Key-pose fallback prompt
 

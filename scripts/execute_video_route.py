@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -18,7 +19,7 @@ from config_contract import (
     validate_video_task,
 )
 from manage_job_state import read_state, verify_state
-from video_background_qc import validate_video_background, validate_video_grid_safety
+from video_background_qc import probe_video_alpha, validate_video_background, validate_video_grid_safety
 
 
 GATEWAY = Path(__file__).with_name("video_gateway.mjs")
@@ -84,6 +85,19 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
         raise ContractError("route was produced from a different provider config")
     if route.get("task_sha256") != object_sha256(task):
         raise ContractError("route was produced from a different video task")
+    dependencies = route.get("dependency_sha256")
+    if not isinstance(dependencies, dict):
+        raise ContractError("route is missing dependency_sha256; regenerate the route")
+    for field in ("input_image", "layout_file", "prompt_file", "approval_file", "production_settings_file"):
+        value = task.get(field)
+        if not isinstance(value, str):
+            continue
+        path = Path(value)
+        if not path.is_file():
+            raise ContractError(f"task dependency no longer exists: {field}")
+        actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+        if dependencies.get(field) != actual_hash:
+            raise ContractError(f"task dependency changed after routing: {field}")
     verify_state(
         read_state(Path(task["approval_file"])),
         Path(task["input_image"]),
@@ -112,6 +126,8 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
     elif provider["driver"] in {"command", "http-job"}:
         command = list(provider.get("command") or provider.get("adapter_command") or [])
         command += ["--task", str(task_path.resolve()), "--output", str(output.resolve())]
+        if provider["id"] == "xai-direct":
+            command += ["--config", str(config_path.resolve()), "--provider-id", provider["id"]]
     else:
         raise ContractError("native-tool routes must be invoked by the host Agent, not this subprocess executor")
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -154,7 +170,15 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
         raise ContractError("adapter output must be an existing absolute file")
     if result.get("provider") not in (None, provider["id"]):
         raise ContractError("adapter result provider does not match the selected route")
-    if task.get("allow_key_background") and not bool(result.get("has_alpha", False)):
+    try:
+        alpha_qc = probe_video_alpha(generated)
+    except ContractError as exc:
+        raise ContractError(f"generated video was rejected before post-processing: {exc}") from exc
+    result["alpha_qc"] = alpha_qc
+    result["has_alpha"] = alpha_qc["has_meaningful_alpha"]
+    if task.get("require_alpha") and not result["has_alpha"] and not task.get("allow_key_background"):
+        raise ContractError("generated video is opaque but the task requires alpha and disallows key matting")
+    if task.get("allow_key_background") and not result["has_alpha"]:
         key_color = str(task.get("key_color") or "#00FF00").upper()
         try:
             background_qc = validate_video_background(generated, key_color)
@@ -167,7 +191,7 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
             ) from exc
         result["background_qc"] = background_qc
         result["grid_safety_qc"] = grid_safety_qc
-        output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:

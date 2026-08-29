@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -22,11 +23,18 @@ def _call_arguments(
     reference = contract.get("reference_image")
     if reference:
         path = reference.get("path") if isinstance(reference, dict) else None
+        expected_sha256 = reference.get("sha256") if isinstance(reference, dict) else None
         if not isinstance(path, str) or not path:
             raise ValueError("reference_image is missing its path")
+        if not isinstance(expected_sha256, str) or len(expected_sha256) != 64:
+            raise ValueError("reference_image is missing its sha256 binding")
+        resolved = Path(path).expanduser().resolve(strict=True)
+        actual_sha256 = hashlib.sha256(resolved.read_bytes()).hexdigest()
+        if actual_sha256 != expected_sha256:
+            raise ValueError("reference_image sha256 no longer matches the bound source")
         if "referenced_image_paths" not in supported_arguments:
             raise ValueError("reference-image generation requires referenced_image_paths support")
-        call_arguments["referenced_image_paths"] = [path]
+        call_arguments["referenced_image_paths"] = [str(resolved)]
     call_arguments.update(
         {key: value for key, value in requested_arguments.items() if key in supported_arguments}
     )
@@ -89,6 +97,14 @@ def prepare_call(contract: dict, supported_arguments: set[str]) -> dict:
         prompt=f"{prompt}\n\n{fallback_suffix.strip()}",
         requested_arguments=fallback_arguments,
     )
+    reference = contract.get("reference_image")
+    verified_reference = None
+    if isinstance(reference, dict):
+        verified_reference = {
+            "path": str(Path(reference["path"]).expanduser().resolve(strict=True)),
+            "sha256": reference["sha256"],
+            "verified": True,
+        }
     return {
         "version": 1,
         "tool": request.get("preferred_tool", "image_gen"),
@@ -110,6 +126,7 @@ def prepare_call(contract: dict, supported_arguments: set[str]) -> dict:
         },
         "opaque_fallback_call": fallback_record,
         "requires_alpha_normalization": True,
+        "verified_reference_image": verified_reference,
     }
 
 

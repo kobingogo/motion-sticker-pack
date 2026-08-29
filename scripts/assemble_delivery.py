@@ -10,7 +10,12 @@ import shutil
 import zipfile
 from pathlib import Path
 
-from output_safety import DELIVERY_VARIANT_DIRECTORY, prepare_output, validate_archive_name
+from output_safety import (
+    DELIVERY_VARIANT_DIRECTORY,
+    prepare_output,
+    validate_archive_name,
+    validate_output_boundaries,
+)
 
 
 MEDIA_RE = re.compile(r"^\d{2,}\.(?:png|webp|gif)$")
@@ -46,7 +51,7 @@ def main() -> int:
     archive_name = validate_archive_name(args.zip_name)
     media_dir = args.media_dir.expanduser().resolve()
     audit_dir = args.audit_dir.expanduser().resolve()
-    output = args.output.expanduser().resolve()
+    output = validate_output_boundaries(args.output, [media_dir, audit_dir])
     if not media_dir.is_dir() or not audit_dir.is_dir():
         raise ValueError("media-dir and audit-dir must be directories")
     if args.cleanup_media_dir and (

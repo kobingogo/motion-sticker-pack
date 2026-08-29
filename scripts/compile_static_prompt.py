@@ -75,6 +75,7 @@ def compile_prompt(
     background: str = "transparent",
     output_format: str = "png",
     character_description: str | None = None,
+    include_text: bool = False,
 ) -> dict:
     cleaned = [" ".join(item.split()) for item in expressions if item.strip()]
     if not cleaned:
@@ -83,6 +84,8 @@ def compile_prompt(
         raise ValueError("use at most 24 reactions, each no longer than 100 characters")
     if len(reference_label) > 200:
         raise ValueError("reference label must not exceed 200 characters")
+    if reference_image and character_description:
+        raise ValueError("choose exactly one character source: reference image or character description")
     if character_description and len(character_description.strip()) > 1000:
         raise ValueError("character description must not exceed 1000 characters")
     if background not in IMAGE_BACKGROUNDS:
@@ -94,6 +97,17 @@ def compile_prompt(
     count = columns * rows
     expression_text = "、".join(cleaned)
     count_text = chinese_number(count)
+    sheet_name = "九宫格" if (columns, rows) == (3, 3) else f"{columns}×{rows}、共{count_text}格的网格"
+    cells_name = "九格" if count == 9 else f"{count_text}格"
+    text_instruction = (
+        "文字策略：允许在合适的格子加入简短、清晰的反应文字，但文字不是硬性要求；"
+        "不要让文字遮挡角色，也不要把 Unicode Emoji 字符直接当作文字贴上去。"
+        if include_text
+        else (
+            "文字策略：默认不主动添加文字，只用表情、姿势和少量图形化装饰表达反应；"
+            "如果模型仍然生成了文字，不把它视为生成失败，不拦截、不强制重生成，交由用户在静态审核时决定是否保留。"
+        )
+    )
     cleaned_description = " ".join(character_description.split()) if character_description else None
     if reference_image:
         identity_source = f"基于 {reference_label}"
@@ -101,17 +115,18 @@ def compile_prompt(
     else:
         identity_source = f"直接根据角色定义“{cleaned_description or reference_label}”"
         direct_sheet_instruction = (
-            "不要先生成单张角色图、角色设定图或中间定稿图；直接输出完整贴纸页。"
+            f"不要先生成单张角色图、角色设定图或中间定稿图；直接输出完整{sheet_name}源图。"
             "所有格子必须呈现同一个角色，并保持可辨识的脸部、发型、体型、服装和配色一致。"
         )
     prompt = (
-        f"{identity_source} 创建一套 {style_label} 贴纸包，并融入 {expression_text}。"
+        f"{identity_source} 创建一套 {style_label} 动态表情包的静态{sheet_name}源图，并融入 {expression_text}。"
         f" {style_prompt}\n\n"
         f"{direct_sheet_instruction}"
-        f"创建一张正方形 (1:1) 透明贴纸页，优先包含{count_text}个各不相同的贴纸，"
-        f"按 {columns}×{rows} 网格排列，每个贴纸呈现不同的表情、姿势或反应。"
+        f"创建一张正方形 (1:1) 透明{sheet_name}插画卡片源图，优先包含{count_text}个各不相同的表情卡片，"
+        f"按 {columns}×{rows} 网格排列，每格呈现不同的表情、姿势或反应。默认采用无白边、无厚描边的卡片呈现；每格加入轻微、局部、与情绪匹配的背景点缀，{cells_name}保持统一色调，"
         "【真实透明度硬约束】首次调用必须优先输出保留真实 alpha 通道的 RGBA PNG；所有透明区域（包括整张画布边缘、格间留白和每格主体外侧留白）的 alpha 必须为 0，不能把透明效果画成可见图案。首次透明调用严禁绘制棋盘格、灰白方格、透明预览底、黑底、白底、渐变底、彩色纯色底、地面、背景板、相框或大面积背景阴影；不要将图像扁平化成 RGB/JPEG。若首次调用无法产生真实 alpha，备用调用才允许按照备用指令使用完全一致的纯色抠像底，且不得用棋盘格或其他模拟透明效果冒充透明输出。\n"
-        "贴纸之间留出较宽且完全透明的间隔。根据每个表情的语义和选定风格，合理加入少量匹配的装饰性反应元素，例如爱心、音符、星光、泪滴、腮红、汗滴或动作线；仅在合适的格子使用，不要每格强行添加，也不要引入与表情无关的大型新物体。无大面积背景、文字或跨格重叠元素。\n\n"
+        "卡片之间留出较宽且完全透明的间隔。根据每个表情的语义和选定风格，合理加入少量匹配的装饰性反应元素，例如爱心、音符、星光、泪滴、腮红、汗滴或动作线；仅在合适的格子使用，不要每格强行添加，也不要引入与表情无关的大型新物体。"
+        f"{text_instruction} 背景点缀必须轻微、局部、留在自己的格子内，不得形成整格矩形底板、跨格重叠或大面积阴影。\n\n"
         "严格保持参考角色的身份、五官、发型或毛发、颜色、服装、身体比例和标志性特征。"
         "Emoji 和短描述用于表达情绪、动作或已有道具，不要把 Unicode Emoji 字符直接画成文字。"
         "如果提供的反应少于贴纸数量，在相同语义范围内补充互不重复、适合聊天的自然反应。"
@@ -129,6 +144,12 @@ def compile_prompt(
         "character_description": cleaned_description,
         "style": {"id": style_id, "label": style_label, "prompt": style_prompt},
         "expressions": cleaned,
+        "text_policy": {
+            "user_requested_text": include_text,
+            "default": "allow" if include_text else "avoid",
+            "post_generation": "record-only",
+            "generated_text_is_not_a_failure": True,
+        },
         "requested_layout": {"columns": columns, "rows": rows, "count": count},
         "static_sheet_prompt": prompt,
         "image_generation_request": {
@@ -171,10 +192,16 @@ def main() -> int:
     parser.add_argument("--expressions", help="one combined Emoji or short-description string")
     parser.add_argument("--layout", type=parse_grid, default=(3, 3))
     parser.add_argument("--reference-label", default="所附图像")
-    parser.add_argument("--reference-image", type=Path, help="source image to bind to the generated static-sheet prompt")
-    parser.add_argument(
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--reference-image", type=Path, help="source image to bind to the generated static-sheet prompt")
+    source.add_argument(
         "--character-description",
         help="character name or concise visual definition when no reference image is supplied",
+    )
+    parser.add_argument(
+        "--include-text",
+        action="store_true",
+        help="allow short reaction text; default is to avoid text without rejecting model-added text",
     )
     parser.add_argument("--background", choices=IMAGE_BACKGROUNDS, default="transparent")
     parser.add_argument("--output-format", choices=IMAGE_OUTPUT_FORMATS, default="png")
@@ -202,6 +229,7 @@ def main() -> int:
         args.background,
         args.output_format,
         args.character_description,
+        args.include_text,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

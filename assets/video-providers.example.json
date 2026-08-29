@@ -22,7 +22,6 @@
           "GROK_CONFIG_PATH",
           "GROK_HOME",
           "GROK_USE_XAI_API_KEY",
-          "GROK_VIDEO_RESOLUTION",
           "GROK_DEBUG_FILE",
           "GROK_LOG_FILE",
           "GROK_SANDBOX",
@@ -45,8 +44,6 @@
       "credentials": {
         "env": ["XAI_API_KEY"],
         "optional_env": [
-          "XAI_VIDEO_MODEL",
-          "XAI_VIDEO_RESOLUTION",
           "XAI_VIDEO_UPLOAD_URL",
           "XAI_VIDEO_DOWNLOAD_URL",
           "XAI_VIDEO_LOCAL_OUTPUT_PATH",

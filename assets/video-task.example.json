@@ -15,6 +15,8 @@
   "loop_max_seconds": 2.5,
   "allow_fallback": false,
   "provider": "grok-build-local",
+  "provider_chain": ["grok-build-local"],
+  "provider_selection_source": "production-settings",
   "input_image": "/absolute/path/to/static-sheet.png",
   "layout_file": "/absolute/path/to/layout.json",
   "prompt_file": "/absolute/path/to/prompts.json",
@@ -25,7 +27,11 @@
     "grok-build-local": 6,
     "xai-direct": 3
   },
+  "provider_execution": {
+    "grok-build-local": {"duration_seconds": 6, "resolution": "720p"}
+  },
   "production_settings_file": "/absolute/path/to/sticker-production.json",
+  "aspect_ratio": "1:1",
   "timeout_seconds": 900,
   "poll_interval_ms": 5000,
   "max_retries": 0,

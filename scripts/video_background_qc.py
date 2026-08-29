@@ -300,7 +300,7 @@ def probe_video_metadata(path: Path) -> dict:
         raise BackgroundQCError("ffmpeg and ffprobe are required for video background QC")
     command = [
         "ffprobe", "-v", "error", "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,avg_frame_rate,r_frame_rate,nb_frames,duration", "-of", "json", str(path),
+        "-show_entries", "stream=width,height,pix_fmt,avg_frame_rate,r_frame_rate,nb_frames,duration", "-of", "json", str(path),
     ]
     try:
         data = json.loads(subprocess.check_output(command, text=True))
@@ -314,6 +314,7 @@ def probe_video_metadata(path: Path) -> dict:
             "fps": fps,
             "frame_count": int(stream["nb_frames"]) if str(stream.get("nb_frames", "")).isdigit() else None,
             "duration_seconds": float(stream["duration"]) if stream.get("duration") not in (None, "N/A") else None,
+            "pixel_format": str(stream.get("pix_fmt") or "unknown"),
         }
     except (KeyError, IndexError, json.JSONDecodeError, OSError, ValueError, subprocess.CalledProcessError) as exc:
         raise BackgroundQCError(f"cannot probe generated video: {path}") from exc
@@ -385,6 +386,59 @@ def _native_frames(path: Path, width: int, height: int, limit: int):
         return_code = process.wait()
         if return_code and not consumer_closed:
             raise BackgroundQCError(f"native video QC extraction failed: {stderr[-800:].strip()}")
+
+
+def _native_alpha_frames(path: Path, width: int, height: int, limit: int):
+    command = [
+        "ffmpeg", "-v", "error", "-i", str(path), "-frames:v", str(limit),
+        "-f", "rawvideo", "-pix_fmt", "rgba", "pipe:1",
+    ]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    frame_bytes = width * height * 4
+    assert process.stdout is not None
+    try:
+        while True:
+            raw = process.stdout.read(frame_bytes)
+            if not raw:
+                break
+            if len(raw) != frame_bytes:
+                raise BackgroundQCError("ffmpeg returned a truncated alpha-probe frame")
+            yield np.frombuffer(raw, dtype=np.uint8).reshape((height, width, 4)).copy()
+    finally:
+        process.stdout.close()
+        stderr = process.stderr.read().decode("utf-8", errors="replace") if process.stderr else ""
+        if process.stderr is not None:
+            process.stderr.close()
+        return_code = process.wait()
+        if return_code:
+            raise BackgroundQCError(f"video alpha extraction failed: {stderr[-800:].strip()}")
+
+
+def probe_video_alpha(path: Path, *, limit: int = 120) -> dict:
+    """Decode native frames and report meaningful alpha instead of trusting adapters."""
+    if not path.is_file():
+        raise BackgroundQCError(f"generated video does not exist: {path}")
+    if not 1 <= limit <= 1200:
+        raise ValueError("alpha probe limit must be between 1 and 1200")
+    metadata = probe_video_metadata(path)
+    coverages: list[float] = []
+    minimum_alpha = 255
+    for frame in _native_alpha_frames(path, metadata["width"], metadata["height"], limit):
+        alpha = frame[:, :, 3]
+        minimum_alpha = min(minimum_alpha, int(alpha.min()))
+        coverages.append(float(np.mean(alpha < 250)))
+    if not coverages:
+        raise BackgroundQCError("generated video contains no decodable frames")
+    meaningful = max(coverages) >= 0.002
+    return {
+        "valid": True,
+        "has_meaningful_alpha": meaningful,
+        "classification": "real-alpha" if meaningful else "opaque",
+        "pixel_format": metadata["pixel_format"],
+        "frames_checked": len(coverages),
+        "minimum_alpha": minimum_alpha,
+        "maximum_transparent_fraction": round(max(coverages), 6),
+    }
 
 
 def validate_video_background(

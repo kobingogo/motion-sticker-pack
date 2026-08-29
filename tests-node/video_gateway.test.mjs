@@ -222,7 +222,7 @@ test('Seedance, Wan, Kling, and FAL complete request-level mocked I2V calls', as
       providerOptions: { cameraFixed: true, watermark: false },
       start: url => url === 'https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks',
       status: url => url.endsWith('/contents/generations/tasks/task-seedance'),
-      startBody: body => body.content.some(item => item.type === 'image_url' && item.image_url.url.startsWith('data:image/png;base64,')),
+      startBody: body => body.resolution === '720p' && body.content.some(item => item.type === 'image_url' && item.image_url.url.startsWith('data:image/png;base64,')),
       startResponse: { id: 'task-seedance' },
       statusResponse: { id: 'task-seedance', status: 'succeeded', content: { video_url: 'https://media.invalid/seedance.mp4' } },
       authorization: 'Bearer seedance-secret',
@@ -233,10 +233,11 @@ test('Seedance, Wan, Kling, and FAL complete request-level mocked I2V calls', as
       providerOptions: { shotType: 'single', watermark: false },
       start: url => url === 'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis',
       status: url => url === 'https://dashscope.aliyuncs.com/api/v1/tasks/task-wan',
-      startBody: body => typeof body.input.img_url === 'string' && body.input.img_url.length > 40,
+      startBody: body => typeof body.input.img_url === 'string' && body.input.img_url.length > 40 && body.parameters.resolution === '720P',
       startResponse: { output: { task_status: 'PENDING', task_id: 'task-wan' } },
       statusResponse: { output: { task_id: 'task-wan', task_status: 'SUCCEEDED', video_url: 'https://media.invalid/wan.mp4' } },
       authorization: 'Bearer wan-secret',
+      expectedWarningCount: 1,
     },
     {
       name: 'kling', env: 'KLINGAI_API_KEY', secret: 'kling-secret', provider: 'klingai',
@@ -279,7 +280,13 @@ test('Seedance, Wan, Kling, and FAL complete request-level mocked I2V calls', as
         enabled: true,
         credentials: { env: [item.env] },
         provider_options: item.providerOptions,
-      }, item.taskOverrides);
+      }, {
+        ...item.taskOverrides,
+        aspect_ratio: '1:1',
+        provider_execution: {
+          [item.name]: { duration_seconds: 5, resolution: '720p' },
+        },
+      });
       const originalFetch = globalThis.fetch;
       let sawStart = false;
       let sawStatus = false;

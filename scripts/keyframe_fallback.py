@@ -16,7 +16,7 @@ from PIL import ImageOps
 
 from animation_export import encode_gif_images, encode_webp_images
 from process_emoji_grid import load_layout, median_background, remove_edge_background, tile_bounds
-from output_safety import prepare_output
+from output_safety import prepare_output, validate_output_boundaries
 from manage_job_state import read_state, verify_state
 
 
@@ -93,6 +93,7 @@ def main() -> int:
     verify_state(read_state(args.state), args.image, args.layout)
     layout = load_layout(args.layout, args.allow_low_confidence)
     columns, rows, count = layout["columns"], layout["rows"], layout["count"]
+    args.output = validate_output_boundaries(args.output, [args.image, args.layout, args.state])
     with Image.open(args.image) as source:
         if source.width * source.height > 64_000_000:
             raise ValueError("input image exceeds the 64 megapixel safety limit")

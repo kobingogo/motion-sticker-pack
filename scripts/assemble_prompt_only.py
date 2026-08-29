@@ -9,7 +9,7 @@ import shutil
 import zipfile
 from pathlib import Path
 
-from output_safety import prepare_output, validate_archive_name
+from output_safety import prepare_output, validate_archive_name, validate_output_boundaries
 
 
 def main() -> int:
@@ -32,7 +32,7 @@ def main() -> int:
     for source in sources.values():
         if not source.expanduser().is_file():
             raise FileNotFoundError(source)
-    output = args.output.expanduser().resolve()
+    output = validate_output_boundaries(args.output, sources.values())
     prepare_output(output, overwrite=args.overwrite, archive_names={archive_name})
     names = list(sources)
     for name, source in sources.items():

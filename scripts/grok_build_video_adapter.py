@@ -16,7 +16,14 @@ from urllib.parse import quote
 
 from config_contract import ContractError
 from sticker_production_config import default_settings_path, load_production_settings
-from video_adapter_common import copy_video, download_video, duration_for_provider, load_task_and_prompt, write_result
+from video_adapter_common import (
+    copy_video,
+    download_video,
+    duration_for_provider,
+    load_task_and_prompt,
+    resolution_for_provider,
+    write_result,
+)
 from video_background_qc import (
     materialize_green_input,
     validate_grok_input,
@@ -160,7 +167,7 @@ def compact_motion_prompt(
             return (
                 f"{columns}x{rows} grid, {count} cells. Fixed camera/canvas; preserve each cell's identity, "
                 f"outfit, props, pose and placement. Each cell: one small in-place action; {_motion_schedule(timeline)}. "
-                "No crop, reorder, cross-cell motion, new content, text or backdrop. "
+                "No crop, reorder, cross-cell motion, new content or backdrop. Preserve approved text/symbols in place. "
                 "Cell actions: " + "; ".join(motions)
             )
     return re.sub(r"\s+", " ", str(prompt["grid_video_prompt"])).strip()
@@ -174,7 +181,7 @@ def build_instruction(
     instruction = f"""Use image_to_video exactly once on this approved image: {source.resolve()}
 Settings: duration={duration}s, resolution_name={resolution}.
 Motion: {compact_motion_prompt(prompt, timeline)}
-Hard rules: keep the full grid and every cell's identity, outfit, props, pose and placement. Fixed camera/canvas. Keep each action subtle, independent and inside its cell; {_motion_schedule(timeline)}. After that loop-ready cycle, keep holding the start pose through {duration}s; do not repeat the action. No crop, reorder, merge, cross-cell motion, new character/content, text, backdrop, shadow or camera move.
+Hard rules: keep the full grid and every cell's identity, outfit, props, pose and placement. Fixed camera/canvas. Keep each action subtle, independent and inside its cell; {_motion_schedule(timeline)}. After that loop-ready cycle, keep holding the start pose through {duration}s; do not repeat the action. No crop, reorder, merge, cross-cell motion, new character/content, backdrop, shadow or camera move; preserve approved text or symbols in place.
 This is green screen, not transparency: render every empty/background pixel as exactly one flat RGB color: {key_color}. Never draw a checkerboard. Keep {key_color} uniform in every frame, including corners and grid gutters; keep foreground away from seams.
 Do not call another generation tool; do not retry; this task permits exactly one image_to_video generation. Save a successful MP4 to exactly {target}. Finish with one JSON object only: status=ok plus an existing absolute local MP4 path (or url); on failure use status=failed plus a concise message.
 """
@@ -253,9 +260,9 @@ def main() -> int:
         settings = load_production_settings(settings_path)
         configured_generation = settings["generation"]
         duration = duration_for_provider(task, PROVIDER_ID, default=6)
-        resolution = os.environ.get("GROK_VIDEO_RESOLUTION", configured_generation["resolution"])
-        if resolution not in {"480p", "720p"}:
-            raise ContractError("GROK_VIDEO_RESOLUTION must be 480p or 720p")
+        resolution = resolution_for_provider(
+            task, PROVIDER_ID, default=configured_generation["resolution"]
+        )
         output_dir = Path(task["output_directory"]).resolve()
         key_color = str(task.get("key_color") or DEFAULT_KEY_COLOR).upper()
         if key_color != DEFAULT_KEY_COLOR:

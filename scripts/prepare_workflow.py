@@ -5,13 +5,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+import re
 import shutil
 import sys
 from pathlib import Path
 
+from PIL import Image
+
 from character_workspace import character_workspace, write_character_manifest
 from config_contract import is_python_interpreter, validate_provider_config, validate_video_task
-from sticker_production_config import default_settings_path, load_production_settings
+from sticker_production_config import default_settings_path, load_production_settings, match_duration_profile
 
 
 def read_json(path: Path) -> dict:
@@ -54,6 +58,31 @@ def usable_provider_config(source: Path, skill_root: Path) -> dict:
     return validate_provider_config(config)
 
 
+def parse_provider_assignment(value: str, *, kind: str) -> tuple[str, int | str]:
+    provider_id, separator, raw = value.partition("=")
+    if not separator or not provider_id or not raw:
+        raise argparse.ArgumentTypeError(f"{kind} must use PROVIDER=VALUE")
+    if kind == "duration":
+        try:
+            duration = int(raw)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError("provider duration must be an integer") from exc
+        if not 1 <= duration <= 15:
+            raise argparse.ArgumentTypeError("provider duration must be between 1 and 15")
+        return provider_id, duration
+    if raw not in {"480p", "720p"}:
+        raise argparse.ArgumentTypeError("provider resolution must be 480p or 720p")
+    return provider_id, raw
+
+
+def source_aspect_ratio(path: Path) -> str:
+    with Image.open(path) as image:
+        width, height = image.size
+    ratio = width / height
+    supported = {"1:1": 1.0, "4:3": 4 / 3, "3:4": 3 / 4, "16:9": 16 / 9, "9:16": 9 / 16}
+    return min(supported, key=lambda name: abs(math.log(ratio / supported[name])))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--work-dir", type=Path)
@@ -67,6 +96,23 @@ def main() -> int:
     parser.add_argument("--provider-template", type=Path)
     parser.add_argument("--tool-manifest-template", type=Path)
     parser.add_argument("--duration-seconds", type=float)
+    parser.add_argument("--provider", help="task-level preferred provider id; does not edit the global template")
+    parser.add_argument(
+        "--fallback-provider", action="append", default=[],
+        help="ordered task-level fallback provider id; repeat to build the fallback chain",
+    )
+    parser.add_argument(
+        "--provider-duration", action="append", default=[], metavar="PROVIDER=SECONDS",
+        help="per-provider generation duration override",
+    )
+    parser.add_argument(
+        "--provider-resolution", action="append", default=[], metavar="PROVIDER=480p|720p",
+        help="per-provider resolution override",
+    )
+    fallback_group = parser.add_mutually_exclusive_group()
+    fallback_group.add_argument("--allow-fallback", dest="allow_fallback", action="store_true")
+    fallback_group.add_argument("--no-fallback", dest="allow_fallback", action="store_false")
+    parser.set_defaults(allow_fallback=None)
     parser.add_argument(
         "--settings",
         type=Path,
@@ -93,8 +139,38 @@ def main() -> int:
             raise FileNotFoundError(path)
     settings_source = args.settings.expanduser().resolve()
     settings = load_production_settings(settings_source)
-    provider = settings["generation"]["provider"]
+    config = usable_provider_config(provider_template.expanduser().resolve(), skill_root)
+    configured = {item["id"]: item for item in config["providers"]}
+    provider = args.provider or settings["generation"]["provider"]
+    provider_chain = [provider, *args.fallback_provider]
+    if len(provider_chain) != len(set(provider_chain)):
+        raise ValueError("provider and fallback-provider values must not contain duplicates")
+    for provider_id in provider_chain:
+        candidate = configured.get(provider_id)
+        if not candidate:
+            raise ValueError(f"provider {provider_id!r} is not present in the provider config")
+        if not candidate["enabled"]:
+            raise ValueError(f"provider {provider_id!r} is disabled in the provider config")
+    allow_fallback = args.allow_fallback if args.allow_fallback is not None else bool(args.fallback_provider)
+    if args.fallback_provider and not allow_fallback:
+        raise ValueError("fallback-provider requires --allow-fallback")
+    if args.key_color and not re.fullmatch(r"#[0-9A-Fa-f]{6}", args.key_color):
+        raise ValueError("key-color must use #RRGGBB notation")
+    if provider == "grok-build-local" and args.key_color and args.key_color.upper() != "#00FF00":
+        raise ValueError("grok-build-local requires key-color #00FF00")
     provider_durations = dict(settings["generation"]["provider_duration_seconds"])
+    duration_overrides = dict(
+        parse_provider_assignment(value, kind="duration") for value in args.provider_duration
+    )
+    resolution_overrides = dict(
+        parse_provider_assignment(value, kind="resolution") for value in args.provider_resolution
+    )
+    unknown_overrides = (set(duration_overrides) | set(resolution_overrides)) - set(provider_chain)
+    if unknown_overrides:
+        raise ValueError(f"provider overrides target providers outside provider_chain: {sorted(unknown_overrides)}")
+    provider_durations.update(duration_overrides)
+    if provider not in provider_durations:
+        raise ValueError(f"no duration configured for selected provider {provider!r}; use --provider-duration")
     duration_seconds = provider_durations[provider]
     if args.duration_seconds is not None:
         rounded_duration = round(args.duration_seconds)
@@ -102,21 +178,58 @@ def main() -> int:
             raise ValueError("duration-seconds must be an integer between 1 and 15")
         duration_seconds = rounded_duration
         provider_durations[provider] = rounded_duration
-
-    config = usable_provider_config(provider_template.expanduser().resolve(), skill_root)
+    missing_durations = [provider_id for provider_id in provider_chain if provider_id not in provider_durations]
+    if missing_durations:
+        raise ValueError(f"no duration configured for providers {missing_durations}; use --provider-duration")
+    provider_execution = {
+        provider_id: {
+            "duration_seconds": provider_durations[provider_id],
+            "resolution": resolution_overrides.get(provider_id, settings["generation"]["resolution"]),
+        }
+        for provider_id in provider_chain
+    }
+    for provider_id, execution in provider_execution.items():
+        try:
+            match_duration_profile(settings, float(execution["duration_seconds"]))
+        except ValueError as exc:
+            raise ValueError(
+                f"provider {provider_id!r} duration {execution['duration_seconds']}s has no output profile"
+            ) from exc
+    aspect_ratio = source_aspect_ratio(args.image.expanduser().resolve())
+    settings_snapshot = work / "sticker-production.json"
+    planned_targets = [
+        work / "video-providers.json",
+        work / "tile-plan.json",
+        settings_snapshot,
+        work / "video-task.json",
+    ]
+    existing_targets = [path for path in planned_targets if path.exists()]
+    if existing_targets and not args.overwrite:
+        names = ", ".join(path.name for path in existing_targets)
+        raise FileExistsError(f"refusing partial workflow update; existing targets: {names}; pass --overwrite")
     write_json(work / "video-providers.json", config, overwrite=args.overwrite)
     runtime_manifest = work / "runtime-tools.json"
     if not runtime_manifest.exists() or args.overwrite:
         copy_file(manifest_template.expanduser().resolve(), runtime_manifest, overwrite=args.overwrite)
     copy_file(args.tile_plan.expanduser().resolve(), work / "tile-plan.json", overwrite=args.overwrite)
-    settings_snapshot = work / "sticker-production.json"
-    copy_file(settings_source, settings_snapshot, overwrite=args.overwrite)
+    effective_settings = {key: value for key, value in settings.items() if key != "_meta"}
+    effective_settings["generation"] = dict(effective_settings["generation"])
+    effective_settings["generation"]["provider"] = provider
+    effective_settings["generation"]["provider_duration_seconds"] = provider_durations
+    effective_settings["generation"]["resolution"] = provider_execution[provider]["resolution"]
+    if args.key_color:
+        effective_settings["generation"]["key_color"] = args.key_color
+    write_json(settings_snapshot, effective_settings, overwrite=args.overwrite)
+    load_production_settings(settings_snapshot)
 
     output_directory = (work / "raw-video").resolve()
     task = read_json(skill_root / "assets" / "video-task.example.json")
     task.update(
         {
             "provider": provider,
+            "provider_chain": provider_chain,
+            "provider_selection_source": "task-override" if args.provider else "production-settings",
+            "allow_fallback": allow_fallback,
             "max_retries": settings["generation"]["max_retries"],
             "input_image": str(args.image.expanduser().resolve()),
             "layout_file": str(args.layout.expanduser().resolve()),
@@ -125,6 +238,8 @@ def main() -> int:
             "output_directory": str(output_directory),
             "duration_seconds": duration_seconds,
             "provider_duration_seconds": provider_durations,
+            "provider_execution": provider_execution,
+            "aspect_ratio": aspect_ratio,
             "key_color": args.key_color or settings["generation"]["key_color"],
             "production_settings_file": str(settings_snapshot.resolve()),
             "safe_grid_scale": 0.80,

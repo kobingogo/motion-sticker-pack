@@ -15,8 +15,16 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from config_contract import ContractError
-from video_adapter_common import copy_video, download_video, duration_for_provider, load_task_and_prompt, write_result
+from config_contract import ContractError, read_json_object, validate_provider_config
+from sticker_production_config import default_settings_path, load_production_settings
+from video_adapter_common import (
+    copy_video,
+    download_video,
+    duration_for_provider,
+    load_task_and_prompt,
+    resolution_for_provider,
+    write_result,
+)
 
 
 PROVIDER_ID = "xai-direct"
@@ -86,6 +94,8 @@ def status_name(value: dict[str, Any]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=Path, required=True)
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--provider-id", default=PROVIDER_ID)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     request_id: str | None = None
@@ -94,12 +104,21 @@ def main() -> int:
         if not api_key:
             raise ContractError("XAI_API_KEY is required")
         task, prompt = load_task_and_prompt(args.task)
+        config = validate_provider_config(read_json_object(args.config))
+        matches = [item for item in config["providers"] if item["id"] == args.provider_id]
+        if len(matches) != 1 or matches[0].get("provider") != "xai":
+            raise ContractError(f"provider {args.provider_id!r} is not one configured xAI provider")
+        provider_config = matches[0]
+        if provider_config.get("driver") != "command" or not provider_config.get("enabled"):
+            raise ContractError(f"provider {args.provider_id!r} is not an enabled command provider")
         image = Path(task["input_image"]).resolve()
-        duration = duration_for_provider(task, PROVIDER_ID, default=3)
-        model = os.environ.get("XAI_VIDEO_MODEL", "grok-imagine-video")
-        resolution = os.environ.get("XAI_VIDEO_RESOLUTION", "480p")
-        if resolution not in {"480p", "720p"}:
-            raise ContractError("XAI_VIDEO_RESOLUTION must be 480p or 720p")
+        duration = duration_for_provider(task, args.provider_id, default=3)
+        model = provider_config.get("model")
+        if not isinstance(model, str) or not model.strip():
+            raise ContractError(f"provider {args.provider_id!r} is missing its model")
+        settings_path = Path(task.get("production_settings_file") or default_settings_path())
+        configured_resolution = load_production_settings(settings_path)["generation"]["resolution"]
+        resolution = resolution_for_provider(task, args.provider_id, default=configured_resolution)
         body: dict[str, Any] = {
             "model": model,
             "prompt": prompt["grid_video_prompt"].strip(),
@@ -178,7 +197,7 @@ def main() -> int:
             args.output,
             {
                 "status": "succeeded",
-                "provider": PROVIDER_ID,
+                "provider": args.provider_id,
                 "model": model,
                 "output": str(video),
                 "request_id": request_id,
@@ -194,7 +213,7 @@ def main() -> int:
         message = str(exc)
         write_result(
             args.output,
-            {"status": "failed", "provider": PROVIDER_ID, "request_id": request_id, "error": message},
+            {"status": "failed", "provider": args.provider_id, "request_id": request_id, "error": message},
         )
         print(message, file=sys.stderr)
         return 1

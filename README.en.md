@@ -12,6 +12,14 @@ After install, use it as a conversation: upload an image or describe a character
 $motion-sticker-pack
 ```
 
+## What's new in v0.2.1
+
+- Task-level provider selection supports an explicit preferred provider and ordered fallback chain without editing shared defaults.
+- Each provider attempt now carries its own duration and resolution; xAI model selection comes from provider configuration instead of environment-variable overrides.
+- Routes bind the image, layout, prompt, approval state, and production-settings hashes, so changed inputs invalidate stale routes.
+- Returned videos are decoded locally to detect real alpha before key-background QC.
+- Output/input overlap is rejected before overwrite cleanup, and non-3×3 prompts no longer contain nine-grid wording.
+
 ## What's new in v0.2.0
 
 - **Two character-entry paths:** use a reference image or define a character in text; the text-only path generates the complete sheet directly.

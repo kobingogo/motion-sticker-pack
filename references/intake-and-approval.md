@@ -12,6 +12,12 @@ Required before static generation:
 2. one style choice;
 3. one or more Emoji or short reaction descriptions.
 
+Optional text preference:
+
+- Ask whether the user wants short reaction text in the stickers.
+- If the user does not choose, default to avoiding text in the generation prompt.
+- This is a preference, not a quality gate: if the model adds text anyway, keep the sheet eligible for review and record the observed text rather than rejecting or forcing regeneration.
+
 When an image exists, inspect it for the IP's stable visual features—face, hair or fur, silhouette, proportions, colors, clothing, accessories, existing props, pose language, scene cues, and mood—and treat it as the source of truth. Without an image, compile the user's named/textual character definition and keep that identity consistent across every cell. Do not generate a separate character concept image first.
 
 Do not add unsolicited moral, modesty, sexualization, age, wardrobe, pose-cleanup, or scene-removal constraints. Do not rewrite the reference into “得体、日常、非性感化” clothing or remove cars, night scenes, backgrounds, or ambiguous poses unless the user explicitly requests those changes. Use a neutral reference label such as `所附图像`.
@@ -23,11 +29,19 @@ If the user provides or defines a character but leaves style or reactions unspec
 ```text
 我将按以下设置制作：
 风格：3D 卡通风
+呈现：3×3 角色表情插画卡片（无白边、无厚描边、每格轻微独立背景、统一色调）
 表情：开心、喜欢、委屈、惊讶、亲亲、谢谢、加油、困困、点赞
 布局：3×3，共 9 个
 角色：根据附件分析 IP 形象特征，并默认保留人物外形、服装、配饰、道具、姿势语言和整体气质。
 
 回复“确认”开始生成，也可以说“风格改为……”或“表情改为……”。
+```
+
+When the text preference is still missing, append one compact choice:
+
+```text
+文字：默认不主动添加（如果模型自行生成文字，不拦截；静态审核时由你决定是否保留）
+也可以回复“带文字”或“不带文字”。
 ```
 
 Do not call image generation until the user confirms the current proposal. If the user changes the style or reactions, update the proposal and ask for confirmation again. If both style and reactions were already clear in the original request, skip this intake pause and proceed.
@@ -83,6 +97,8 @@ Immediately inspect the returned image with `scripts/inspect_sticker_sheet.py` a
 - `layout.json`;
 - `layout-overlay.png` when review benefits from visible boundaries;
 - `static-prompt.json`.
+
+The static prompt records the user's text preference as `text_policy`. Text presence is informational after generation: no OCR or visual check may reject a sheet solely because text appeared or did not appear. Existing approved text must be preserved in downstream video prompts; do not add new text during animation.
 
 Then run `scripts/manage_job_state.py create` with the image, layout, and static prompt. This creates a hash-bound `static-review` revision. For a user-supplied sheet, use `--source-type user-supplied`; it records that the source was already selected by the user.
 

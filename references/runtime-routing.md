@@ -27,7 +27,7 @@ The Gateway explicitly maps declared environment variables into provider factori
 It also includes two command adapters for Grok Imagine:
 
 - `scripts/grok_build_video_adapter.py` launches the logged-in local Grok Build CLI and instructs its internal `image_to_video` tool exactly once. Current Grok CLI flags are `--always-approve` and `--permission-mode bypassPermissions`; `--yolo` is not portable across releases. The adapter pins `--leader-socket` under `GROK_HOME` so a parent Grok/Codex session cannot reuse another leader's config. By default it removes `XAI_API_KEY` so an ambient key cannot silently replace the grok.com login. Set `GROK_USE_XAI_API_KEY=1` only when that behavior is intentional. Optional `GROK_DEBUG_FILE` / `GROK_LOG_FILE` capture CLI diagnostics without putting secrets in the result JSON.
-- `scripts/xai_rest_video_adapter.py` calls the xAI Videos REST API directly, polls boundedly, and downloads or copies the resulting MP4. `XAI_VIDEO_REQUEST_ID` resumes polling an existing request without submitting or charging for another generation.
+- `scripts/xai_rest_video_adapter.py` calls the xAI Videos REST API directly, polls boundedly, and downloads or copies the resulting MP4. Its model comes from the selected provider config; duration and resolution come from the task snapshot. `XAI_VIDEO_REQUEST_ID` resumes polling an existing request without submitting or charging for another generation.
 
 For a general setup, assign priorities so the order is `grok-build-local` → `xai-direct` → `transform-local`. For a Grok-mandated job, use the shipped task defaults (`provider: grok-build-local`, `allow_fallback: false`) so a failed Grok generation cannot be replaced by a local animation.
 
@@ -36,7 +36,7 @@ For a general setup, assign priorities so the order is `grok-build-local` → `x
 When an xAI team uses Zero Data Retention, every video generation needs user-owned output storage. The direct adapter accepts:
 
 - required: `XAI_API_KEY`;
-- optional production model/settings: `XAI_VIDEO_MODEL`, `XAI_VIDEO_RESOLUTION`;
+- model/duration/resolution: not environment variables; configure them in `video-providers.json` and `video-task.json`;
 - ZDR upload/retrieval: `XAI_VIDEO_UPLOAD_URL` plus either `XAI_VIDEO_LOCAL_OUTPUT_PATH` or `XAI_VIDEO_DOWNLOAD_URL`;
 - safe poll recovery: `XAI_VIDEO_REQUEST_ID`.
 
@@ -55,7 +55,7 @@ The router filters on all hard requirements, then orders:
 
 Missing `alpha-output` is not fatal when local post-processing is available and the task permits a key-color background. Camera lock and independent-cell behavior are prompt/QC requirements, not reliable provider capability claims.
 
-An explicit provider selection is honored first. Fallback occurs only when `allow_fallback` is true. Respect `max_attempts`; selection does not authorize unbounded paid retries.
+An explicit provider selection is honored first. `provider_chain` is an ordered allow-list, not a priority hint: its first member is attempted first and only its later members may become external fallbacks. Fallback occurs only when `allow_fallback` is true. Respect `max_attempts`; selection does not authorize unbounded paid retries.
 
 `scripts/execute_video_route.py` executes exactly one numbered route attempt. AI SDK attempts are delegated to `scripts/video_gateway.mjs`; command and HTTP-job attempts are delegated to their configured executable. The Gateway verifies the approved image/layout hashes before importing a provider or submitting a request. Non-alpha video results are checked on all native frames with `scripts/video_background_qc.py` before post-processing; a result that is not a uniform declared key color is rejected. Seam crossings are recorded for downstream recovery and do not trigger a paid regeneration. Grok requires `max_retries: 0`. The task output-size limit is applied during download, not only after the response has already been loaded into memory.
 
@@ -72,6 +72,11 @@ For `command` adapters, the gateway appends `--task <absolute-task-json> --outpu
   "provider_duration_seconds": {
     "grok-build-local": 6,
     "xai-direct": 3
+  },
+  "provider_chain": ["xai-direct", "grok-build-local"],
+  "provider_execution": {
+    "xai-direct": {"duration_seconds": 3, "resolution": "720p"},
+    "grok-build-local": {"duration_seconds": 6, "resolution": "720p"}
   },
   "production_settings_file": "/absolute/path/to/sticker-production.json",
   "aspect_ratio": "source",

@@ -16,10 +16,13 @@ from config_contract import ContractError, read_json_object, validate_video_task
 
 def duration_for_provider(task: dict[str, Any], provider_id: str, *, default: int) -> int:
     """Resolve an integer generation duration for one provider, with legacy fallback."""
+    execution = task.get("provider_execution", {}).get(provider_id, {})
+    value = execution.get("duration_seconds") if isinstance(execution, dict) else None
     durations = task.get("provider_duration_seconds")
     if durations is not None and not isinstance(durations, dict):
         raise ContractError("provider_duration_seconds must be an object")
-    value = durations.get(provider_id) if isinstance(durations, dict) else None
+    if value is None:
+        value = durations.get(provider_id) if isinstance(durations, dict) else None
     if value is None:
         value = task.get("duration_seconds", default)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -28,6 +31,15 @@ def duration_for_provider(task: dict[str, Any], provider_id: str, *, default: in
     if duration != float(value) or not 1 <= duration <= 15:
         raise ContractError(f"{provider_id} duration must be an integer from 1 to 15 seconds")
     return duration
+
+
+def resolution_for_provider(task: dict[str, Any], provider_id: str, *, default: str) -> str:
+    execution = task.get("provider_execution", {}).get(provider_id, {})
+    value = execution.get("resolution") if isinstance(execution, dict) else None
+    resolution = value or default
+    if resolution not in {"480p", "720p"}:
+        raise ContractError(f"{provider_id} resolution must be 480p or 720p")
+    return resolution
 
 
 def load_task_and_prompt(task_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:

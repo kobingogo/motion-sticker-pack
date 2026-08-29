@@ -14,7 +14,7 @@ from PIL import Image
 
 from animation_export import encode_gif_images, encode_webp_images
 from keyframe_fallback import transparent_tile
-from output_safety import prepare_output
+from output_safety import prepare_output, validate_output_boundaries
 from process_emoji_grid import load_layout
 from manage_job_state import read_state, verify_state
 
@@ -68,6 +68,9 @@ def main() -> int:
         raise ValueError(
             f"keypose directory has {len(sticker_dirs)} stickers; detected layout requires {layout['count']}"
         )
+    args.output = validate_output_boundaries(
+        args.output, [args.keyposes, args.image, args.layout, args.state]
+    )
     prepare_output(args.output, overwrite=args.overwrite)
     outputs: list[str] = []
     cells: list[dict] = []

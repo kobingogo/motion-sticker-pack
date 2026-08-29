@@ -280,6 +280,7 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
     allowed_fields = {
         "$schema", "version", "operation", "required_capabilities", "prefer_capabilities", "require_alpha",
         "allow_key_background", "key_color", "allow_fallback", "provider", "input_image", "layout_file", "prompt_file",
+        "provider_chain", "provider_execution", "provider_selection_source",
         "approval_file", "output_directory", "duration_seconds", "provider_duration_seconds", "timeout_seconds", "max_output_bytes",
         "max_input_image_bytes", "aspect_ratio", "resolution", "fps", "poll_interval_ms", "max_retries",
         "safe_grid_scale", "min_guard_fraction", "max_foreground_bbox_fraction",
@@ -300,6 +301,37 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
     provider = task.get("provider", "auto")
     if provider != "auto" and (not isinstance(provider, str) or not ID_RE.fullmatch(provider)):
         raise ContractError("task.provider must be auto or a valid provider id")
+    provider_chain = task.get("provider_chain")
+    if provider_chain is not None:
+        provider_chain = _string_list(provider_chain, "provider_chain")
+        if any(not ID_RE.fullmatch(provider_id) for provider_id in provider_chain):
+            raise ContractError("provider_chain entries must be valid provider ids")
+        if provider == "auto" or provider_chain[0] != provider:
+            raise ContractError("provider_chain must start with the explicit task.provider")
+    if "provider_selection_source" in task and task["provider_selection_source"] not in {
+        "production-settings", "task-override"
+    }:
+        raise ContractError("provider_selection_source must be production-settings or task-override")
+    provider_execution = task.get("provider_execution")
+    if provider_execution is not None:
+        if not isinstance(provider_execution, dict) or not provider_execution:
+            raise ContractError("provider_execution must be a non-empty object")
+        for provider_id, execution in provider_execution.items():
+            if not isinstance(provider_id, str) or not ID_RE.fullmatch(provider_id):
+                raise ContractError("provider_execution keys must be valid provider ids")
+            if not isinstance(execution, dict) or set(execution) != {"duration_seconds", "resolution"}:
+                raise ContractError(
+                    "provider_execution values must contain only duration_seconds and resolution"
+                )
+            duration = execution["duration_seconds"]
+            if isinstance(duration, bool) or not isinstance(duration, int) or not 1 <= duration <= 15:
+                raise ContractError("provider_execution duration_seconds must be an integer from 1 to 15")
+            if execution["resolution"] not in {"480p", "720p"}:
+                raise ContractError("provider_execution resolution must be 480p or 720p")
+        required_execution = provider_chain or ([] if provider == "auto" else [provider])
+        missing_execution = [provider_id for provider_id in required_execution if provider_id not in provider_execution]
+        if missing_execution:
+            raise ContractError(f"provider_execution is missing providers: {missing_execution}")
     provider_durations = task.get("provider_duration_seconds")
     if provider_durations is not None:
         if not isinstance(provider_durations, dict) or not provider_durations:
@@ -314,6 +346,8 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
     for field in ("allow_fallback", "require_alpha", "allow_key_background"):
         if field in task and not isinstance(task[field], bool):
             raise ContractError(f"{field} must be boolean")
+    if provider_chain is not None and not task.get("allow_fallback", False) and len(provider_chain) > 1:
+        raise ContractError("provider_chain may contain fallbacks only when allow_fallback is true")
     if "key_color" in task and (
         not isinstance(task["key_color"], str) or not HEX_COLOR_RE.fullmatch(task["key_color"])
     ):

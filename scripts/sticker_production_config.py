@@ -200,6 +200,12 @@ def load_production_settings(path: Path | None = None) -> dict[str, Any]:
     if gif_settings.get("optimize_delta_frames") not in {True, False}:
         raise ValueError("gif.optimize_delta_frames must be boolean")
     _integer(gif_settings.get("loop"), "gif.loop", 0, 65535)
+    _number(
+        gif_settings.get("max_alpha_coverage_delta", 0.15),
+        "gif.max_alpha_coverage_delta",
+        0,
+        1,
+    )
     if not isinstance(webp, dict) or webp.get("enabled") not in {True, False} or webp.get("lossless") not in {True, False}:
         raise ValueError("webp.enabled and webp.lossless must be boolean")
     _integer(webp.get("quality"), "webp.quality", 1, 100)

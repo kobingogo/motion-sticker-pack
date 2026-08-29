@@ -34,7 +34,7 @@ from grok_build_video_adapter import (  # noqa: E402
     resolve_grok_home,
 )
 from manage_job_state import atomic_write, create_state, verify_state  # noqa: E402
-from output_safety import prepare_output, validate_archive_name  # noqa: E402
+from output_safety import prepare_output, validate_archive_name, validate_output_boundaries  # noqa: E402
 from prompt_compiler import load_tile_plan  # noqa: E402
 from render_keypose_pack import natural_key  # noqa: E402
 from route_video_provider import route  # noqa: E402
@@ -419,6 +419,9 @@ class AdversarialContractTests(unittest.TestCase):
                 os.environ,
                 {"VIDEO_RELAY_API_KEY": "allowed", "AWS_SECRET_ACCESS_KEY": "must-not-leak"},
                 clear=False,
+            ), patch(
+                "execute_video_route.probe_video_alpha",
+                return_value={"valid": True, "has_meaningful_alpha": True, "classification": "real-alpha"},
             ):
                 execute_attempt(config_path, task_path, route_report, result_path, 1)
             result = json.loads(result_path.read_text(encoding="utf-8"))
@@ -567,6 +570,28 @@ class AdversarialContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "different provider config"):
             route(config, report, {"version": 1, "operation": "image-to-video"})
 
+    def test_route_hash_changes_when_prompt_content_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            prompt = Path(temporary) / "prompts.json"
+            prompt.write_text('{"grid_video_prompt":"first"}', encoding="utf-8")
+            config = base_config()
+            report = {
+                "version": 1,
+                "config_sha256": object_sha256(config),
+                "providers": [],
+                "local_processing": {},
+            }
+            task = {
+                "version": 1,
+                "operation": "image-to-video",
+                "prompt_file": str(prompt),
+                "allow_fallback": False,
+            }
+            first = route(config, report, task)["dependency_sha256"]["prompt_file"]
+            prompt.write_text('{"grid_video_prompt":"second"}', encoding="utf-8")
+            second = route(config, report, task)["dependency_sha256"]["prompt_file"]
+            self.assertNotEqual(first, second)
+
     def test_forged_external_provider_is_not_routable(self) -> None:
         config = base_config()
         report = {
@@ -619,6 +644,15 @@ class AdversarialContractTests(unittest.TestCase):
             prepare_output(output, overwrite=True)
             self.assertFalse(stale.exists())
             self.assertFalse(stale_gif.exists())
+
+    def test_output_must_be_disjoint_from_protected_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source"
+            source.mkdir()
+            (source / "01.png").write_bytes(b"source")
+            for output in (source, source / "generated", Path(temporary)):
+                with self.subTest(output=output), self.assertRaisesRegex(ValueError, "disjoint|overlaps"):
+                    validate_output_boundaries(output, [source])
 
     def test_generic_motion_requires_explicit_opt_in(self) -> None:
         with self.assertRaisesRegex(ValueError, "tile-plan"):

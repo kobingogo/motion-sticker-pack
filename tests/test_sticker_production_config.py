@@ -84,6 +84,15 @@ class StickerProductionConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "overlap"):
                 load_production_settings(path)
 
+    def test_alpha_coverage_delta_is_bounded(self) -> None:
+        settings = json.loads(default_settings_path().read_text(encoding="utf-8"))
+        settings["gif"]["max_alpha_coverage_delta"] = 99
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "settings.json"
+            path.write_text(json.dumps(settings), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "max_alpha_coverage_delta"):
+                load_production_settings(path)
+
 
 class ProviderDurationLookupTests(unittest.TestCase):
     def test_adapters_read_own_provider_duration_from_the_task_map(self) -> None:

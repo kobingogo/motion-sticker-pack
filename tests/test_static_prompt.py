@@ -29,12 +29,15 @@ class StaticPromptTests(unittest.TestCase):
             3,
         )
         prompt = result["static_sheet_prompt"]
-        self.assertIn("直接根据角色定义“所附图像” 创建一套 3D 卡通风 贴纸包", prompt)
+        self.assertIn("直接根据角色定义“所附图像” 创建一套 3D 卡通风 动态表情包的静态九宫格源图", prompt)
         self.assertIn("🎸😍🥹😘🥰", prompt)
         self.assertIn("九个", prompt)
         self.assertIn("3×3", prompt)
         self.assertIn("Use polished 3D cartoon rendering", prompt)
         self.assertIn("装饰性反应元素", prompt)
+        self.assertIn("无白边、无厚描边", prompt)
+        self.assertIn("轻微、局部、与情绪匹配的背景点缀", prompt)
+        self.assertIn("九格保持统一色调", prompt)
         self.assertIn("真实 alpha 通道的 RGBA PNG", prompt)
         self.assertIn("透明区域", prompt)
         self.assertIn("alpha 必须为 0", prompt)
@@ -67,7 +70,25 @@ class StaticPromptTests(unittest.TestCase):
         self.assertEqual(result["source_mode"], "text-defined-character")
         self.assertIsNone(result["reference_image"])
         self.assertIn("不要先生成单张角色图", result["static_sheet_prompt"])
-        self.assertIn("直接输出完整贴纸页", result["static_sheet_prompt"])
+        self.assertIn("直接输出完整九宫格源图", result["static_sheet_prompt"])
+
+    def test_text_defaults_to_avoid_but_is_not_a_failure_gate(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        result = compile_prompt("角色", style_id, label, style_prompt, ["无语"], 1, 1)
+        self.assertEqual(result["text_policy"]["default"], "avoid")
+        self.assertTrue(result["text_policy"]["generated_text_is_not_a_failure"])
+        self.assertIn("如果模型仍然生成了文字，不把它视为生成失败", result["static_sheet_prompt"])
+
+    def test_text_can_be_explicitly_allowed(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        result = compile_prompt(
+            "角色", style_id, label, style_prompt, ["收到"], 1, 1, include_text=True
+        )
+        self.assertTrue(result["text_policy"]["user_requested_text"])
+        self.assertEqual(result["text_policy"]["default"], "allow")
+        self.assertIn("允许在合适的格子加入简短、清晰的反应文字", result["static_sheet_prompt"])
 
     def test_transparent_jpeg_is_rejected(self) -> None:
         presets = load_presets(PRESETS)
@@ -173,6 +194,8 @@ class StaticPromptTests(unittest.TestCase):
         )
         self.assertIn("开心、委屈、亲亲", result["static_sheet_prompt"])
         self.assertEqual(result["requested_layout"]["count"], 12)
+        self.assertNotIn("九宫格", result["static_sheet_prompt"])
+        self.assertNotIn("九格保持", result["static_sheet_prompt"])
 
     def test_binds_reference_image_hash_when_provided(self) -> None:
         presets = load_presets(PRESETS)
@@ -185,6 +208,30 @@ class StaticPromptTests(unittest.TestCase):
         self.assertEqual(
             result["reference_image"]["sha256"], hashlib.sha256(reference.read_bytes()).hexdigest()
         )
+
+    def test_reference_hash_is_rechecked_before_call(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temporary:
+            reference = Path(temporary) / "reference.png"
+            reference.write_bytes(b"revision one")
+            contract = compile_prompt(
+                "所附图像", style_id, label, style_prompt, ["开心"], 1, 1, str(reference)
+            )
+            reference.write_bytes(b"revision two")
+            with self.assertRaisesRegex(ValueError, "sha256"):
+                prepare_call(contract, {"prompt", "referenced_image_paths"})
+
+    def test_reference_and_text_source_cannot_both_be_supplied(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            compile_prompt(
+                "角色", style_id, label, style_prompt, ["开心"], 1, 1,
+                str(PRESETS), character_description="另一个角色",
+            )
 
     def test_style_presets_file_is_valid_json(self) -> None:
         data = json.loads(PRESETS.read_text(encoding="utf-8"))

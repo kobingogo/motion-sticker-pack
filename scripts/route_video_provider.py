@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -12,6 +13,19 @@ from config_contract import object_sha256, read_json_object, validate_provider_c
 
 def read_json(path: Path) -> dict:
     return read_json_object(path)
+
+
+def dependency_hashes(task: dict) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for field in ("input_image", "layout_file", "prompt_file", "approval_file", "production_settings_file"):
+        value = task.get(field)
+        if not isinstance(value, str):
+            continue
+        path = Path(value).expanduser()
+        if not path.is_file():
+            raise ValueError(f"task dependency does not exist: {field}={path}")
+        hashes[field] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashes
 
 
 def route(config: dict, capabilities: dict, task: dict) -> dict:
@@ -57,6 +71,7 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
     required = {operation} | set(task.get("required_capabilities", []))
     preferred = set(task.get("prefer_capabilities", []))
     explicit = task.get("provider", "auto")
+    provider_chain = task.get("provider_chain")
     allow_fallback = bool(task.get("allow_fallback", True))
     local_postprocess = bool(capabilities.get("local_processing", {}).get("video_postprocess"))
 
@@ -92,7 +107,17 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
         )
 
     eligible.sort(key=lambda item: item["_sort"])
-    if explicit != "auto":
+    if provider_chain:
+        eligible_by_id = {item["id"]: item for item in eligible}
+        ordered = []
+        for provider_id in provider_chain:
+            item = eligible_by_id.get(provider_id)
+            if item is None:
+                rejected.append({"id": provider_id, "reason": "provider-chain-member-not-eligible"})
+            else:
+                ordered.append(item)
+        eligible = ordered if allow_fallback else ordered[:1]
+    elif explicit != "auto":
         selected = [item for item in eligible if item["id"] == explicit]
         if selected and allow_fallback:
             eligible = selected + [item for item in eligible if item["id"] != explicit]
@@ -106,6 +131,9 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
     attempts = []
     for index, item in enumerate(eligible[:max_attempts], start=1):
         cleaned = {key: value for key, value in item.items() if key != "_sort"}
+        execution = task.get("provider_execution", {}).get(item["id"])
+        if execution:
+            cleaned["execution"] = execution
         attempts.append({"attempt": index, **cleaned})
 
     fallback = None
@@ -132,6 +160,7 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
         "version": 1,
         "config_sha256": object_sha256(config),
         "task_sha256": object_sha256(task),
+        "dependency_sha256": dependency_hashes(task),
         "operation": task.get("operation", "image-to-video"),
         "required_capabilities": sorted(required),
         "selected": attempts[0] if attempts else fallback,
@@ -139,6 +168,12 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
         "fallback": fallback,
         "rejected": rejected,
         "max_attempts": max_attempts,
+        "provider_chain": provider_chain,
+        "selection_reason": (
+            "task-provider-chain" if provider_chain else
+            "explicit-provider" if explicit != "auto" else
+            "local-first-priority"
+        ),
     }
 
 

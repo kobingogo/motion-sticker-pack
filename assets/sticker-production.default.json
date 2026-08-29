@@ -66,6 +66,7 @@
   },
   "gif": {
     "alpha_threshold_candidates": [96, 128, 160, 192],
+    "max_alpha_coverage_delta": 0.15,
     "optimize_delta_frames": true,
     "loop": 0
   },

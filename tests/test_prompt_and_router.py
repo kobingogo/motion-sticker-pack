@@ -80,6 +80,23 @@ class PromptAndRouterTests(unittest.TestCase):
         self.assertIn("脚底基线固定", prompt)
         self.assertEqual(len(result["tile_plan"]), 12)
 
+    def test_video_prompt_preserves_approved_text_without_blocking_it(self) -> None:
+        layout = {"columns": 1, "rows": 1, "count": 1, "confidence": 0.9}
+        tiles = [{"id": "01", "motion": "轻轻点头", "loop": "return-to-start"}]
+        result = compile_prompts(
+            layout,
+            tiles,
+            "#00FF00",
+            {
+                "user_requested_text": False,
+                "default": "avoid",
+                "post_generation": "record-only",
+                "generated_text_is_not_a_failure": True,
+            },
+        )
+        self.assertIn("保留输入图像中已经存在的文字或符号", result["grid_video_prompt"])
+        self.assertNotIn(", text, caption,", result["negative_prompt"])
+
     def test_key_color_must_contrast_with_the_subject(self) -> None:
         self.assertEqual(validate_key_color("#00FF00"), "#00FF00")
         self.assertEqual(validate_key_color("#FF00FF"), "#FF00FF")
@@ -123,6 +140,34 @@ class PromptAndRouterTests(unittest.TestCase):
         result = route(provider_config, report, video_task)
         self.assertEqual(result["selected"]["id"], "native")
         self.assertEqual(result["fallback"]["id"], "transform-local")
+
+    def test_task_provider_chain_is_an_ordered_allow_list(self) -> None:
+        provider_config = config()
+        add_xai(provider_config, "low-priority-first", 1)
+        add_xai(provider_config, "high-priority-fallback", 100)
+        report = capabilities(
+            [
+                {"id": "high-priority-fallback", "driver": "ai-sdk", "available": True, "capabilities": ["image-to-video"]},
+                {"id": "low-priority-first", "driver": "ai-sdk", "available": True, "capabilities": ["image-to-video"]},
+            ],
+            {"video_postprocess": True},
+        )
+        result = route(
+            provider_config,
+            report,
+            task(
+                provider="low-priority-first",
+                provider_chain=["low-priority-first", "high-priority-fallback"],
+                provider_execution={
+                    "low-priority-first": {"duration_seconds": 3, "resolution": "720p"},
+                    "high-priority-fallback": {"duration_seconds": 6, "resolution": "480p"},
+                },
+                allow_fallback=True,
+            ),
+        )
+        self.assertEqual([item["id"] for item in result["attempts"]], ["low-priority-first", "high-priority-fallback"])
+        self.assertEqual(result["attempts"][1]["execution"]["duration_seconds"], 6)
+        self.assertEqual(result["selection_reason"], "task-provider-chain")
 
     def test_missing_alpha_can_use_local_matting(self) -> None:
         provider_config = config()

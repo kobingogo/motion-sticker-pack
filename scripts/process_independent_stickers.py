@@ -14,7 +14,7 @@ from PIL import Image
 
 from animation_export import encode_gif_images, encode_webp_images
 from keyframe_fallback import add_motion_margin, transformed, transparent_tile
-from output_safety import prepare_output
+from output_safety import prepare_output, validate_output_boundaries
 
 
 def natural_key(path: Path) -> list[tuple[int, object]]:
@@ -40,6 +40,7 @@ def main() -> int:
     )
     if not 1 <= len(sources) <= 48:
         raise ValueError("input_dir must contain between 1 and 48 static stickers")
+    args.output = validate_output_boundaries(args.output, [source_dir])
     prepare_output(args.output, overwrite=args.overwrite)
     frame_count = max(2, round(args.fps * args.duration))
     outputs: list[str] = []

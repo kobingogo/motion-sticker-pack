@@ -12,6 +12,14 @@
 $motion-sticker-pack
 ```
 
+## v0.2.1 更新
+
+- **任务级视频源**：`prepare_workflow.py --provider xai-direct` 可把 xAI 设为当前任务首选，不再要求修改全局默认配置；`--fallback-provider` 可重复声明有序兜底链。
+- **参数单一来源**：每个 Provider 的 model 来自 `video-providers.json`，时长与分辨率来自任务快照；环境变量只保留凭证或带敏感信息的 ZDR 传输参数。
+- **路由闭环**：route 同时绑定静图、layout、prompt、审批状态和生产配置哈希；任一依赖发生变化，都必须重新路由。
+- **媒体实检**：外部适配器返回后统一用 FFmpeg 解码并检测真实 Alpha，不再相信扩展名或适配器自报字段；opaque 结果才进入色键质检。
+- **防误删与布局一致性**：所有主要输出链路拒绝与输入重叠，`--overwrite` 不再可能删除源素材；非 3×3 布局不再混入“九宫格/九格”提示。
+
 ## v0.2.0 更新
 
 - **两种建形入口**：既可上传角色参考图，也可只用文字定义角色；文字路线直接生成完整表情图板。
@@ -159,7 +167,7 @@ ffmpeg -version && ffprobe -version
 $motion-sticker-pack
 ```
 
-在 Codex 中调用 `$motion-sticker-pack`，可以上传角色参考图，也可以只提供角色名称或文字描述；无参考图时直接生成完整九宫格，不先生成单张角色图。按提示选择风格并输入 Emoji 或短描述。静图阶段应使用 **GPT-image-2**：请求契约预设 `background: transparent` 与 `output_format: png`，运行时支持就透传；不支持这些参数时只记录省略，仍通过提示词优先请求真实 Alpha。参数缺失或参考图存在都不会直接切换绿底，只有实际像素质检失败才执行一次 `#00FF00` 兜底。
+在 Codex 中调用 `$motion-sticker-pack`，可以上传角色参考图，也可以只提供角色名称或文字描述；无参考图时直接生成完整九宫格，不先生成单张角色图。按提示选择风格、是否带短反应文字，再输入 Emoji 或短描述；文字选项默认关闭，但模型自行生成文字不会因此被拦截，静态审核时由用户决定是否保留。静图阶段应使用 **GPT-image-2**：请求契约预设 `background: transparent` 与 `output_format: png`，运行时支持就透传；不支持这些参数时只记录省略，仍通过提示词优先请求真实 Alpha。参数缺失或参考图存在都不会直接切换绿底，只有实际像素质检失败才执行一次 `#00FF00` 兜底。
 
 视频若交给 Grok Build，请先看 [隐私 Opt in](#grok-build-隐私opt-in-与-zdr)。未 Opt in 时本机 `image_to_video` 常会报 ZDR/隐私错误，这不是提示词问题。
 
@@ -220,7 +228,7 @@ Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批�
 
 风格预设（与 CLI / `references/style-presets.json` 一致，**没有 `meme`**）：
 
-1. `3d` — 3D 卡通风（默认）
+1. `3d` — 3D 卡通风（默认；默认呈现为无白边、无厚描边的角色表情插画卡片九宫格）
 2. `hand-drawn` — 手绘风
 3. `chibi` — Q 版
 4. `manga` — 漫画风
@@ -611,6 +619,18 @@ python3 scripts/prepare_workflow.py \
   --state "$PWD/works/小黑猫/job-state.json" \
   --tile-plan "$PWD/works/小黑猫/tile-plan.json"
 
+# 当前任务优先走 xAI，失败后才允许 Grok；两者参数写入任务快照
+python3 scripts/prepare_workflow.py \
+  --character '小黑猫' \
+  --image "$PWD/works/小黑猫/static-sheet.png" \
+  --layout "$PWD/works/小黑猫/layout.json" \
+  --prompts "$PWD/works/小黑猫/prompts.json" \
+  --state "$PWD/works/小黑猫/job-state.json" \
+  --tile-plan "$PWD/works/小黑猫/tile-plan.json" \
+  --provider xai-direct \
+  --fallback-provider grok-build-local \
+  --allow-fallback
+
 python3 scripts/probe_video_capabilities.py \
   --config works/小黑猫/video-providers.json \
   --tool-manifest works/小黑猫/runtime-tools.json \
@@ -623,7 +643,7 @@ python3 scripts/route_video_provider.py \
   --output works/小黑猫/route.json
 ```
 
-`prepare_workflow.py` 会把 example 里的占位绝对路径改成本仓库 `scripts/`。不要把 probe 指到 `assets/video-providers.example.json`、却把 execute 指到另一份 `video-providers.json`。
+`prepare_workflow.py` 会把 example 里的占位绝对路径改成本仓库 `scripts/`，并把任务级 Provider 顺序、时长和分辨率固化到 `video-task.json`。`--provider-duration ID=SECONDS` 与 `--provider-resolution ID=720p` 可覆盖单个 Provider。不要把 probe 指到 `assets/video-providers.example.json`、却把 execute 指到另一份 `video-providers.json`。
 
 任何动画前：
 

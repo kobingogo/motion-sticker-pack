@@ -9,12 +9,12 @@
     "3d": {
       "label": "3D 卡通风",
       "aliases": ["3D", "3d-cartoon", "3d toy", "3d-toy", "toy", "玩具", "立体", "3D 卡通风"],
-      "prompt": "Use polished 3D cartoon rendering with expressive facial animation, smooth materials, controlled proportions, soft studio lighting, subtle ambient occlusion, and a clean sticker finish."
+      "prompt": "Use polished 3D cartoon rendering with expressive facial animation, smooth materials, controlled proportions, soft studio lighting, subtle ambient occlusion, and a refined illustrated-card finish without a white border or heavy outline."
     },
     "hand-drawn": {
       "label": "手绘风",
       "aliases": ["handdrawn", "hand-drawn", "手绘", "手绘风", "插画"],
-      "prompt": "Use warm hand-drawn illustration, clean expressive linework, softly textured color, visible brush character, and friendly sticker-like shapes while preserving the reference IP."
+      "prompt": "Use warm hand-drawn illustration, clean expressive linework, softly textured color, visible brush character, and friendly illustrated-card compositions while preserving the reference IP."
     },
     "chibi": {
       "label": "Q版",
@@ -24,7 +24,7 @@
     "manga": {
       "label": "漫画风",
       "aliases": ["manga", "漫画", "漫画风", "comic", "comics"],
-      "prompt": "Use dynamic manga-inspired illustration with expressive eyes, confident ink contours, selective cel shading, energetic gesture language, and clear sticker silhouettes."
+      "prompt": "Use dynamic manga-inspired illustration with expressive eyes, confident ink contours, selective cel shading, energetic gesture language, and clear card compositions."
     },
     "pixel-art": {
       "label": "像素艺术",
@@ -34,12 +34,12 @@
     "cute": {
       "label": "可爱风",
       "aliases": ["cute", "可爱", "可爱风", "kawaii"],
-      "prompt": "Use a warm cute character style with soft rounded shapes, appealing expressions, gentle color accents, charming gesture language, and polished sticker readability."
+      "prompt": "Use a warm cute character style with soft rounded shapes, appealing expressions, gentle color accents, charming gesture language, and polished illustrated-card readability."
     },
     "retro": {
       "label": "复古风",
       "aliases": ["retro", "复古", "复古风", "vintage"],
-      "prompt": "Use a retro-inspired illustration treatment with period-evocative color separation, tactile print texture, bold simplified shapes, and nostalgic sticker finishing."
+      "prompt": "Use a retro-inspired illustration treatment with period-evocative color separation, tactile print texture, bold simplified shapes, and nostalgic illustrated-card finishing."
     }
   }
 }

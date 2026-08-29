@@ -110,7 +110,14 @@
       }
     },
     "canvas": {"type": "object"},
-    "gif": {"type": "object"},
+    "gif": {
+      "type": "object",
+      "required": ["max_alpha_coverage_delta"],
+      "additionalProperties": true,
+      "properties": {
+        "max_alpha_coverage_delta": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+      }
+    },
     "webp": {"type": "object"},
     "budget": {"type": "object"},
     "trial": {"type": "object"},

@@ -38,7 +38,13 @@ class WorkflowToolTests(unittest.TestCase):
             task = json.loads((work / "video-task.json").read_text())
             self.assertEqual(Path(task["input_image"]), image.resolve())
             self.assertTrue(Path(task["output_directory"]).is_absolute())
+            self.assertEqual(task["aspect_ratio"], "1:1")
             self.assertEqual(task["duration_seconds"], 6)
+            self.assertEqual(task["provider_chain"], ["grok-build-local"])
+            self.assertEqual(
+                task["provider_execution"],
+                {"grok-build-local": {"duration_seconds": 6, "resolution": "720p"}},
+            )
             self.assertEqual(
                 task["provider_duration_seconds"],
                 {"grok-build-local": 6, "xai-direct": 3},
@@ -55,6 +61,43 @@ class WorkflowToolTests(unittest.TestCase):
                 if item.get("id") in {"grok-build-local", "xai-direct"}
             ]
             self.assertEqual(python_commands, [PYTHON, PYTHON])
+
+    def test_prepare_workflow_can_select_xai_and_order_a_grok_fallback_per_task(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / "sheet.png"
+            Image.new("RGBA", (20, 20), (255, 0, 0, 255)).save(image)
+            inputs = {}
+            for name, value in {
+                "layout.json": {"detected_layout": {"columns": 1, "rows": 1, "count": 1, "confidence": 0.99}},
+                "prompts.json": {"detected_layout": {"columns": 1, "rows": 1, "count": 1}, "grid_video_prompt": "move"},
+                "job-state.json": {},
+                "tile-plan.json": {"tiles": [{"id": "01", "motion": "move"}]},
+            }.items():
+                path = root / name
+                path.write_text(json.dumps(value), encoding="utf-8")
+                inputs[name] = path
+            work = root / "work"
+            subprocess.run(
+                [
+                    PYTHON, str(ROOT / "scripts" / "prepare_workflow.py"),
+                    "--work-dir", str(work), "--image", str(image),
+                    "--layout", str(inputs["layout.json"]), "--prompts", str(inputs["prompts.json"]),
+                    "--state", str(inputs["job-state.json"]), "--tile-plan", str(inputs["tile-plan.json"]),
+                    "--provider", "xai-direct", "--fallback-provider", "grok-build-local", "--allow-fallback",
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
+            task = json.loads((work / "video-task.json").read_text())
+            settings = json.loads((work / "sticker-production.json").read_text())
+            self.assertEqual(task["provider"], "xai-direct")
+            self.assertEqual(task["provider_chain"], ["xai-direct", "grok-build-local"])
+            self.assertEqual(task["duration_seconds"], 3)
+            self.assertEqual(task["provider_execution"]["xai-direct"], {"duration_seconds": 3, "resolution": "720p"})
+            self.assertEqual(task["provider_execution"]["grok-build-local"], {"duration_seconds": 6, "resolution": "720p"})
+            self.assertTrue(task["allow_fallback"])
+            self.assertEqual(settings["generation"]["provider"], "xai-direct")
 
     def test_independent_stickers_produce_numbered_media_and_zip(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
