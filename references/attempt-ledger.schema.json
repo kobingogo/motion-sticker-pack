@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/motion-sticker-pack/attempt-ledger.schema.json",
+  "title": "Motion Sticker Pack billable attempt ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "route_sha256", "task_sha256", "config_sha256", "created_at", "updated_at", "attempts"],
+  "properties": {
+    "version": {"const": 1},
+    "route_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "task_sha256": {"type": ["string", "null"]},
+    "config_sha256": {"type": ["string", "null"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"},
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["attempt", "provider", "driver", "status", "cost_status", "resumable", "events"],
+        "properties": {
+          "attempt": {"type": "integer", "minimum": 1},
+          "provider": {"type": "string", "minLength": 1},
+          "driver": {"type": ["string", "null"]},
+          "execution": {"type": ["object", "null"]},
+          "status": {"enum": ["planned", "running", "submitted", "succeeded", "failed", "rejected", "uncertain"]},
+          "cost_status": {"enum": ["not-started", "possible", "unknown", "completed"]},
+          "resumable": {"type": "boolean"},
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["status", "at"],
+              "properties": {
+                "status": {"enum": ["planned", "running", "submitted", "succeeded", "failed", "rejected", "uncertain"]},
+                "at": {"type": "string"},
+                "reason": {"type": "string"},
+                "resumed": {"type": "boolean"},
+                "request_id": {"type": "string"},
+                "error": {"type": "string"}
+              },
+              "additionalProperties": false
+            }
+          },
+          "request_id": {"type": "string"},
+          "started_at": {"type": "string"},
+          "last_started_at": {"type": "string"},
+          "updated_at": {"type": "string"},
+          "completed_at": {"type": "string"},
+          "resume_count": {"type": "integer", "minimum": 0},
+          "result_path": {"type": "string"},
+          "error": {"type": "string"},
+          "result": {"$ref": "#/$defs/file"},
+          "generated": {"$ref": "#/$defs/file"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "bytes": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  }
+}

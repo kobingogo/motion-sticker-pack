@@ -9,7 +9,7 @@ import shutil
 import zipfile
 from pathlib import Path
 
-from output_safety import prepare_output, validate_archive_name, validate_output_boundaries
+from output_safety import begin_output_transaction, validate_archive_name
 
 
 def main() -> int:
@@ -32,8 +32,13 @@ def main() -> int:
     for source in sources.values():
         if not source.expanduser().is_file():
             raise FileNotFoundError(source)
-    output = validate_output_boundaries(args.output, sources.values())
-    prepare_output(output, overwrite=args.overwrite, archive_names={archive_name})
+    output_transaction = begin_output_transaction(
+        args.output,
+        overwrite=args.overwrite,
+        archive_names={archive_name},
+        protected_paths=sources.values(),
+    )
+    output = output_transaction.output
     names = list(sources)
     for name, source in sources.items():
         shutil.copyfile(source.expanduser().resolve(), output / name)
@@ -49,6 +54,7 @@ def main() -> int:
     with zipfile.ZipFile(output / archive_name, "w", zipfile.ZIP_DEFLATED) as bundle:
         for name in names:
             bundle.write(output / name, arcname=name)
+    output_transaction.commit()
     print(json.dumps({"output": str(output), "zip": str(output / archive_name), "generated_video": False}, ensure_ascii=False))
     return 0
 

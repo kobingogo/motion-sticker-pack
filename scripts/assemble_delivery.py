@@ -12,9 +12,8 @@ from pathlib import Path
 
 from output_safety import (
     DELIVERY_VARIANT_DIRECTORY,
-    prepare_output,
+    begin_output_transaction,
     validate_archive_name,
-    validate_output_boundaries,
 )
 
 
@@ -22,6 +21,8 @@ MEDIA_RE = re.compile(r"^\d{2,}\.(?:png|webp|gif)$")
 BASE_REPORTS = ("layout.json", "processing.json")
 OPTIONAL_MEDIA_REPORTS = ("sticker-production.json",)
 AUDIT_REPORTS = (
+    "artifact-manifest.json",
+    "attempt-ledger.json",
     "job-state.json",
     "prompts.json",
     "route.json",
@@ -51,7 +52,7 @@ def main() -> int:
     archive_name = validate_archive_name(args.zip_name)
     media_dir = args.media_dir.expanduser().resolve()
     audit_dir = args.audit_dir.expanduser().resolve()
-    output = validate_output_boundaries(args.output, [media_dir, audit_dir])
+    output = args.output.expanduser().resolve()
     if not media_dir.is_dir() or not audit_dir.is_dir():
         raise ValueError("media-dir and audit-dir must be directories")
     if args.cleanup_media_dir and (
@@ -77,7 +78,13 @@ def main() -> int:
         if not path.is_file():
             raise FileNotFoundError(path)
 
-    prepare_output(output, overwrite=args.overwrite, archive_names={archive_name})
+    output_transaction = begin_output_transaction(
+        output,
+        overwrite=args.overwrite,
+        archive_names={archive_name},
+        protected_paths=[media_dir, audit_dir],
+    )
+    output = output_transaction.output
     names = [path.name for path in media] + list(BASE_REPORTS)
     for path in media:
         shutil.copyfile(path, output / path.name)
@@ -115,6 +122,7 @@ def main() -> int:
     with zipfile.ZipFile(output / archive_name, "w", zipfile.ZIP_DEFLATED) as bundle:
         for name in names:
             bundle.write(output / name, arcname=name)
+    output_transaction.commit()
     if args.cleanup_media_dir:
         shutil.rmtree(media_dir)
     print(json.dumps({"output": str(output), "zip": str(output / archive_name), "files": names}, ensure_ascii=False))

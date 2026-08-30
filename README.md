@@ -12,6 +12,14 @@
 $motion-sticker-pack
 ```
 
+## v0.3.0 更新
+
+- **付费调用幂等**：每条 route 自动生成 `attempt-ledger.json`；同一 attempt 只允许提交一次，进程中断后默认标记为 `uncertain`，禁止静默重放。
+- **xAI 原请求恢复**：提交成功立即原子记录 `request_id`；仅显式 `--resume` 可继续轮询同一请求，不重新发起计费生成。
+- **事务化输出**：主要输出链路先建立恢复日志与旧目录备份，成功后提交；异常或死亡进程由下一次运行恢复，避免半成品覆盖成品。
+- **制品哈希谱系**：`artifact-manifest.json` 记录静图、审批、提示词、route、源视频和交付文件的 SHA-256 依赖链，可检测当前制品被替换或篡改。
+- **执行前预检**：route 报告明确选中 Provider、可能计费的 attempt、恢复能力、阻断原因以及“远端配额/健康仍未知”的边界。
+
 ## v0.2.1 更新
 
 - **任务级视频源**：`prepare_workflow.py --provider xai-direct` 可把 xAI 设为当前任务首选，不再要求修改全局默认配置；`--fallback-provider` 可重复声明有序兜底链。
@@ -462,6 +470,8 @@ Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `
 - [`assets/video-task.example.json`](assets/video-task.example.json)
 - [`references/video-providers.schema.json`](references/video-providers.schema.json)
 - [`references/video-task.schema.json`](references/video-task.schema.json)
+- [`references/attempt-ledger.schema.json`](references/attempt-ledger.schema.json)
+- [`references/artifact-manifest.schema.json`](references/artifact-manifest.schema.json)
 - [`references/runtime-routing.md`](references/runtime-routing.md)
 
 自定义中转站请写 `command` Adapter，接收 `--task` / `--output` 两个绝对路径，并归一化结果 JSON。Skill 不会假装只改一个 `baseURL` 就能兼容所有中转站。
@@ -471,8 +481,8 @@ Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `
 ## 隐私、费用与凭证
 
 - 要求完全本地时，在请求里写明「不要调用外部 API」
-- 外部视频模型会上传参考图和提示词，可能计费；失败重试也可能计费
-- 默认限制尝试次数，不会无限重试
+- 外部视频模型会上传参考图和提示词，可能计费；改走下一条 route attempt 也可能再次计费
+- 同一计费 attempt 不自动重放；状态不明时必须显式恢复原请求或改用下一条 route
 - 配置文件只保存环境变量名；子进程只继承基础运行变量和当前 Provider 声明的凭证变量
 - 密钥不得进入提示词、报告、命令行或 Git
 - Grok `/privacy` Opt in 与团队 ZDR 是账户级策略，见上一节
@@ -481,6 +491,8 @@ Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `
 
 ```text
 works/<character-slug>/
+├── attempt-ledger.json          # 付费尝试状态与不可变迁移历史
+├── artifact-manifest.json       # 制品哈希与依赖谱系
 ├── raw-video/
 │   └── <provider>.mp4           # 唯一被接受的规范源视频
 └── delivered/
@@ -492,6 +504,8 @@ works/<character-slug>/
     ├── job-state.json           # 发生静态审批时
     ├── prompts.json             # 发生生成时
     ├── route.json               # 发生路由时
+    ├── attempt-ledger.json
+    ├── artifact-manifest.json
     ├── processing.json
     └── sticker-pack.zip
 ```
@@ -501,6 +515,7 @@ works/<character-slug>/
 - `.png`：第一帧透明 PNG
 - `layout.json`：实际检测布局
 - `job-state.json` / `prompts.json` / `route.json`：审批、提示词与路由审计；由 `assemble_delivery.py` 拷入最终目录和 ZIP
+- `attempt-ledger.json` / `artifact-manifest.json`：计费尝试状态与 SHA-256 制品谱系
 - `processing.json`：尺寸、帧率、Alpha、越界、静止段位移和循环质量
 
 `output/` 只作为编码中间目录。`assemble_delivery.py --cleanup-media-dir` 在最终 ZIP 成功后删除它，因此正常交付只留下 `delivered/`。被接受的 Grok attempt 会直接提升为规范文件名，不再复制出一份字节相同的视频；失败 attempt 仍可保留用于排错。

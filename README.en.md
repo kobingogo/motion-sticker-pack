@@ -12,6 +12,14 @@ After install, use it as a conversation: upload an image or describe a character
 $motion-sticker-pack
 ```
 
+## What's new in v0.3.0
+
+- **Idempotent paid execution:** every route creates `attempt-ledger.json`; an attempt can be submitted only once, and an interrupted run becomes `uncertain` instead of being silently replayed.
+- **xAI request resumption:** the request ID is atomically persisted immediately after submission; only explicit `--resume` continues that same request without a second paid generation.
+- **Transactional outputs:** primary output paths keep a recovery journal and prior-directory backup until commit, so exceptions and abandoned runs do not publish partial replacements.
+- **Hash lineage:** `artifact-manifest.json` records SHA-256 dependencies across approved inputs, routing, generated video, and delivery artifacts, and detects current-file tampering.
+- **Execution preflight:** route reports now expose the selected provider, billable attempts, resume support, blockers, and the fact that remote quota and health remain unknown.
+
 ## What's new in v0.2.1
 
 - Task-level provider selection supports an explicit preferred provider and ordered fallback chain without editing shared defaults.
@@ -458,6 +466,8 @@ Tell the agent where the config file lives. Full fields and the adapter contract
 - [`assets/video-task.example.json`](assets/video-task.example.json)
 - [`references/video-providers.schema.json`](references/video-providers.schema.json)
 - [`references/video-task.schema.json`](references/video-task.schema.json)
+- [`references/attempt-ledger.schema.json`](references/attempt-ledger.schema.json)
+- [`references/artifact-manifest.schema.json`](references/artifact-manifest.schema.json)
 - [`references/runtime-routing.md`](references/runtime-routing.md)
 
 For an arbitrary relay, write a `command` adapter that takes `--task` and `--output` as absolute paths and writes a normalized result JSON. This skill does not pretend that changing `baseURL` is enough for every vendor.
@@ -467,8 +477,8 @@ The Kling / Seedance / Wan / FAL routes here are image-to-video (`.video()`) int
 ## Privacy, cost, and credentials
 
 - For a fully local run, say “do not call any external API” in the request
-- External video models receive the reference image and prompt, and may bill, including on retries
-- Attempts are bounded; the skill does not retry forever
+- External video models receive the reference image and prompt, and a later route attempt may incur another charge
+- The same paid attempt is never replayed automatically; uncertain state requires explicit request resumption or a different route attempt
 - Config files store environment-variable names only; child processes inherit a small runtime allowlist plus the selected provider's declared credential names
 - Secrets must not appear in prompts, reports, command lines, or git
 - Grok `/privacy` Opt in and team ZDR are account-level policies; see the section above
@@ -477,6 +487,8 @@ The Kling / Seedance / Wan / FAL routes here are image-to-video (`.video()`) int
 
 ```text
 works/<character-slug>/
+├── attempt-ledger.json          # paid-attempt state and immutable transition history
+├── artifact-manifest.json       # artifact hashes and dependency lineage
 ├── raw-video/
 │   └── <provider>.mp4           # one accepted canonical source video
 └── delivered/
@@ -488,6 +500,8 @@ works/<character-slug>/
     ├── job-state.json           # when static approval was required
     ├── prompts.json             # when generation ran
     ├── route.json               # when routing ran
+    ├── attempt-ledger.json
+    ├── artifact-manifest.json
     ├── processing.json
     └── sticker-pack.zip
 ```
@@ -497,6 +511,7 @@ works/<character-slug>/
 - `.png`: transparent first frame
 - `layout.json`: detected grid
 - `job-state.json` / `prompts.json` / `route.json`: approval, prompt, and route audit, copied into the final directory and ZIP by `assemble_delivery.py`
+- `attempt-ledger.json` / `artifact-manifest.json`: paid-attempt state and SHA-256 artifact lineage
 - `processing.json`: size, fps, alpha, edge, hold-jitter, and loop-quality notes
 
 `output/` is an encoding staging directory. After the final ZIP succeeds, `assemble_delivery.py --cleanup-media-dir` removes it so normal delivery leaves only `delivered/`. An accepted Grok attempt is promoted to the canonical filename rather than copied into a byte-identical duplicate; rejected attempts may remain for diagnosis.

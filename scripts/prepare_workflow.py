@@ -13,6 +13,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from artifact_manifest import record_artifact
 from character_workspace import character_workspace, write_character_manifest
 from config_contract import is_python_interpreter, validate_provider_config, validate_video_task
 from sticker_production_config import default_settings_path, load_production_settings, match_duration_profile
@@ -242,6 +243,8 @@ def main() -> int:
             "aspect_ratio": aspect_ratio,
             "key_color": args.key_color or settings["generation"]["key_color"],
             "production_settings_file": str(settings_snapshot.resolve()),
+            "attempt_ledger_file": str((work / "attempt-ledger.json").resolve()),
+            "artifact_manifest_file": str((work / "artifact-manifest.json").resolve()),
             "safe_grid_scale": 0.80,
             "min_guard_fraction": 0.10,
             "max_foreground_bbox_fraction": 0.80,
@@ -250,7 +253,34 @@ def main() -> int:
             "loop_max_seconds": 2.5,
         }
     )
-    write_json(work / "video-task.json", validate_video_task(task, require_execution_fields=True), overwrite=args.overwrite)
+    task_path = work / "video-task.json"
+    write_json(task_path, validate_video_task(task, require_execution_fields=True), overwrite=args.overwrite)
+    artifact_manifest = work / "artifact-manifest.json"
+    source_ids = [
+        record_artifact(artifact_manifest, path, kind=kind, stage="prepared-input", workspace=work)
+        for path, kind in (
+            (args.image, "static-sheet"),
+            (args.layout, "layout"),
+            (args.prompts, "motion-prompts"),
+            (args.state, "approval-state"),
+        )
+    ]
+    config_id = record_artifact(
+        artifact_manifest, work / "video-providers.json", kind="provider-config", stage="prepared"
+    )
+    settings_id = record_artifact(
+        artifact_manifest, settings_snapshot, kind="production-settings", stage="prepared"
+    )
+    tile_id = record_artifact(
+        artifact_manifest, work / "tile-plan.json", kind="tile-plan", stage="prepared"
+    )
+    task_id = record_artifact(
+        artifact_manifest,
+        task_path,
+        kind="video-task",
+        stage="prepared",
+        dependencies=[*source_ids, config_id, settings_id, tile_id],
+    )
     result = {
         "work_dir": str(work),
         "config": str((work / "video-providers.json").resolve()),
@@ -258,6 +288,9 @@ def main() -> int:
         "tile_plan": str((work / "tile-plan.json").resolve()),
         "production_settings": str(settings_snapshot.resolve()),
         "task": str((work / "video-task.json").resolve()),
+        "attempt_ledger": str((work / "attempt-ledger.json").resolve()),
+        "artifact_manifest": str(artifact_manifest.resolve()),
+        "task_artifact_id": task_id,
     }
     manifest = work / "character.json"
     if manifest.is_file():

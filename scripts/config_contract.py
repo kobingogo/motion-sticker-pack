@@ -285,6 +285,7 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
         "max_input_image_bytes", "aspect_ratio", "resolution", "fps", "poll_interval_ms", "max_retries",
         "safe_grid_scale", "min_guard_fraction", "max_foreground_bbox_fraction",
         "motion_active_seconds", "loop_min_seconds", "loop_max_seconds", "production_settings_file",
+        "attempt_ledger_file", "artifact_manifest_file",
     }
     unknown = set(task) - allowed_fields
     if unknown:
@@ -376,16 +377,32 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
     if foreground > 1.0 - 2.0 * guard + 1e-6:
         raise ContractError("max_foreground_bbox_fraction exceeds the requested two-sided guard")
     if require_execution_fields:
+        resolved_paths: dict[str, Path] = {}
         for field in ("input_image", "layout_file", "prompt_file", "approval_file", "output_directory"):
             value = Path(_nonempty_string(task.get(field), field)).expanduser()
             if not value.is_absolute():
                 raise ContractError(f"{field} must be an absolute path")
-        if "production_settings_file" in task:
-            settings_file = Path(
-                _nonempty_string(task.get("production_settings_file"), "production_settings_file")
-            ).expanduser()
-            if not settings_file.is_absolute():
-                raise ContractError("production_settings_file must be an absolute path")
+            resolved_paths[field] = value.resolve(strict=False)
+        for field in ("production_settings_file", "attempt_ledger_file", "artifact_manifest_file"):
+            if field not in task:
+                continue
+            state_file = Path(_nonempty_string(task.get(field), field)).expanduser()
+            if not state_file.is_absolute():
+                raise ContractError(f"{field} must be an absolute path")
+            resolved_paths[field] = state_file.resolve(strict=False)
+        protected_state = [
+            field for field in ("attempt_ledger_file", "artifact_manifest_file") if field in resolved_paths
+        ]
+        for field in protected_state:
+            collisions = [
+                other
+                for other, path in resolved_paths.items()
+                if other != field and path == resolved_paths[field]
+            ]
+            if collisions:
+                raise ContractError(f"{field} must not overlap task path fields: {collisions}")
+            if resolved_paths[field].is_relative_to(resolved_paths["output_directory"]):
+                raise ContractError(f"{field} must live outside output_directory")
         duration = task.get("duration_seconds", 6)
         if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not 1 <= duration <= 30:
             raise ContractError("duration_seconds must be between 1 and 30")

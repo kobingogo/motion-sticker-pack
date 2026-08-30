@@ -1,3 +1,35 @@
+# Motion Sticker Pack v0.3.0
+
+发布日期：2026-08-30
+
+v0.3.0 把“避免重复付费”和“失败不污染交付”从约定提升为运行时合同，并为整条生成链补上可验证的制品谱系。
+
+## 主要更新
+
+- 新增 `attempt-ledger.json`：route 中每个 attempt 都有 `planned → running → terminal/uncertain` 的追加式迁移历史。已失败、已拒绝或状态不明的 attempt 不允许静默重放。
+- xAI 直连在 POST 返回后立即原子写入请求 ID。超时、进程退出或轮询网络错误保留为 `uncertain`；`execute_video_route.py --resume` 只继续同一远端请求。
+- xAI 下载完成后同时记录视频路径、SHA-256 与大小。若结果报告写入前中断，恢复时只复用哈希匹配的已下载文件。
+- 主要媒体与交付脚本改用输出事务：旧目录先移入同级备份，运行异常自动回滚；死亡进程留下的 journal 会在下一次运行中恢复，活动进程之间不会互相接管。
+- 新增 `artifact-manifest.json`，记录静态图、layout、prompt、审批、配置、route、源视频、处理结果之间的 SHA-256 依赖；修改后的同路径文件会生成新修订，当前修订可复核。
+- route 新增不触发外部请求的执行前预检，明确计费 attempt、是否需要授权、xAI 恢复能力、阻断原因以及远端配额/服务健康未知边界。
+- `assemble_delivery.py` 会把 Attempt Ledger 与 Artifact Manifest 一并收入最终审计交付；`process_emoji_grid.py --manifest` 可登记处理产物。
+
+## 兼容与升级
+
+- `video-task.json` 可新增绝对路径字段 `attempt_ledger_file` 与 `artifact_manifest_file`；`prepare_workflow.py` 会自动写入。
+- 旧脚本调用仍可不传 manifest；新的 route CLI 默认在 `route.json` 同目录建立 Attempt Ledger。
+- 同一 route 重新执行已完成 attempt 会校验结果哈希后幂等返回；失败 attempt 应显式选择下一编号，只有 xAI 的 `submitted/uncertain` 状态支持 `--resume`。
+- 审批输入确实变更并需要新 route 时，使用 `route_video_provider.py --archive-existing-ledger`；旧 ledger 与 progress 只会改名归档，不会被重置或删除。
+
+## 验证
+
+- Python：138 项测试通过。
+- Node：14 项测试通过。
+- 覆盖死亡进程恢复、输出回滚、重复计费阻断、xAI 请求恢复、制品篡改检出和原有媒体集成链路。
+- 未执行真实付费 Provider 请求；远端配额、账户权限、价格和服务健康仍需用户明确授权后单次验证。
+
+---
+
 # Motion Sticker Pack v0.2.1
 
 发布日期：2026-08-30

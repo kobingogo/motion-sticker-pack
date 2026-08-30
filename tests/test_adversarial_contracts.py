@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import sys
@@ -21,6 +22,15 @@ from config_contract import (  # noqa: E402
     validate_provider_config,
     validate_video_task,
 )
+from artifact_manifest import record_artifact, verify_manifest  # noqa: E402
+from attempt_ledger import (  # noqa: E402
+    archive_ledger,
+    atomic_write_json,
+    claim_attempt,
+    finish_attempt,
+    ledger_lock,
+    progress_path_for,
+)
 from execute_video_route import child_environment, diagnostic_tail, execute_attempt  # noqa: E402
 from grok_build_video_adapter import (  # noqa: E402
     annotate_error,
@@ -34,7 +44,12 @@ from grok_build_video_adapter import (  # noqa: E402
     resolve_grok_home,
 )
 from manage_job_state import atomic_write, create_state, verify_state  # noqa: E402
-from output_safety import prepare_output, validate_archive_name, validate_output_boundaries  # noqa: E402
+from output_safety import (  # noqa: E402
+    begin_output_transaction,
+    prepare_output,
+    validate_archive_name,
+    validate_output_boundaries,
+)
 from prompt_compiler import load_tile_plan  # noqa: E402
 from render_keypose_pack import natural_key  # noqa: E402
 from route_video_provider import route  # noqa: E402
@@ -49,6 +64,148 @@ def base_config() -> dict:
 
 
 class AdversarialContractTests(unittest.TestCase):
+    def test_output_transaction_rolls_back_and_preserves_prior_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "pack"
+            output.mkdir()
+            (output / "01.png").write_bytes(b"old")
+            (output / "keep.txt").write_bytes(b"user")
+            transaction = begin_output_transaction(output, overwrite=True)
+            self.assertFalse((output / "01.png").exists())
+            self.assertEqual((output / "keep.txt").read_bytes(), b"user")
+            (output / "01.png").write_bytes(b"partial")
+            transaction.rollback()
+            self.assertEqual((output / "01.png").read_bytes(), b"old")
+            self.assertEqual((output / "keep.txt").read_bytes(), b"user")
+
+    def test_output_transaction_recovers_abandoned_run_before_new_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "pack"
+            output.mkdir()
+            (output / "01.png").write_bytes(b"old")
+            abandoned = begin_output_transaction(output, overwrite=True)
+            (output / "01.png").write_bytes(b"partial")
+            atexit.unregister(abandoned.rollback)
+            abandoned.started = False
+            journal = json.loads(abandoned.journal.read_text(encoding="utf-8"))
+            journal["pid"] = -1
+            abandoned.journal.write_text(json.dumps(journal), encoding="utf-8")
+            recovered = begin_output_transaction(output, overwrite=True)
+            recovered.rollback()
+            self.assertEqual((output / "01.png").read_bytes(), b"old")
+
+    def test_output_transaction_commit_publishes_new_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "pack"
+            output.mkdir()
+            (output / "01.png").write_bytes(b"old")
+            transaction = begin_output_transaction(output, overwrite=True)
+            (output / "01.png").write_bytes(b"new")
+            transaction.commit()
+            self.assertEqual((output / "01.png").read_bytes(), b"new")
+            self.assertFalse(transaction.journal.exists())
+            self.assertFalse(transaction.backup and transaction.backup.exists())
+
+    def test_output_transaction_recovers_interrupted_commit_as_committed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "pack"
+            output.mkdir()
+            (output / "01.png").write_bytes(b"old")
+            interrupted = begin_output_transaction(output, overwrite=True)
+            (output / "01.png").write_bytes(b"new")
+            interrupted._write_journal("committing")
+            atexit.unregister(interrupted.rollback)
+            interrupted.started = False
+            journal = json.loads(interrupted.journal.read_text(encoding="utf-8"))
+            journal["pid"] = -1
+            interrupted.journal.write_text(json.dumps(journal), encoding="utf-8")
+            recovered = begin_output_transaction(output, overwrite=True)
+            recovered.rollback()
+            self.assertEqual((output / "01.png").read_bytes(), b"new")
+
+    def test_attempt_ledger_blocks_ambiguous_replay_and_resumes_xai_request(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            ledger = root / "attempt-ledger.json"
+            result = root / "result.json"
+            route_value = {
+                "version": 1,
+                "task_sha256": "task",
+                "config_sha256": "config",
+                "attempts": [
+                    {"attempt": 1, "id": "xai-direct", "driver": "command", "execution": {}}
+                ],
+            }
+            claim_attempt(ledger, route_value, 1, result)
+            with self.assertRaisesRegex(ContractError, "already uncertain"):
+                claim_attempt(ledger, route_value, 1, result)
+            atomic_write_json(
+                progress_path_for(ledger, 1),
+                {"version": 1, "provider": "xai-direct", "status": "submitted", "request_id": "req-1"},
+            )
+            resumed = claim_attempt(ledger, route_value, 1, result, resume=True)
+            self.assertEqual(resumed["resume_request_id"], "req-1")
+            result.write_text('{"status":"succeeded"}', encoding="utf-8")
+            finish_attempt(ledger, route_value, 1, "succeeded", result_path=result)
+            self.assertTrue(claim_attempt(ledger, route_value, 1, result)["idempotent"])
+            history = json.loads(ledger.read_text(encoding="utf-8"))["attempts"][0]["events"]
+            self.assertEqual(
+                [event["status"] for event in history],
+                ["planned", "running", "uncertain", "running", "succeeded"],
+            )
+
+    def test_superseded_attempt_ledger_is_archived_without_deletion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            ledger = root / "attempt-ledger.json"
+            route_value = {
+                "version": 1,
+                "task_sha256": "task",
+                "config_sha256": "config",
+                "attempts": [{"attempt": 1, "id": "xai-direct", "driver": "command"}],
+            }
+            claim_attempt(ledger, route_value, 1, root / "result.json")
+            progress = progress_path_for(ledger, 1)
+            atomic_write_json(
+                progress,
+                {"version": 1, "provider": "xai-direct", "status": "submitted", "request_id": "req-1"},
+            )
+            with ledger_lock(ledger):
+                archived = archive_ledger(ledger)
+            self.assertEqual(len(archived), 2)
+            self.assertTrue(all(path.is_file() for path in archived))
+            self.assertFalse(ledger.exists())
+            self.assertFalse(progress.exists())
+
+    def test_artifact_manifest_detects_current_artifact_tampering(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = root / "artifact-manifest.json"
+            source = root / "source.png"
+            result = root / "result.json"
+            source.write_bytes(b"source")
+            source_id = record_artifact(
+                manifest, source, kind="static-sheet", stage="approved", workspace=root
+            )
+            result.write_bytes(b"result")
+            record_artifact(
+                manifest, result, kind="provider-result", stage="executed", dependencies=[source_id]
+            )
+            self.assertTrue(verify_manifest(manifest)["valid"])
+            result.write_bytes(b"result-v2")
+            record_artifact(
+                manifest, result, kind="provider-result", stage="executed", dependencies=[source_id]
+            )
+            self.assertTrue(verify_manifest(manifest)["valid"])
+            result.write_bytes(b"result")
+            record_artifact(
+                manifest, result, kind="provider-result", stage="executed", dependencies=[source_id]
+            )
+            self.assertTrue(verify_manifest(manifest)["valid"])
+            result.write_bytes(b"tampered")
+            with self.assertRaisesRegex(ContractError, "hash mismatch"):
+                verify_manifest(manifest)
+
     def test_accepted_grok_attempt_is_moved_to_canonical_name(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

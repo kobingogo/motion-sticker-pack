@@ -22,6 +22,8 @@
   "prompt_file": "/absolute/path/to/prompts.json",
   "approval_file": "/absolute/path/to/job-state.json",
   "output_directory": "/absolute/path/to/raw-video",
+  "attempt_ledger_file": "/absolute/path/to/attempt-ledger.json",
+  "artifact_manifest_file": "/absolute/path/to/artifact-manifest.json",
   "duration_seconds": 6,
   "provider_duration_seconds": {
     "grok-build-local": 6,
