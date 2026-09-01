@@ -12,13 +12,12 @@ After install, use it as a conversation: upload an image or describe a character
 $motion-sticker-pack
 ```
 
-## What's new in v0.3.1
+## What's new in v0.3
+
+v0.3 folds the former v0.3.1 cross-cell alpha fixes into the execution-safety and artifact-lineage release.
 
 - **Cross-cell alpha flicker recovery:** relative subject-size checks identify true merged instances, and short (≤0.2 s) merged runs can be recovered from adjacent safe frames; cells 04 and 07 are no longer rejected for coverage flicker.
 - **Auditable recovery:** `processing.json` records invalid native-frame numbers, output-sample replacements, and the final-hold QC range.
-
-## What's new in v0.3.0
-
 - **Idempotent paid execution:** every route creates `attempt-ledger.json`; an attempt can be submitted only once, and an interrupted run becomes `uncertain` instead of being silently replayed.
 - **xAI request resumption:** the request ID is atomically persisted immediately after submission; only explicit `--resume` continues that same request without a second paid generation.
 - **Transactional outputs:** primary output paths keep a recovery journal and prior-directory backup until commit, so exceptions and abandoned runs do not publish partial replacements.
@@ -27,22 +26,6 @@ $motion-sticker-pack
 - **Closed xAI key-background contract:** transparent inputs are deterministically composited onto exact `#00FF00`, near-transparent noise is cleared, and the same per-frame color contract is appended to the prompt.
 - **Consistent terminal audit:** local QC rejection rewrites the provider result; the mutable live ledger is no longer recorded at route time, and terminal lineage uses immutable content-addressed snapshots.
 - **Cross-directory artifact identity:** artifact IDs bind both content and absolute path, so identical names and bytes in trial and full-output directories no longer collide.
-
-## What's new in v0.2.1
-
-- Task-level provider selection supports an explicit preferred provider and ordered fallback chain without editing shared defaults.
-- Each provider attempt now carries its own duration and resolution; xAI model selection comes from provider configuration instead of environment-variable overrides.
-- Routes bind the image, layout, prompt, approval state, and production-settings hashes, so changed inputs invalidate stale routes.
-- Returned videos are decoded locally to detect real alpha before key-background QC.
-- Output/input overlap is rejected before overwrite cleanup, and non-3×3 prompts no longer contain nine-grid wording.
-
-## What's new in v0.2.0
-
-- **Two character-entry paths:** use a reference image or define a character in text; the text-only path generates the complete sheet directly.
-- **Verifiable transparency:** request real alpha first, inspect the returned pixels locally, and use one `#00FF00` fallback only when that inspection fails.
-- **More stable video processing:** provider-specific durations, a complete 6-second Grok output plus a 24-frame 3-second derivative, registration disabled by default for locked cameras, and hold-jitter metrics in the report.
-- **No duplicate delivery trees:** keep one canonical source video and one `delivered/` directory; the final ZIP no longer contains a nested `3s/sticker-pack.zip`.
-- **Stronger quality gates:** native-frame key-screen checks, instance-aware seam handling, stable canvases, decoded WebP/GIF validation, and GIF size budgets.
 
 See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the complete release notes and upgrade details.
 
@@ -57,7 +40,7 @@ See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the complete release notes and up
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="Black cat animated sticker: heart"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="Black cat animated sticker: crying"></a>
 </p>
-<p align="center"><sub>The gallery uses the same-day complete 9/9 xAI run. A separate v0.3 adversarial run delivered 7/9; cells 04 and 07 were safely withheld for encoded alpha-coverage flicker.</sub></p>
+<p align="center"><sub>The gallery uses the same-day complete 9/9 xAI run. The original v0.3 adversarial run delivered 7/9; after the merged cross-cell recovery, the same source video revalidated at 9/9.</sub></p>
 
 <p align="center"><strong>👶 Baby · Cute character</strong> · <a href="examples/child/">View the complete case →</a></p>
 <p align="center">
@@ -73,11 +56,12 @@ See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the complete release notes and up
   <a href="examples/gold-dress-girl/03-dup.gif"><img src="examples/gold-dress-girl/03-dup.gif" height="150" loading="lazy" alt="Girl in gold animated sticker: sad"></a>
 </p>
 
-<p align="center"><strong>🧔 Musk · 3D character reactions</strong> · <a href="examples/musk-3d/">View the complete 9-cell case →</a></p>
+<p align="center"><strong>🧔 Musk · 3D animated stickers</strong> · <a href="examples/musk-3d/">View the complete 12-cell case →</a></p>
 <p align="center">
-  <a href="examples/musk-3d/01.gif"><img src="examples/musk-3d/01.gif" height="150" loading="lazy" alt="Musk animated sticker: arms open"></a>
-  <a href="examples/musk-3d/02.gif"><img src="examples/musk-3d/02.gif" height="150" loading="lazy" alt="Musk animated sticker: surprised"></a>
-  <a href="examples/musk-3d/03.gif"><img src="examples/musk-3d/03.gif" height="150" loading="lazy" alt="Musk animated sticker: angry"></a>
+  <a href="examples/musk-3d/01.gif"><img src="examples/musk-3d/01.gif" height="150" loading="lazy" alt="Musk animated sticker: laughing"></a>
+  <a href="examples/musk-3d/04.gif"><img src="examples/musk-3d/04.gif" height="150" loading="lazy" alt="Musk animated sticker: surprised"></a>
+  <a href="examples/musk-3d/07.gif"><img src="examples/musk-3d/07.gif" height="150" loading="lazy" alt="Musk animated sticker: cheering"></a>
+  <a href="examples/musk-3d/11.gif"><img src="examples/musk-3d/11.gif" height="150" loading="lazy" alt="Musk animated sticker: angry"></a>
 </p>
 
 <p align="center"><strong>🇺🇸 Trump · Comic character reactions</strong> · <a href="examples/trump/">View the complete 9-cell case →</a></p>
@@ -244,7 +228,7 @@ Approve, continue to video    Regenerate with requested changes
 
 Style presets (aligned with the CLI and `references/style-presets.json`; **there is no `meme`**):
 
-1. `3d` — 3D cartoon (default)
+1. `3d` — 3D (if no sub-style is specified, choose either one coherent 3D animation or realistic-human treatment; explicit sub-styles are strict)
 2. `hand-drawn`
 3. `chibi`
 4. `manga`
@@ -253,6 +237,8 @@ Style presets (aligned with the CLI and `references/style-presets.json`; **there
 7. `cute`
 8. `retro`
 9. `custom` — a short style description
+
+White sticker outlines are an independent presentation option: off by default; use `--sticker-outline white` or say “3D cartoon white sticker” to enable a narrow, uniform outline.
 
 Typical conversation:
 
@@ -263,7 +249,7 @@ Agent: Please upload a character reference.
 
 User: [image]
 
-Agent: Choose a style: 1. 3D cartoon  2. Hand-drawn  3. Chibi  4. Manga
+Agent: Choose a style: 1. 3D (animation or realistic human)  2. Hand-drawn  3. Chibi  4. Manga
       5. Pixel art  6. Realistic  7. Cute  8. Retro  9. Custom
 
 User: 3D

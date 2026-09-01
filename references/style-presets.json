@@ -7,9 +7,37 @@
       "prompt": "Preserve the reference character's facial structure, body proportions, clothing, materials, lighting cues, and recognizable visual identity with highly faithful semi-realistic rendering."
     },
     "3d": {
-      "label": "3D 卡通风",
-      "aliases": ["3D", "3d-cartoon", "3d toy", "3d-toy", "toy", "玩具", "立体", "3D 卡通风"],
-      "prompt": "Use polished 3D cartoon rendering with expressive facial animation, smooth materials, controlled proportions, soft studio lighting, subtle ambient occlusion, and a refined illustrated-card finish without a white border or heavy outline."
+      "label": "3D",
+      "aliases": [
+        "3D",
+        "3d-cartoon",
+        "3d cartoon",
+        "3d toy",
+        "3d-toy",
+        "toy",
+        "玩具",
+        "立体",
+        "3D 卡通",
+        "3D卡通",
+        "3D 卡通风",
+        "3D 动画",
+        "3D动画",
+        "3D 动画风",
+        "3d-realistic",
+        "3d realistic",
+        "3D 写实",
+        "3D写实",
+        "3D 写实风",
+        "3D 真实人物",
+        "3D真实人物",
+        "3D 真人",
+        "3D真人",
+        "3D 真人风",
+        "写实 3D",
+        "3D 写实还原",
+        "3D 真人写实"
+      ],
+      "prompt": "Use one coherent 3D rendering treatment. If the user only specifies 3D and does not name a sub-style, freely choose either a stylized 3D animation treatment or a realistic 3D human-render treatment, but do not mix them across cells. Preserve the character identity, proportions, clothing, materials, lighting cues, and recognizable features consistently."
     },
     "hand-drawn": {
       "label": "手绘风",

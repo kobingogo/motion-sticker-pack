@@ -28,7 +28,7 @@ If the user provides or defines a character but leaves style or reactions unspec
 
 ```text
 我将按以下设置制作：
-风格：3D 卡通风
+风格：3D（未指定子风格时，可自由选择 3D 动画风或 3D 真实人物风）
 呈现：3×3 角色表情插画卡片（无白边、无厚描边、每格轻微独立背景、统一色调）
 表情：开心、喜欢、委屈、惊讶、亲亲、谢谢、加油、困困、点赞
 布局：3×3，共 9 个
@@ -63,7 +63,7 @@ If the host supports forms, chips, cards, or other structured inputs, use them f
 Use [style-presets.json](style-presets.json) as the maintained preset source. Present these eight primary choices:
 
 1. `realistic` — 写实还原；
-2. `3d` — 3D 卡通风；
+2. `3d` — 3D（未指定子风格时，可自由选择 3D 动画风或 3D 真实人物风；明确指定子风格时严格遵守）；
 3. `hand-drawn` — 手绘风；
 4. `chibi` — Q 版；
 5. `manga` — 漫画风；

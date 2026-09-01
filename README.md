@@ -12,13 +12,12 @@
 $motion-sticker-pack
 ```
 
-## v0.3.1 更新
+## v0.3 更新
+
+v0.3 汇总原 v0.3.1 的跨格 Alpha 修复，与执行安全和制品谱系能力一起发布。
 
 - **跨格 Alpha 闪烁修复**：相对主体规模识别真正的合并实例，短时（≤0.2 秒）合并坏帧使用邻帧安全恢复；04、07 不再因覆盖闪烁被误拒绝。
 - **可审计恢复**：`processing.json` 记录原生坏帧编号、输出采样替换来源和 final-hold 检查范围。
-
-## v0.3.0 更新
-
 - **付费调用幂等**：每条 route 自动生成 `attempt-ledger.json`；同一 attempt 只允许提交一次，进程中断后默认标记为 `uncertain`，禁止静默重放。
 - **xAI 原请求恢复**：提交成功立即原子记录 `request_id`；仅显式 `--resume` 可继续轮询同一请求，不重新发起计费生成。
 - **事务化输出**：主要输出链路先建立恢复日志与旧目录备份，成功后提交；异常或死亡进程由下一次运行恢复，避免半成品覆盖成品。
@@ -28,42 +27,34 @@ $motion-sticker-pack
 - **终态审计一致**：本地 QC 拒绝会同步回写 Provider 结果；live ledger 不再在路由阶段写入清单，终态改用不可变内容寻址快照。
 - **跨目录制品消歧**：Artifact ID 同时绑定内容与绝对路径，试产和全量目录中的同名同内容文件不会再误报碰撞。
 
-## v0.2.1 更新
-
-- **任务级视频源**：`prepare_workflow.py --provider xai-direct` 可把 xAI 设为当前任务首选，不再要求修改全局默认配置；`--fallback-provider` 可重复声明有序兜底链。
-- **参数单一来源**：每个 Provider 的 model 来自 `video-providers.json`，时长与分辨率来自任务快照；环境变量只保留凭证或带敏感信息的 ZDR 传输参数。
-- **路由闭环**：route 同时绑定静图、layout、prompt、审批状态和生产配置哈希；任一依赖发生变化，都必须重新路由。
-- **媒体实检**：外部适配器返回后统一用 FFmpeg 解码并检测真实 Alpha，不再相信扩展名或适配器自报字段；opaque 结果才进入色键质检。
-- **防误删与布局一致性**：所有主要输出链路拒绝与输入重叠，`--overwrite` 不再可能删除源素材；非 3×3 布局不再混入“九宫格/九格”提示。
-
-## v0.2.0 更新
-
-- **两种建形入口**：既可上传角色参考图，也可只用文字定义角色；文字路线直接生成完整表情图板。
-- **透明底可验证**：静图先请求真实 Alpha，再以本地像素检查决定是否需要一次 `#00FF00` 兜底，不把棋盘格预览当透明。
-- **视频后处理更稳**：按 Provider 区分请求时长，Grok 保留完整 6 秒版并附带初始 24 帧的 3 秒版；固定镜头默认关闭逐帧整数注册，报告静止段位移，减少微抖。
-- **交付不再重复**：只保留一个规范源视频和一个 `delivered/` 成品目录；最终 ZIP 不再嵌套 `3s/sticker-pack.zip`。
-- **更严格的质量门**：原生帧绿幕检查、跨格实例分配、稳定画布、WebP/GIF 解码复检、GIF 体积预算都进入可审计报告。
-
 完整变化与升级提醒见 [`RELEASE_NOTES.md`](RELEASE_NOTES.md)。
 
 ## 案例集
 
 > 下面是仓库内的真实输出预览。GIF 会自动循环播放；点击图片可打开原文件。每组展示 3 个精选动作，完整案例目录同时保留 GIF、WebP 和 PNG 三种格式。
 
-<p align="center"><strong>🐈‍⬛ 黑猫 · xAI Direct 最新完整验证案例（2026-09-01）</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
-<p align="center"><a href="examples/black-cat/preview.png"><img src="examples/black-cat/preview.png" width="720" loading="lazy" alt="最新黑猫动态表情包完整预览"></a></p>
+<p align="center"><strong>🐈‍⬛ 黑猫 . 基于 v0.3 生成（边缘更清晰） </strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
 <p align="center">
   <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="黑猫动态贴纸：开心"></a>
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="黑猫动态贴纸：爱心"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="黑猫动态贴纸：哭泣"></a>
+   <a href="examples/black-cat/04.gif"><img src="examples/black-cat/04.gif" height="150" loading="lazy" alt="黑猫动态贴纸：吃惊"></a>
 </p>
-<p align="center"><sub>完整案例来自同日 9/9 通过的 xAI 实测；v0.3 对抗性复测另有 7/9 通过，04、07 因 Alpha 覆盖闪烁被安全 withheld。</sub></p>
+<p align="center"><strong>🧔 Musk · 基于 v0.3 生成（边缘更清晰）</strong> · <a href="examples/musk-3d/">查看完整 12 格案例 →</a></p>
+<p align="center">
+  <a href="examples/musk-3d/01.gif"><img src="examples/musk-3d/01.gif" height="150" loading="lazy" alt="Musk 动态贴纸：开心大笑"></a>
+  <a href="examples/musk-3d/04.gif"><img src="examples/musk-3d/04.gif" height="150" loading="lazy" alt="Musk 动态贴纸：惊讶"></a>
+  <a href="examples/musk-3d/07.gif"><img src="examples/musk-3d/07.gif" height="150" loading="lazy" alt="Musk 动态贴纸：加油"></a>
+  <a href="examples/musk-3d/11.gif"><img src="examples/musk-3d/11.gif" height="150" loading="lazy" alt="Musk 动态贴纸：愤怒"></a>
+</p>
+
 
 <p align="center"><strong>👶 宝宝 · 萌系角色</strong> · <a href="examples/child/">查看完整案例 →</a></p>
 <p align="center">
   <a href="examples/child/01.gif"><img src="examples/child/01.gif" height="150" loading="lazy" alt="宝宝动态贴纸：撒娇"></a>
   <a href="examples/child/02.gif"><img src="examples/child/02.gif" height="150" loading="lazy" alt="宝宝动态贴纸：抱爱心"></a>
-  <a href="examples/child/03.gif"><img src="examples/child/03.gif" height="150" loading="lazy" alt="宝宝动态贴纸：开心"></a>
+  <a href="examples/child/03.gif"><img src="examples/child/03.gif" height="150" loading="lazy" alt="宝宝动态贴纸：开心"></a>  
+  <a href="examples/child/04.gif"><img src="examples/child/04.gif" height="150" loading="lazy" alt="宝宝动态贴纸：鬼脸"></a>
 </p>
 
 <p align="center"><strong>👩 金裙女孩 · 写实人像</strong> · <a href="examples/gold-dress-girl/">查看完整 9 格案例 →</a></p>
@@ -71,20 +62,16 @@ $motion-sticker-pack
   <a href="examples/gold-dress-girl/01-dup.gif"><img src="examples/gold-dress-girl/01-dup.gif" height="150" loading="lazy" alt="金裙女孩动态贴纸：挥手"></a>
   <a href="examples/gold-dress-girl/02-dup.gif"><img src="examples/gold-dress-girl/02-dup.gif" height="150" loading="lazy" alt="金裙女孩动态贴纸：比心"></a>
   <a href="examples/gold-dress-girl/03-dup.gif"><img src="examples/gold-dress-girl/03-dup.gif" height="150" loading="lazy" alt="金裙女孩动态贴纸：难过"></a>
+   <a href="examples/gold-dress-girl/06-dup.gif"><img src="examples/gold-dress-girl/06-dup.gif" height="150" loading="lazy" alt="金裙女孩动态贴纸：拜托"></a>
 </p>
 
-<p align="center"><strong>🧔 Musk · 3D 人物表情</strong> · <a href="examples/musk-3d/">查看完整 9 格案例 →</a></p>
-<p align="center">
-  <a href="examples/musk-3d/01.gif"><img src="examples/musk-3d/01.gif" height="150" loading="lazy" alt="Musk 动态贴纸：张开双臂"></a>
-  <a href="examples/musk-3d/02.gif"><img src="examples/musk-3d/02.gif" height="150" loading="lazy" alt="Musk 动态贴纸：惊讶"></a>
-  <a href="examples/musk-3d/03.gif"><img src="examples/musk-3d/03.gif" height="150" loading="lazy" alt="Musk 动态贴纸：生气"></a>
-</p>
 
 <p align="center"><strong>🇺🇸 Trump · 漫画人物表情</strong> · <a href="examples/trump/">查看完整 9 格案例 →</a></p>
 <p align="center">
   <a href="examples/trump/01.gif"><img src="examples/trump/01.gif" height="150" loading="lazy" alt="Trump 动态贴纸：点赞"></a>
   <a href="examples/trump/02.gif"><img src="examples/trump/02.gif" height="150" loading="lazy" alt="Trump 动态贴纸：惊讶"></a>
   <a href="examples/trump/03.gif"><img src="examples/trump/03.gif" height="150" loading="lazy" alt="Trump 动态贴纸：愤怒"></a>
+  <a href="examples/trump/04.gif"><img src="examples/trump/04.gif" height="150" loading="lazy" alt="Trump 动态贴纸：赞"></a>
 </p>
 
 ## 为什么推荐 Codex
@@ -246,7 +233,7 @@ Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批�
 
 风格预设（与 CLI / `references/style-presets.json` 一致，**没有 `meme`**）：
 
-1. `3d` — 3D 卡通风（默认；默认呈现为无白边、无厚描边的角色表情插画卡片九宫格）
+1. `3d` — 3D（未指定子风格时，可自由选择 3D 动画风或 3D 真实人物风；明确指定子风格时严格遵守；默认呈现为无白边、无厚描边的角色表情插画卡片九宫格）
 2. `hand-drawn` — 手绘风
 3. `chibi` — Q 版
 4. `manga` — 漫画风
@@ -255,6 +242,8 @@ Skill 要在其他 Agent 上稳定复现，靠的是统一工作目录和审批�
 7. `cute` — 可爱风
 8. `retro` — 复古风
 9. `custom` — 自定义短描述
+
+白边贴纸风是独立呈现选项：默认关闭；可在 CLI 使用 `--sticker-outline white` 开启，也可在风格输入中写“3D 卡通白边贴纸”。
 
 一次典型对话：
 
@@ -265,7 +254,7 @@ Agent：请上传一张角色参考图。
 
 用户：[上传图片]
 
-Agent：请选择风格：1. 3D 卡通风  2. 手绘风  3. Q 版  4. 漫画风
+Agent：请选择风格：1. 3D（动画或真实人物均可）  2. 手绘风  3. Q 版  4. 漫画风
       5. 像素艺术  6. 写实还原  7. 可爱风  8. 复古风  9. 自定义
 
 用户：3D

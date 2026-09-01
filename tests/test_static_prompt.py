@@ -29,11 +29,13 @@ class StaticPromptTests(unittest.TestCase):
             3,
         )
         prompt = result["static_sheet_prompt"]
-        self.assertIn("直接根据角色定义“所附图像” 创建一套 3D 卡通风 动态表情包的静态九宫格源图", prompt)
+        self.assertIn("直接根据角色定义“所附图像” 创建一套 3D 动态表情包的静态九宫格源图", prompt)
         self.assertIn("🎸😍🥹😘🥰", prompt)
         self.assertIn("九个", prompt)
         self.assertIn("3×3", prompt)
-        self.assertIn("Use polished 3D cartoon rendering", prompt)
+        self.assertIn("Use one coherent 3D rendering treatment", prompt)
+        self.assertIn("可自由选择一种统一的 3D 动画风或 3D 真实人物风格", prompt)
+        self.assertEqual(result["style_policy"]["mode"], "free-choice")
         self.assertIn("装饰性反应元素", prompt)
         self.assertIn("无白边、无厚描边", prompt)
         self.assertIn("轻微、局部、与情绪匹配的背景点缀", prompt)
@@ -71,6 +73,104 @@ class StaticPromptTests(unittest.TestCase):
         self.assertIsNone(result["reference_image"])
         self.assertIn("不要先生成单张角色图", result["static_sheet_prompt"])
         self.assertIn("直接输出完整九宫格源图", result["static_sheet_prompt"])
+
+    def test_explicit_3d_animation_alias_is_a_hard_constraint(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D 卡通", None)
+        result = compile_prompt(
+            "角色", style_id, label, style_prompt, ["开心"], 1, 1, style_input="3D 卡通"
+        )
+        prompt = result["static_sheet_prompt"]
+        self.assertEqual(result["style"]["label"], "3D 动画风")
+        self.assertEqual(result["style_policy"]["variant"], "animation")
+        self.assertEqual(result["style_policy"]["mode"], "explicit")
+        self.assertIn("必须严格遵守", prompt)
+        self.assertIn("禁止照片质感", prompt)
+        self.assertNotIn("可自由选择一种统一的 3D 动画风或 3D 真实人物风格", prompt)
+
+    def test_white_sticker_outline_is_optional_for_3d_animation(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D 卡通", None)
+        result = compile_prompt(
+            "角色",
+            style_id,
+            label,
+            style_prompt,
+            ["开心"],
+            1,
+            1,
+            style_input="3D 卡通",
+            sticker_outline="white",
+        )
+        prompt = result["static_sheet_prompt"]
+        self.assertEqual(result["outline_policy"]["resolved"], "white")
+        self.assertEqual(result["style_policy"]["sticker_outline"], "white")
+        self.assertIn("白边贴纸风", prompt)
+        self.assertIn("窄、均匀、纯白且连续的外轮廓", prompt)
+        self.assertIn("使用统一、窄且干净的白色贴纸外轮廓", prompt)
+        self.assertNotIn("禁止照片质感、真人摄影式肖像和照片剪纸效果。", prompt)
+
+    def test_white_outline_can_be_inferred_from_combined_style_input(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D 卡通白边贴纸", None)
+        result = compile_prompt(
+            "角色", style_id, label, style_prompt, ["开心"], 1, 1, style_input="3D 卡通白边贴纸"
+        )
+        self.assertEqual(result["outline_policy"]["resolved"], "white")
+        self.assertEqual(result["style_policy"]["variant"], "animation")
+
+    def test_default_outline_remains_none(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        result = compile_prompt("角色", style_id, label, style_prompt, ["开心"], 1, 1)
+        self.assertEqual(result["outline_policy"]["resolved"], "none")
+        self.assertIn("不主动添加白色贴纸外轮廓", result["static_sheet_prompt"])
+
+    def test_explicit_3d_realistic_alias_is_a_hard_constraint(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D 写实", None)
+        result = compile_prompt(
+            "角色", style_id, label, style_prompt, ["开心"], 1, 1, style_input="3D 写实"
+        )
+        prompt = result["static_sheet_prompt"]
+        self.assertEqual(result["style"]["label"], "3D 真实人物风")
+        self.assertEqual(result["style_policy"]["variant"], "realistic")
+        self.assertIn("自然的人体比例", prompt)
+        self.assertIn("禁止 Q 版", prompt)
+        self.assertNotIn("可自由选择一种统一的 3D 动画风或 3D 真实人物风格", prompt)
+
+    def test_explicit_3d_style_in_character_description_is_respected(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        result = compile_prompt(
+            "角色",
+            style_id,
+            label,
+            style_prompt,
+            ["开心"],
+            1,
+            1,
+            character_description="3D 真实人物风格的宇航员",
+            style_input="3D",
+        )
+        self.assertEqual(result["style_policy"]["variant"], "realistic")
+        self.assertEqual(result["style_policy"]["source"], "character-description")
+
+    def test_conflicting_3d_substyles_fail_closed(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        with self.assertRaisesRegex(ValueError, "conflicting"):
+            compile_prompt(
+                "角色",
+                style_id,
+                label,
+                style_prompt,
+                ["开心"],
+                1,
+                1,
+                character_description="3D 写实人物",
+                style_input="3D 卡通",
+            )
 
     def test_text_defaults_to_avoid_but_is_not_a_failure_gate(self) -> None:
         presets = load_presets(PRESETS)
