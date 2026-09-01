@@ -19,6 +19,9 @@ $motion-sticker-pack
 - **事务化输出**：主要输出链路先建立恢复日志与旧目录备份，成功后提交；异常或死亡进程由下一次运行恢复，避免半成品覆盖成品。
 - **制品哈希谱系**：`artifact-manifest.json` 记录静图、审批、提示词、route、源视频和交付文件的 SHA-256 依赖链，可检测当前制品被替换或篡改。
 - **执行前预检**：route 报告明确选中 Provider、可能计费的 attempt、恢复能力、阻断原因以及“远端配额/健康仍未知”的边界。
+- **xAI 色键闭环**：透明输入会在本地确定性铺成精确 `#00FF00`，近透明噪声归零，并把同一逐帧色键合同追加到提示词，避免透明区域被远端压成黑底。
+- **终态审计一致**：本地 QC 拒绝会同步回写 Provider 结果；live ledger 不再在路由阶段写入清单，终态改用不可变内容寻址快照。
+- **跨目录制品消歧**：Artifact ID 同时绑定内容与绝对路径，试产和全量目录中的同名同内容文件不会再误报碰撞。
 
 ## v0.2.1 更新
 
@@ -42,12 +45,14 @@ $motion-sticker-pack
 
 > 下面是仓库内的真实输出预览。GIF 会自动循环播放；点击图片可打开原文件。每组展示 3 个精选动作，完整案例目录同时保留 GIF、WebP 和 PNG 三种格式。
 
-<p align="center"><strong>🐈‍⬛ 黑猫 · 3D 玩具贴纸</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
+<p align="center"><strong>🐈‍⬛ 黑猫 · xAI Direct 最新完整验证案例（2026-09-01）</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
+<p align="center"><a href="examples/black-cat/preview.png"><img src="examples/black-cat/preview.png" width="720" loading="lazy" alt="最新黑猫动态表情包完整预览"></a></p>
 <p align="center">
   <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="黑猫动态贴纸：开心"></a>
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="黑猫动态贴纸：爱心"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="黑猫动态贴纸：哭泣"></a>
 </p>
+<p align="center"><sub>完整案例来自同日 9/9 通过的 xAI 实测；v0.3 对抗性复测另有 7/9 通过，04、07 因 Alpha 覆盖闪烁被安全 withheld。</sub></p>
 
 <p align="center"><strong>👶 宝宝 · 萌系角色</strong> · <a href="examples/child/">查看完整案例 →</a></p>
 <p align="center">

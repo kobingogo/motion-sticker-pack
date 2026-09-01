@@ -19,6 +19,9 @@ $motion-sticker-pack
 - **Transactional outputs:** primary output paths keep a recovery journal and prior-directory backup until commit, so exceptions and abandoned runs do not publish partial replacements.
 - **Hash lineage:** `artifact-manifest.json` records SHA-256 dependencies across approved inputs, routing, generated video, and delivery artifacts, and detects current-file tampering.
 - **Execution preflight:** route reports now expose the selected provider, billable attempts, resume support, blockers, and the fact that remote quota and health remain unknown.
+- **Closed xAI key-background contract:** transparent inputs are deterministically composited onto exact `#00FF00`, near-transparent noise is cleared, and the same per-frame color contract is appended to the prompt.
+- **Consistent terminal audit:** local QC rejection rewrites the provider result; the mutable live ledger is no longer recorded at route time, and terminal lineage uses immutable content-addressed snapshots.
+- **Cross-directory artifact identity:** artifact IDs bind both content and absolute path, so identical names and bytes in trial and full-output directories no longer collide.
 
 ## What's new in v0.2.1
 
@@ -42,12 +45,14 @@ See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the complete release notes and up
 
 > These are real outputs from this repository. GIFs loop automatically; click any image to open the original file. Each case shows 3 selected reactions, while the linked folder contains the complete GIF, WebP, and PNG set.
 
-<p align="center"><strong>🐈‍⬛ Black cat · 3D toy sticker</strong> · <a href="examples/black-cat/">View the complete 9-cell case →</a></p>
+<p align="center"><strong>🐈‍⬛ Black cat · latest complete xAI Direct validation (2026-09-01)</strong> · <a href="examples/black-cat/">View the complete 9-cell case →</a></p>
+<p align="center"><a href="examples/black-cat/preview.png"><img src="examples/black-cat/preview.png" width="720" loading="lazy" alt="Latest complete black-cat animated sticker pack preview"></a></p>
 <p align="center">
   <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="Black cat animated sticker: happy"></a>
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="Black cat animated sticker: heart"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="Black cat animated sticker: crying"></a>
 </p>
+<p align="center"><sub>The gallery uses the same-day complete 9/9 xAI run. A separate v0.3 adversarial run delivered 7/9; cells 04 and 07 were safely withheld for encoded alpha-coverage flicker.</sub></p>
 
 <p align="center"><strong>👶 Baby · Cute character</strong> · <a href="examples/child/">View the complete case →</a></p>
 <p align="center">
