@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "source": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/work/musk-3d/route-work/raw-video/grok-build-local.mp4",
+  "source_size": {
+    "width": 544,
+    "height": 544
+  },
+  "detected_layout": {
+    "columns": 3,
+    "rows": 3,
+    "count": 9,
+    "confidence": 0.99
+  },
+  "output_fps": 6,
+  "frames_per_animation": 36,
+  "cells": [
+    {
+      "id": "01",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.533714,
+      "alpha_coverage_max": 0.615427,
+      "border_coverage_max": 0.164365,
+      "loop_difference": 0.273343,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "02",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.559293,
+      "alpha_coverage_max": 0.713623,
+      "border_coverage_max": 0.240331,
+      "loop_difference": 0.232488,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "alpha-coverage-varies-across-frames",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "03",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.555218,
+      "alpha_coverage_max": 0.693886,
+      "border_coverage_max": 0.163912,
+      "loop_difference": 0.159948,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "alpha-coverage-varies-across-frames",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "04",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.519429,
+      "alpha_coverage_max": 0.568664,
+      "border_coverage_max": 0.058011,
+      "loop_difference": 0.174333,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "05",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.514606,
+      "alpha_coverage_max": 0.6628,
+      "border_coverage_max": 0.120166,
+      "loop_difference": 0.154451,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "alpha-coverage-varies-across-frames",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "06",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.515482,
+      "alpha_coverage_max": 0.669844,
+      "border_coverage_max": 0.128099,
+      "loop_difference": 0.279342,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "alpha-coverage-varies-across-frames",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "07",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.621729,
+      "alpha_coverage_max": 0.627315,
+      "border_coverage_max": 0.034435,
+      "loop_difference": 0.092945,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "08",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.518426,
+      "alpha_coverage_max": 0.62692,
+      "border_coverage_max": 0.123967,
+      "loop_difference": 0.140149,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "09",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.397748,
+      "alpha_coverage_max": 0.671658,
+      "border_coverage_max": 0.133242,
+      "loop_difference": 0.231985,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "alpha-coverage-varies-across-frames",
+        "loop-end-differs-from-start"
+      ]
+    }
+  ],
+  "warnings": [
+    "01:foreground-touches-cell-boundary",
+    "01:loop-end-differs-from-start",
+    "02:foreground-touches-cell-boundary",
+    "02:alpha-coverage-varies-across-frames",
+    "02:loop-end-differs-from-start",
+    "03:foreground-touches-cell-boundary",
+    "03:alpha-coverage-varies-across-frames",
+    "03:loop-end-differs-from-start",
+    "04:foreground-touches-cell-boundary",
+    "04:loop-end-differs-from-start",
+    "05:foreground-touches-cell-boundary",
+    "05:alpha-coverage-varies-across-frames",
+    "05:loop-end-differs-from-start",
+    "06:foreground-touches-cell-boundary",
+    "06:alpha-coverage-varies-across-frames",
+    "06:loop-end-differs-from-start",
+    "07:foreground-touches-cell-boundary",
+    "08:foreground-touches-cell-boundary",
+    "08:loop-end-differs-from-start",
+    "09:foreground-touches-cell-boundary",
+    "09:alpha-coverage-varies-across-frames",
+    "09:loop-end-differs-from-start"
+  ],
+  "outputs": [
+    "01.webp",
+    "01.gif",
+    "01.png",
+    "02.webp",
+    "02.gif",
+    "02.png",
+    "03.webp",
+    "03.gif",
+    "03.png",
+    "04.webp",
+    "04.gif",
+    "04.png",
+    "05.webp",
+    "05.gif",
+    "05.png",
+    "06.webp",
+    "06.gif",
+    "06.png",
+    "07.webp",
+    "07.gif",
+    "07.png",
+    "08.webp",
+    "08.gif",
+    "08.png",
+    "09.webp",
+    "09.gif",
+    "09.png",
+    "layout.json",
+    "processing.json",
+    "sticker-pack.zip"
+  ]
+}

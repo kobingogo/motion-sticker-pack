@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "policy": {
+    "minimum_verified_styles": 12,
+    "maximum_verified_styles": 16,
+    "required_files": ["static.png", "motion.gif", "layout.json", "route.json", "processing.json"],
+    "verification": "real-nine-cell-output"
+  },
+  "styles": [
+    {"id": "3d", "gallery": "plush-toy", "source_case": "black-cat-corrected-20260826"},
+    {"id": "realistic", "gallery": "cinematic-realistic", "source_case": "孙宇晨景甜故事/realistic"},
+    {"id": "hand-drawn", "gallery": "hand-drawn", "source_case": "鳄鱼阿班"},
+    {"id": "chibi", "gallery": "iridescent-chibi", "source_case": "泡泡星人"},
+    {"id": "manga", "gallery": "manga-cel", "source_case": "赛博锦鲤"},
+    {"id": "pixel-art", "gallery": "pixel-art", "source_case": "紫薯幽灵"},
+    {"id": "cute", "gallery": "soft-plush", "source_case": "奶油兔"},
+    {"id": "caricature-3d", "gallery": "caricature-3d", "source_case": "musk-3d"},
+    {"id": "fashion-realistic", "gallery": "fashion-realistic", "source_case": "gold-dress-girl"},
+    {"id": "mascot-toy", "gallery": "mascot-toy", "source_case": "口红"},
+    {"id": "clay-cute", "gallery": "clay-cute", "source_case": "团团猫"},
+    {"id": "fantasy-plush", "gallery": "fantasy-plush", "source_case": "披风兔"},
+    {"id": "kawaii-anime", "gallery": "kawaii-anime", "source_case": "甜美女孩"}
+  ]
+}

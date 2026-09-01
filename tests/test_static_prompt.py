@@ -355,7 +355,11 @@ class StaticPromptTests(unittest.TestCase):
         data = json.loads(PRESETS.read_text(encoding="utf-8"))
         self.assertEqual(
             set(data["presets"]),
-            {"realistic", "3d", "hand-drawn", "chibi", "manga", "pixel-art", "cute", "retro"},
+            {
+                "realistic", "3d", "hand-drawn", "chibi", "manga", "pixel-art", "cute", "retro",
+                "caricature-3d", "fashion-realistic", "mascot-toy", "clay-cute",
+                "fantasy-plush", "kawaii-anime",
+            },
         )
 
 

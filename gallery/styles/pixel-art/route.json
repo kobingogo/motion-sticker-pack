@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
+  "task_sha256": "27791e6bfacf69a7a03956dfd697b475e944775965091a70db42c80bf64bcd9f",
+  "operation": "image-to-video",
+  "required_capabilities": [
+    "image-to-video"
+  ],
+  "selected": {
+    "attempt": 1,
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "region": null,
+    "priority": 100,
+    "capabilities": [
+      "image-to-video"
+    ],
+    "available": true,
+    "credentials_ready": true,
+    "missing_env": [],
+    "optional_env_present": [
+      "RUST_LOG",
+      "XAI_API_KEY"
+    ],
+    "implementation_ready": true,
+    "reasons": [],
+    "postprocess_alpha": false
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "id": "grok-build-local",
+      "driver": "command",
+      "provider": "grok-build",
+      "model": "image_to_video",
+      "region": null,
+      "priority": 100,
+      "capabilities": [
+        "image-to-video"
+      ],
+      "available": true,
+      "credentials_ready": true,
+      "missing_env": [],
+      "optional_env_present": [
+        "RUST_LOG",
+        "XAI_API_KEY"
+      ],
+      "implementation_ready": true,
+      "reasons": [],
+      "postprocess_alpha": false
+    }
+  ],
+  "fallback": null,
+  "rejected": [
+    {
+      "id": "kling-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "seedance-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "wan-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "grok-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "fal-fallback",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "custom-relay",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "image_gen__imagegen",
+      "reason": "missing-capabilities",
+      "missing": [
+        "image-to-video"
+      ]
+    },
+    {
+      "id": "mcp__codex_apps__figma_export_video",
+      "reason": "missing-capabilities",
+      "missing": [
+        "image-to-video"
+      ]
+    }
+  ],
+  "max_attempts": 2
+}

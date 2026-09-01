@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "config_sha256": "e4137b296b9b137492771e62161d8738952c0e3e94d04bc3c192491f7f9a352b",
+  "task_sha256": "e3d0f6ca8767535b5ac9db55e8b53b7c1e16f1200e8290f49752b6c7acdfd46b",
+  "operation": "image-to-video",
+  "required_capabilities": [
+    "image-to-video"
+  ],
+  "selected": {
+    "attempt": 1,
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "priority": 100,
+    "capabilities": [
+      "image-to-video"
+    ],
+    "available": true,
+    "credentials_ready": true,
+    "missing_env": [],
+    "optional_env_present": [
+      "GROK_HOME",
+      "XAI_API_KEY"
+    ],
+    "implementation_ready": true,
+    "reasons": [],
+    "postprocess_alpha": false
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "id": "grok-build-local",
+      "driver": "command",
+      "provider": "grok-build",
+      "model": "image_to_video",
+      "priority": 100,
+      "capabilities": [
+        "image-to-video"
+      ],
+      "available": true,
+      "credentials_ready": true,
+      "missing_env": [],
+      "optional_env_present": [
+        "GROK_HOME",
+        "XAI_API_KEY"
+      ],
+      "implementation_ready": true,
+      "reasons": [],
+      "postprocess_alpha": false
+    },
+    {
+      "attempt": 2,
+      "id": "xai-direct",
+      "driver": "command",
+      "provider": "xai",
+      "model": "grok-imagine-video",
+      "priority": 80,
+      "capabilities": [
+        "image-to-video",
+        "text-to-video",
+        "video-edit"
+      ],
+      "available": true,
+      "credentials_ready": true,
+      "missing_env": [],
+      "optional_env_present": [],
+      "implementation_ready": true,
+      "reasons": [],
+      "postprocess_alpha": false
+    }
+  ],
+  "fallback": {
+    "id": "transform-local",
+    "driver": "local-processing",
+    "reason": "last-resort whole-sticker affine keyframes"
+  },
+  "rejected": [
+    {
+      "id": "kling-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "seedance-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "wan-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "grok-primary",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "fal-fallback",
+      "reason": "not-enabled-in-provider-config"
+    },
+    {
+      "id": "custom-relay",
+      "reason": "not-enabled-in-provider-config"
+    }
+  ],
+  "max_attempts": 2
+}

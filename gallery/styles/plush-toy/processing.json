@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "source": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/works/black-cat-corrected-20260826/raw-video/grok-build-local.mp4",
+  "source_size": {
+    "width": 544,
+    "height": 544
+  },
+  "detected_layout": {
+    "columns": 3,
+    "rows": 3,
+    "count": 9,
+    "confidence": 0.99
+  },
+  "output_fps": 6,
+  "frames_per_animation": 36,
+  "cells": [
+    {
+      "id": "01",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.436495,
+      "alpha_coverage_max": 0.553341,
+      "border_coverage_max": 0.031768,
+      "loop_difference": 0.090708,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "02",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.482708,
+      "alpha_coverage_max": 0.554745,
+      "border_coverage_max": 0.006906,
+      "loop_difference": 0.112176,
+      "warnings": []
+    },
+    {
+      "id": "03",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.406168,
+      "alpha_coverage_max": 0.456044,
+      "border_coverage_max": 0.008264,
+      "loop_difference": 0.113507,
+      "warnings": []
+    },
+    {
+      "id": "04",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.418699,
+      "alpha_coverage_max": 0.486432,
+      "border_coverage_max": 0.05663,
+      "loop_difference": 0.122327,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "05",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.375721,
+      "alpha_coverage_max": 0.438723,
+      "border_coverage_max": 0.038674,
+      "loop_difference": 0.106629,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "06",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.436464,
+      "alpha_coverage_max": 0.518001,
+      "border_coverage_max": 0.057851,
+      "loop_difference": 0.126956,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "07",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.494505,
+      "alpha_coverage_max": 0.539281,
+      "border_coverage_max": 0.086777,
+      "loop_difference": 0.117427,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "08",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.428268,
+      "alpha_coverage_max": 0.443173,
+      "border_coverage_max": 0.046832,
+      "loop_difference": 0.022694,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "09",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.457795,
+      "alpha_coverage_max": 0.494958,
+      "border_coverage_max": 0.081044,
+      "loop_difference": 0.137682,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    }
+  ],
+  "warnings": [
+    "01:foreground-touches-cell-boundary",
+    "04:foreground-touches-cell-boundary",
+    "04:loop-end-differs-from-start",
+    "05:foreground-touches-cell-boundary",
+    "06:foreground-touches-cell-boundary",
+    "06:loop-end-differs-from-start",
+    "07:foreground-touches-cell-boundary",
+    "08:foreground-touches-cell-boundary",
+    "09:foreground-touches-cell-boundary",
+    "09:loop-end-differs-from-start"
+  ],
+  "outputs": [
+    "01.webp",
+    "01.gif",
+    "01.png",
+    "02.webp",
+    "02.gif",
+    "02.png",
+    "03.webp",
+    "03.gif",
+    "03.png",
+    "04.webp",
+    "04.gif",
+    "04.png",
+    "05.webp",
+    "05.gif",
+    "05.png",
+    "06.webp",
+    "06.gif",
+    "06.png",
+    "07.webp",
+    "07.gif",
+    "07.png",
+    "08.webp",
+    "08.gif",
+    "08.png",
+    "09.webp",
+    "09.gif",
+    "09.png",
+    "layout.json",
+    "processing.json",
+    "sticker-pack.zip"
+  ]
+}

@@ -1,0 +1,990 @@
+{
+  "version": 2,
+  "status": "succeeded",
+  "variant": "3s",
+  "source": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/works/泡泡星人/raw-video/grok-build-local.mp4",
+  "output_fps": 8.0,
+  "target_duration_seconds": 3.0,
+  "frames_per_animation": 24,
+  "successful_cells": 9,
+  "failed_cells": 0,
+  "trial_mode": false,
+  "selected_cells": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09"
+  ],
+  "production_settings": {
+    "path": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/works/泡泡星人/sticker-production.json",
+    "sha256": "c4c7ee4cab1f090ed637184eb1c92aa14962ab2c5f6af546c5a2205cfe3f2508"
+  },
+  "budget_failures": [],
+  "cells": [
+    {
+      "id": "01",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.2886536121368408,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 342793,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.33283,
+          "alpha_coverage_max": 0.365903,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.822307,
+          "centroid_step_pixels_max": 7.047817,
+          "hold_centroid_step_pixels_mean": 0.984971,
+          "hold_centroid_step_pixels_max": 1.965305
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.347274,
+          "alpha_coverage_max": 0.380139,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.735307,
+          "centroid_step_pixels_max": 6.966244,
+          "hold_centroid_step_pixels_mean": 0.808968,
+          "hold_centroid_step_pixels_max": 1.942443
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00271223
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.01032168
+          },
+          {
+            "threshold": 128,
+            "score": 0.00271223
+          },
+          {
+            "threshold": 160,
+            "score": 0.0158179
+          },
+          {
+            "threshold": 192,
+            "score": 0.03102276
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "02",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.25887903571128845,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 309766,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.281441,
+          "alpha_coverage_max": 0.305955,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 3.985285,
+          "centroid_step_pixels_max": 11.476973,
+          "hold_centroid_step_pixels_mean": 3.343123,
+          "hold_centroid_step_pixels_max": 11.476973
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.292257,
+          "alpha_coverage_max": 0.319983,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 3.879075,
+          "centroid_step_pixels_max": 11.468177,
+          "hold_centroid_step_pixels_mean": 3.132154,
+          "hold_centroid_step_pixels_max": 11.468177
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00216651
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.0098513
+          },
+          {
+            "threshold": 128,
+            "score": 0.00216651
+          },
+          {
+            "threshold": 160,
+            "score": 0.01811442
+          },
+          {
+            "threshold": 192,
+            "score": 0.03509468
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "03",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.23361344635486603,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 301795,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.268976,
+          "alpha_coverage_max": 0.316406,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.272203,
+          "centroid_step_pixels_max": 4.526585,
+          "hold_centroid_step_pixels_mean": 1.059032,
+          "hold_centroid_step_pixels_max": 3.579789
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.277257,
+          "alpha_coverage_max": 0.331215,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.164834,
+          "centroid_step_pixels_max": 4.503668,
+          "hold_centroid_step_pixels_mean": 0.813892,
+          "hold_centroid_step_pixels_max": 1.520698
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00427499
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.0113888
+          },
+          {
+            "threshold": 128,
+            "score": 0.00427499
+          },
+          {
+            "threshold": 160,
+            "score": 0.01836616
+          },
+          {
+            "threshold": 192,
+            "score": 0.03590344
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "04",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.2274329513311386,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 338326,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.314271,
+          "alpha_coverage_max": 0.336979,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 2.192921,
+          "centroid_step_pixels_max": 16.024387,
+          "hold_centroid_step_pixels_mean": 1.642048,
+          "hold_centroid_step_pixels_max": 4.611436
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.324653,
+          "alpha_coverage_max": 0.353038,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 2.179392,
+          "centroid_step_pixels_max": 16.023525,
+          "hold_centroid_step_pixels_mean": 1.64107,
+          "hold_centroid_step_pixels_max": 4.725371
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00274013
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.01063787
+          },
+          {
+            "threshold": 128,
+            "score": 0.00274013
+          },
+          {
+            "threshold": 160,
+            "score": 0.01735851
+          },
+          {
+            "threshold": 192,
+            "score": 0.03296357
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "05",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.29629412293434143,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 338621,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.318125,
+          "alpha_coverage_max": 0.343403,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 2.453168,
+          "centroid_step_pixels_max": 13.533593,
+          "hold_centroid_step_pixels_mean": 1.145266,
+          "hold_centroid_step_pixels_max": 2.10303
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.333229,
+          "alpha_coverage_max": 0.359028,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 2.391027,
+          "centroid_step_pixels_max": 13.634839,
+          "hold_centroid_step_pixels_mean": 1.139452,
+          "hold_centroid_step_pixels_max": 2.139034
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00170532
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.00878376
+          },
+          {
+            "threshold": 128,
+            "score": 0.00170532
+          },
+          {
+            "threshold": 160,
+            "score": 0.01541025
+          },
+          {
+            "threshold": 192,
+            "score": 0.03038276
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "06",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.1683424860239029,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 343715,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.334965,
+          "alpha_coverage_max": 0.351128,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 0.432924,
+          "centroid_step_pixels_max": 2.161827,
+          "hold_centroid_step_pixels_mean": 0.744873,
+          "hold_centroid_step_pixels_max": 2.161827
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.349601,
+          "alpha_coverage_max": 0.366389,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 0.425534,
+          "centroid_step_pixels_max": 1.804777,
+          "hold_centroid_step_pixels_mean": 0.732929,
+          "hold_centroid_step_pixels_max": 1.804777
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00134905
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.00938437
+          },
+          {
+            "threshold": 128,
+            "score": 0.00134905
+          },
+          {
+            "threshold": 160,
+            "score": 0.01538019
+          },
+          {
+            "threshold": 192,
+            "score": 0.03090389
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "07",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.2391188144683838,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 311451,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.269045,
+          "alpha_coverage_max": 0.305347,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.357093,
+          "centroid_step_pixels_max": 5.413962,
+          "hold_centroid_step_pixels_mean": 0.878504,
+          "hold_centroid_step_pixels_max": 3.094617
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.281285,
+          "alpha_coverage_max": 0.317726,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.37016,
+          "centroid_step_pixels_max": 5.342841,
+          "hold_centroid_step_pixels_mean": 0.918585,
+          "hold_centroid_step_pixels_max": 3.130623
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00326017
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.010492
+          },
+          {
+            "threshold": 128,
+            "score": 0.00326017
+          },
+          {
+            "threshold": 160,
+            "score": 0.01934216
+          },
+          {
+            "threshold": 192,
+            "score": 0.04875307
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "08",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.25606754422187805,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 288116,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.254549,
+          "alpha_coverage_max": 0.298733,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.317323,
+          "centroid_step_pixels_max": 7.141567,
+          "hold_centroid_step_pixels_mean": 0.361994,
+          "hold_centroid_step_pixels_max": 1.25529
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.267813,
+          "alpha_coverage_max": 0.315625,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 1.31847,
+          "centroid_step_pixels_max": 7.179395,
+          "hold_centroid_step_pixels_mean": 0.38571,
+          "hold_centroid_step_pixels_max": 1.380752
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00284965
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.01022758
+          },
+          {
+            "threshold": 128,
+            "score": 0.00284965
+          },
+          {
+            "threshold": 160,
+            "score": 0.01889117
+          },
+          {
+            "threshold": 192,
+            "score": 0.03574758
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    },
+    {
+      "id": "09",
+      "status": "succeeded",
+      "loop_selection": {
+        "mode": "prefix-duration",
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "source_start_frame": 1,
+        "source_end_frame": 24,
+        "source_duration_seconds": 3.0,
+        "output_frames": 24,
+        "duration_seconds": 3.0,
+        "endpoint_difference": 0.20897457003593445,
+        "endpoint_difference_policy": "informational-only",
+        "speed_factor": 1.0
+      },
+      "file_budget": {
+        "gif_bytes": 415447,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.433715,
+          "alpha_coverage_max": 0.441927,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 0.971588,
+          "centroid_step_pixels_max": 4.152259,
+          "hold_centroid_step_pixels_mean": 1.752446,
+          "hold_centroid_step_pixels_max": 4.152259
+        },
+        "webp": {
+          "frames_checked": 24,
+          "alpha_coverage_min": 0.445434,
+          "alpha_coverage_max": 0.456858,
+          "border_coverage_max": 0.0,
+          "centroid_step_pixels_mean": 0.96488,
+          "centroid_step_pixels_max": 4.171799,
+          "hold_centroid_step_pixels_mean": 1.754723,
+          "hold_centroid_step_pixels_max": 4.171799
+        }
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00068784
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.00868278
+          },
+          {
+            "threshold": 128,
+            "score": 0.00068784
+          },
+          {
+            "threshold": 160,
+            "score": 0.01176243
+          },
+          {
+            "threshold": 192,
+            "score": 0.02354295
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      }
+    }
+  ],
+  "outputs": [
+    "01.webp",
+    "01.gif",
+    "01.png",
+    "02.webp",
+    "02.gif",
+    "02.png",
+    "03.webp",
+    "03.gif",
+    "03.png",
+    "04.webp",
+    "04.gif",
+    "04.png",
+    "05.webp",
+    "05.gif",
+    "05.png",
+    "06.webp",
+    "06.gif",
+    "06.png",
+    "07.webp",
+    "07.gif",
+    "07.png",
+    "08.webp",
+    "08.gif",
+    "08.png",
+    "09.webp",
+    "09.gif",
+    "09.png",
+    "preview.png",
+    "sticker-production.json",
+    "layout.json",
+    "processing.json"
+  ]
+}

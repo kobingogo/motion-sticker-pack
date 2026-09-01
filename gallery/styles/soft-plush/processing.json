@@ -1,0 +1,201 @@
+{
+  "version": 1,
+  "source": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/works/奶油兔/raw-video-grok-green-v2/grok-build-local.mp4",
+  "source_size": {
+    "width": 544,
+    "height": 544
+  },
+  "detected_layout": {
+    "columns": 3,
+    "rows": 3,
+    "count": 9,
+    "confidence": 0.99
+  },
+  "output_fps": 6,
+  "frames_per_animation": 36,
+  "key_color": "#00FF00",
+  "cells": [
+    {
+      "id": "01",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.543237,
+      "alpha_coverage_max": 0.61152,
+      "border_coverage_max": 0.133978,
+      "subject_alpha_damage_max": 0.055752,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.087506,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "02",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.547511,
+      "alpha_coverage_max": 0.577211,
+      "border_coverage_max": 0.074586,
+      "subject_alpha_damage_max": 0.045839,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.126143,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "03",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.547477,
+      "alpha_coverage_max": 0.574586,
+      "border_coverage_max": 0.024793,
+      "subject_alpha_damage_max": 0.050439,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.109211,
+      "warnings": []
+    },
+    {
+      "id": "04",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.342816,
+      "alpha_coverage_max": 0.466775,
+      "border_coverage_max": 0.129834,
+      "subject_alpha_damage_max": 0.066171,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.200555,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "alpha-coverage-varies-across-frames",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "05",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.526266,
+      "alpha_coverage_max": 0.550441,
+      "border_coverage_max": 0.070442,
+      "subject_alpha_damage_max": 0.051742,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.132709,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "06",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.556675,
+      "alpha_coverage_max": 0.595228,
+      "border_coverage_max": 0.07438,
+      "subject_alpha_damage_max": 0.057869,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.076767,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    },
+    {
+      "id": "07",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.50082,
+      "alpha_coverage_max": 0.53916,
+      "border_coverage_max": 0.0,
+      "subject_alpha_damage_max": 0.064307,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.066229,
+      "warnings": []
+    },
+    {
+      "id": "08",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.517425,
+      "alpha_coverage_max": 0.534728,
+      "border_coverage_max": 0.045455,
+      "subject_alpha_damage_max": 0.060093,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.13463,
+      "warnings": [
+        "foreground-touches-cell-boundary",
+        "loop-end-differs-from-start"
+      ]
+    },
+    {
+      "id": "09",
+      "alpha_method": "edge-connected-fixed-color",
+      "alpha_coverage_min": 0.54779,
+      "alpha_coverage_max": 0.567323,
+      "border_coverage_max": 0.054945,
+      "subject_alpha_damage_max": 0.047543,
+      "background_qc": {
+        "frames_checked": 36
+      },
+      "loop_difference": 0.114571,
+      "warnings": [
+        "foreground-touches-cell-boundary"
+      ]
+    }
+  ],
+  "warnings": [
+    "01:foreground-touches-cell-boundary",
+    "02:foreground-touches-cell-boundary",
+    "02:loop-end-differs-from-start",
+    "04:foreground-touches-cell-boundary",
+    "04:alpha-coverage-varies-across-frames",
+    "04:loop-end-differs-from-start",
+    "05:foreground-touches-cell-boundary",
+    "05:loop-end-differs-from-start",
+    "06:foreground-touches-cell-boundary",
+    "08:foreground-touches-cell-boundary",
+    "08:loop-end-differs-from-start",
+    "09:foreground-touches-cell-boundary"
+  ],
+  "outputs": [
+    "01.webp",
+    "01.gif",
+    "01.png",
+    "02.webp",
+    "02.gif",
+    "02.png",
+    "03.webp",
+    "03.gif",
+    "03.png",
+    "04.webp",
+    "04.gif",
+    "04.png",
+    "05.webp",
+    "05.gif",
+    "05.png",
+    "06.webp",
+    "06.gif",
+    "06.png",
+    "07.webp",
+    "07.gif",
+    "07.png",
+    "08.webp",
+    "08.gif",
+    "08.png",
+    "09.webp",
+    "09.gif",
+    "09.png",
+    "layout.json",
+    "processing.json",
+    "sticker-pack.zip"
+  ]
+}

@@ -1,0 +1,1877 @@
+{
+  "version": 2,
+  "status": "succeeded",
+  "source": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/works/披风兔/raw-video/grok-build-local.mp4",
+  "source_size": {
+    "width": 960,
+    "height": 960
+  },
+  "source_fps": 24.0,
+  "source_frames_analyzed": 145,
+  "detected_layout": {
+    "columns": 3,
+    "rows": 3,
+    "count": 9,
+    "confidence": 0.99
+  },
+  "output_fps": 8.0,
+  "frames_per_animation": 48,
+  "duration_mode": "full-duration-sampled",
+  "sampling": {
+    "mode": "full-duration-regular-sampling",
+    "frame_step": 3.0
+  },
+  "target_loop_seconds": {
+    "mode": "source-full-duration",
+    "duration_seconds": 6.041667
+  },
+  "key_color": "#00FF00",
+  "pipeline": [
+    "native-frame-decode",
+    "full-frame-continuous-alpha",
+    "optional-grid-registration",
+    "component-instance-assignment",
+    "full-duration-configured-sampling",
+    "stable-canvas-normalization",
+    "encoded-frame-qc"
+  ],
+  "background_qc": {
+    "frames_checked": 145
+  },
+  "registration": {
+    "mode": "auto",
+    "frames_adjusted": 142
+  },
+  "instance_assignment": {
+    "recovered_crossings": 0,
+    "ambiguous_components": 0
+  },
+  "successful_cells": 9,
+  "failed_cells": 0,
+  "trial_mode": false,
+  "selected_cells": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09"
+  ],
+  "duration_profile": {
+    "id": "returned-6s",
+    "match_duration": {
+      "minimum_seconds": 5.75,
+      "maximum_seconds": 6.25
+    },
+    "output": {
+      "duration_mode": "full",
+      "width": 160,
+      "height": 160,
+      "fps": 8,
+      "gif": {
+        "max_colors": 192,
+        "dither": "none"
+      }
+    }
+  },
+  "production_settings": {
+    "path": "/Users/bingo/Documents/ChatGPT/motion-sticker-pack/works/披风兔/sticker-production.json",
+    "sha256": "53810ac7dea3d86a69c4508580ee983dfee331ef111cf902c01597b5da062a26"
+  },
+  "budget_failures": [],
+  "cells": [
+    {
+      "id": "01",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.03307972475886345,
+        "motion_score": 0.010230633975105716,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          105,
+          99,
+          364,
+          403
+        ],
+        "scale": 0.473684,
+        "paste": [
+          18,
+          8
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00261022
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.02104481
+          },
+          {
+            "threshold": 128,
+            "score": 0.00261022
+          },
+          {
+            "threshold": 160,
+            "score": 0.03205679
+          },
+          {
+            "threshold": 192,
+            "score": 0.06539823
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 345462,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.313359,
+          "alpha_coverage_max": 0.333711,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.342344,
+          "alpha_coverage_max": 0.36168,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "02",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.017909176647663116,
+        "motion_score": 0.004686196256637018,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          116,
+          136,
+          365,
+          341
+        ],
+        "scale": 0.578313,
+        "paste": [
+          8,
+          20
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00460341
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.02641758
+          },
+          {
+            "threshold": 128,
+            "score": 0.00460341
+          },
+          {
+            "threshold": 160,
+            "score": 0.04383978
+          },
+          {
+            "threshold": 192,
+            "score": 0.07622603
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 315116,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.303047,
+          "alpha_coverage_max": 0.324141,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.339844,
+          "alpha_coverage_max": 0.35125,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "03",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.03229166567325592,
+        "motion_score": 0.010017947775579275,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          103,
+          91,
+          368,
+          408
+        ],
+        "scale": 0.454259,
+        "paste": [
+          20,
+          8
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00260132
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.01737678
+          },
+          {
+            "threshold": 128,
+            "score": 0.00260132
+          },
+          {
+            "threshold": 160,
+            "score": 0.03033869
+          },
+          {
+            "threshold": 192,
+            "score": 0.06255461
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 300428,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.284727,
+          "alpha_coverage_max": 0.305078,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.305312,
+          "alpha_coverage_max": 0.328945,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "04",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.05509769916534424,
+        "motion_score": 0.012321282610386373,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          87,
+          75,
+          366,
+          372
+        ],
+        "scale": 0.484848,
+        "paste": [
+          12,
+          8
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00286524
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.01465555
+          },
+          {
+            "threshold": 128,
+            "score": 0.00286524
+          },
+          {
+            "threshold": 160,
+            "score": 0.02146786
+          },
+          {
+            "threshold": 192,
+            "score": 0.04365315
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 353750,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.328789,
+          "alpha_coverage_max": 0.359883,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.347539,
+          "alpha_coverage_max": 0.376367,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "05",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.027037376537919044,
+        "motion_score": 0.007977166163556754,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          133,
+          95,
+          367,
+          342
+        ],
+        "scale": 0.582996,
+        "paste": [
+          12,
+          8
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00787853
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.02684741
+          },
+          {
+            "threshold": 128,
+            "score": 0.00787853
+          },
+          {
+            "threshold": 160,
+            "score": 0.04338798
+          },
+          {
+            "threshold": 192,
+            "score": 0.075466
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 316153,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.292578,
+          "alpha_coverage_max": 0.371914,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.321484,
+          "alpha_coverage_max": 0.399258,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "06",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.041440289467573166,
+        "motion_score": 0.010293864211602572,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          80,
+          66,
+          389,
+          372
+        ],
+        "scale": 0.466019,
+        "paste": [
+          8,
+          8
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00569255
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.01967252
+          },
+          {
+            "threshold": 128,
+            "score": 0.00569255
+          },
+          {
+            "threshold": 160,
+            "score": 0.03333387
+          },
+          {
+            "threshold": 192,
+            "score": 0.06362427
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 322162,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.287344,
+          "alpha_coverage_max": 0.34418,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.307734,
+          "alpha_coverage_max": 0.373594,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "07",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.035122208297252655,
+        "motion_score": 0.00951120182574588,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          103,
+          95,
+          365,
+          371
+        ],
+        "scale": 0.521739,
+        "paste": [
+          11,
+          8
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00831758
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.04262679
+          },
+          {
+            "threshold": 128,
+            "score": 0.00831758
+          },
+          {
+            "threshold": 160,
+            "score": 0.05142957
+          },
+          {
+            "threshold": 192,
+            "score": 0.08248125
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 395672,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.368789,
+          "alpha_coverage_max": 0.413828,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.399453,
+          "alpha_coverage_max": 0.461719,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "08",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.03016578033566475,
+        "motion_score": 0.007854255040156398,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          125,
+          105,
+          373,
+          347
+        ],
+        "scale": 0.580645,
+        "paste": [
+          8,
+          9
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00918477
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.03112111
+          },
+          {
+            "threshold": 128,
+            "score": 0.00918477
+          },
+          {
+            "threshold": 160,
+            "score": 0.04904099
+          },
+          {
+            "threshold": 192,
+            "score": 0.08229508
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 316781,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.296445,
+          "alpha_coverage_max": 0.380703,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.323633,
+          "alpha_coverage_max": 0.417891,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "09",
+      "status": "succeeded",
+      "alpha_method": "full-frame-continuous-fixed-key",
+      "native_frames_analyzed": 145,
+      "invalid_native_frames": 0,
+      "invalid_reasons": [],
+      "loop_selection": {
+        "mode": "full-duration-sampled",
+        "requested": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "indices": [
+          0,
+          3,
+          6,
+          9,
+          12,
+          15,
+          18,
+          21,
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          54,
+          57,
+          60,
+          63,
+          66,
+          69,
+          72,
+          75,
+          78,
+          81,
+          84,
+          87,
+          90,
+          93,
+          96,
+          99,
+          102,
+          105,
+          108,
+          111,
+          114,
+          117,
+          120,
+          123,
+          126,
+          129,
+          132,
+          135,
+          138,
+          141
+        ],
+        "repairs": 0,
+        "frame_step": 3.0,
+        "loop_difference": 0.04999489337205887,
+        "motion_score": 0.015504008074826065,
+        "source_start_frame": 1,
+        "source_end_frame": 145,
+        "output_frames": 48,
+        "duration_seconds": 6.0,
+        "source_duration_seconds": 6.041667
+      },
+      "stable_canvas": {
+        "union_bbox": [
+          84,
+          80,
+          394,
+          371
+        ],
+        "scale": 0.464516,
+        "paste": [
+          8,
+          12
+        ],
+        "margin_fraction": 0.05
+      },
+      "matting": {
+        "stage": "full-frame-before-instance-extraction",
+        "supersample": 1,
+        "continuous_alpha": true,
+        "premultiplied_resize": true
+      },
+      "gif_alpha": {
+        "selected": {
+          "threshold": 128,
+          "score": 0.00669235
+        },
+        "candidates": [
+          {
+            "threshold": 96,
+            "score": 0.02504586
+          },
+          {
+            "threshold": 128,
+            "score": 0.00669235
+          },
+          {
+            "threshold": 160,
+            "score": 0.04002589
+          },
+          {
+            "threshold": 192,
+            "score": 0.07644213
+          }
+        ]
+      },
+      "gif_palette": {
+        "max_colors": 192,
+        "dither": "none"
+      },
+      "webp": {
+        "enabled": true,
+        "lossless": true,
+        "quality": 85,
+        "method": 4,
+        "loop": 0
+      },
+      "file_budget": {
+        "gif_bytes": 323034,
+        "gif_max_bytes": 1048576,
+        "passed": true
+      },
+      "encoded_qc": {
+        "gif": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.27707,
+          "alpha_coverage_max": 0.361211,
+          "border_coverage_max": 0.0
+        },
+        "webp": {
+          "frames_checked": 48,
+          "alpha_coverage_min": 0.301055,
+          "alpha_coverage_max": 0.395898,
+          "border_coverage_max": 0.0
+        }
+      },
+      "warnings": []
+    }
+  ],
+  "warnings": [],
+  "outputs": [
+    "01.webp",
+    "01.gif",
+    "01.png",
+    "02.webp",
+    "02.gif",
+    "02.png",
+    "03.webp",
+    "03.gif",
+    "03.png",
+    "04.webp",
+    "04.gif",
+    "04.png",
+    "05.webp",
+    "05.gif",
+    "05.png",
+    "06.webp",
+    "06.gif",
+    "06.png",
+    "07.webp",
+    "07.gif",
+    "07.png",
+    "08.webp",
+    "08.gif",
+    "08.png",
+    "09.webp",
+    "09.gif",
+    "09.png",
+    "preview.png",
+    "sticker-production.json",
+    "layout.json",
+    "processing.json",
+    "sticker-pack.zip"
+  ]
+}
