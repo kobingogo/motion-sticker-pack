@@ -1,7 +1,0 @@
-file '01-intro.mp4'
-file '02-black-cat.mp4'
-file '03-child.mp4'
-file '04-gold-dress.mp4'
-file '05-musk.mp4'
-file '06-trump.mp4'
-file '07-cta.mp4'
