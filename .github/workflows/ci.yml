@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,4 +35,6 @@ jobs:
       - run: npm test
       - run: npm audit --audit-level=high
       - run: python -m py_compile scripts/*.py
+      - run: python scripts/style_selector.py --verify-only
+      - run: python scripts/check_repository_policy.py
       - run: node --check scripts/video_gateway.mjs

@@ -1,0 +1,70 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "SemVer without the v prefix, for example 0.4.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  verify-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+      - run: npm ci --ignore-scripts
+      - run: test "$(git branch --show-current)" = "main"
+      - run: python -m unittest discover -s tests -v
+      - run: npm test
+      - run: npm audit --audit-level=high
+      - run: python scripts/check_repository_policy.py
+      - name: Validate version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import os, re
+          value = os.environ["RELEASE_VERSION"]
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", value):
+              raise SystemExit("version must be SemVer without a v prefix")
+          PY
+
+  publish:
+    needs: verify-main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Create tag and release from verified main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          gh release create "v${RELEASE_VERSION}" --repo "${GITHUB_REPOSITORY}" --target "$(git rev-parse HEAD)" --title "v${RELEASE_VERSION}" --generate-notes
