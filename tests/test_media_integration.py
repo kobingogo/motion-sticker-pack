@@ -168,17 +168,21 @@ class MediaIntegrationTests(unittest.TestCase):
             for frame_index in range(72):
                 image = Image.new("RGB", (240, 120), (0, 255, 0))
                 draw = ImageDraw.Draw(image)
-                left_x = 90 if 8 <= frame_index <= 12 else 30
+                # Keep a small deterministic idle motion after the crossing so
+                # lossless encoders still produce an animated selected window.
+                left_x = 90 if 8 <= frame_index <= 12 else 30 + (frame_index % 4)
                 draw.rectangle((left_x, 30, left_x + 55, 90), fill=(235, 45, 55))
-                draw.rectangle((160, 30, 210, 90), fill=(45, 75, 235))
+                draw.rectangle((160 + ((frame_index + 1) % 4), 30, 210 + ((frame_index + 1) % 4), 90), fill=(45, 75, 235))
                 if 20 <= frame_index <= 22:
                     draw.rectangle((80, 52, 160, 68), fill=(235, 45, 55))
                 image.save(frames / f"{frame_index:03d}.png")
-            video = root / "crossing.mp4"
+            # Use a lossless fixture so FFmpeg version differences cannot turn
+            # the intentional three-frame merge into a different motion event.
+            video = root / "crossing.mkv"
             subprocess.run(
                 [
                     "ffmpeg", "-v", "error", "-framerate", "24", "-i", str(frames / "%03d.png"),
-                    "-c:v", "libx264", "-pix_fmt", "yuv420p", str(video),
+                    "-c:v", "ffv1", "-level", "3", "-pix_fmt", "yuv444p", str(video),
                 ],
                 check=True,
             )
