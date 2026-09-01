@@ -277,6 +277,21 @@ class AdversarialContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "hash mismatch"):
                 verify_manifest(manifest)
 
+    def test_artifact_manifest_disambiguates_identical_named_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = root / "artifact-manifest.json"
+            trial = root / "trial" / "01.png"
+            full = root / "full" / "01.png"
+            trial.parent.mkdir()
+            full.parent.mkdir()
+            trial.write_bytes(b"identical")
+            full.write_bytes(b"identical")
+            trial_id = record_artifact(manifest, trial, kind="sticker-output", stage="trial")
+            full_id = record_artifact(manifest, full, kind="sticker-output", stage="processed")
+            self.assertNotEqual(trial_id, full_id)
+            self.assertTrue(verify_manifest(manifest)["valid"])
+
     def test_accepted_grok_attempt_is_moved_to_canonical_name(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Iterable
@@ -36,7 +37,8 @@ def initialize_manifest(path: Path, workspace: Path) -> dict[str, Any]:
 
 
 def artifact_id(path: Path, sha256: str) -> str:
-    return f"sha256:{sha256}:{path.name}"
+    path_digest = hashlib.sha256(str(path).encode("utf-8")).hexdigest()[:16]
+    return f"sha256:{sha256}:{path_digest}:{path.name}"
 
 
 def record_artifact(
