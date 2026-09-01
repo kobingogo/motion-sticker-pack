@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -26,6 +27,19 @@ class DocumentationTests(unittest.TestCase):
                 resolved = (document.parent / unquote(target)).resolve()
                 with self.subTest(document=document.name, target=target):
                     self.assertTrue(resolved.exists(), f"broken local link: {document} -> {target}")
+
+    def test_style_table_embeds_one_expression_image_per_verified_style(self) -> None:
+        gallery = json.loads((ROOT / "gallery" / "index.json").read_text(encoding="utf-8"))
+        styles = gallery["styles"]
+        for document in (ROOT / "README.md", ROOT / "README.en.md"):
+            text = document.read_text(encoding="utf-8")
+            image_refs = re.findall(r'<img src="(gallery/styles/[^\"]+/static\.png)"', text)
+            self.assertEqual(len(image_refs), len(styles), f"{document.name} must show every style image in the table")
+            for entry in styles:
+                expected = f'gallery/styles/{entry["gallery"]}/static.png'
+                with self.subTest(document=document.name, style=entry["id"]):
+                    self.assertIn(f'| `{entry["id"]}` |', text)
+                    self.assertIn(f'<img src="{expected}"', text)
 
 
 if __name__ == "__main__":
