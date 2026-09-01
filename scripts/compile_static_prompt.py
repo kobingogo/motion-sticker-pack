@@ -132,6 +132,25 @@ def compile_prompt(
         "如果提供的反应少于贴纸数量，在相同语义范围内补充互不重复、适合聊天的自然反应。"
         "每个主体和道具必须完整留在自己的格子内，并保留安全留白。"
     )
+    # Keep the opaque fallback as a standalone prompt.  Appending a green-key
+    # suffix to the transparent-first prompt leaves contradictory instructions
+    # (for example, "real alpha" and "transparent sheet") in the request, so
+    # image models may continue rendering a checkerboard preview.  The
+    # fallback preserves identity/style/reactions but has one unambiguous
+    # background contract: a uniform #00FF00 plate.
+    opaque_fallback_prompt = (
+        f"{identity_source} 创建一套 {style_label} 动态表情包的不透明纯色抠像源图，并融入 {expression_text}。"
+        f" {style_prompt}\n\n"
+        f"{direct_sheet_instruction}"
+        f"创建一张正方形 (1:1) 的 {sheet_name} 插画卡片源图，包含{count_text}个各不相同的表情卡片，"
+        f"按 {columns}×{rows} 网格排列，每格呈现不同的表情、姿势或反应。默认采用无白边、无厚描边的卡片呈现；"
+        f"每格加入轻微、局部、与情绪匹配的背景点缀，{cells_name}保持统一色调。"
+        "【纯色抠像硬约束】整张画布的留白和格间必须是完全一致的纯 #00FF00；"
+        "背景只能使用这一种颜色，禁止棋盘格、灰白方格、渐变、纹理、阴影、地面、背景板、相框或其他颜色。"
+        "不要改变角色身份、五官、发型、体型、服装、配色、已有道具或动作语义。"
+        "卡片之间留出清晰间隔，所有主体和道具必须完整留在自己的格子内并保留安全留白。"
+        f"{text_instruction} 背景点缀必须轻微、局部、留在自己的格子内，不得形成整格矩形底板、跨格重叠或大面积阴影。"
+    )
     reference = None
     if reference_image:
         resolved = Path(reference_image).expanduser().resolve(strict=True)
@@ -171,6 +190,8 @@ def compile_prompt(
                     "output_format": "png",
                 },
                 "key_color": "#00FF00",
+                "prompt": opaque_fallback_prompt,
+                "prompt_mode": "standalone-opaque",
                 "prompt_suffix": (
                     "备用调用（首次真实透明输出未通过本地检查）：不要尝试透明输出，"
                     "将所有空白区域渲染为完全一致的 #00FF00 纯绿色，"

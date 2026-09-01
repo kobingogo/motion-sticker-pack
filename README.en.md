@@ -627,7 +627,7 @@ Create the folder from the character name first (Chinese names are kept):
 python3 scripts/character_workspace.py --name '小黑猫'
 ```
 
-Write the static sheet, layout, approval, prompts, video, crops, and ZIP into the printed `work_dir`, for example `works/小黑猫/`. See [`works/README.md`](works/README.md).
+Write the static sheet, layout, approval, prompts, video, crops, and ZIP into the printed `work_dir`, for example `works/小黑猫/`. See [`references/output-contract.md`](references/output-contract.md).
 
 After approval and a per-cell `tile-plan.json`:
 

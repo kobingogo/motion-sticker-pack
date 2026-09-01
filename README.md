@@ -631,7 +631,7 @@ motion-sticker-pack/
 python3 scripts/character_workspace.py --name '小黑猫'
 ```
 
-之后静图、layout、审批、提示词、视频、切图和 ZIP 都写进打印出来的 `work_dir`，例如 `works/小黑猫/`。目录约定见 [`works/README.md`](works/README.md)。
+之后静图、layout、审批、提示词、视频、切图和 ZIP 都写进打印出来的 `work_dir`，例如 `works/小黑猫/`。目录约定见 [`references/output-contract.md`](references/output-contract.md)。
 
 审批和逐格 `tile-plan.json` 就绪后：
 
