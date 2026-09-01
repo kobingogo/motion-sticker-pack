@@ -45,29 +45,21 @@ $motion-sticker-pack
 
 选择器只展示经过真实九格处理验证的风格。每个风格都附带 240×240 静图、真实动作 GIF、layout、来源 route 和 processing 报告。
 
-| ID | 风格 |
-|---|---|
-| `3d` | 统一 3D，可明确指定动画或真人写实子风格 |
-| `realistic` | 电影感写实 |
-| `hand-drawn` | 暖色手绘 |
-| `chibi` | 虹彩 Q 版 |
-| `manga` | 国潮漫画 |
-| `pixel-art` | 精细像素 |
-| `cute` | 软萌毛绒 |
-| `caricature-3d` | 夸张 3D 肖像 |
-| `fashion-realistic` | 时尚写实 |
-| `mascot-toy` | 品牌玩具吉祥物 |
-| `clay-cute` | 软陶萌宠 |
-| `fantasy-plush` | 奇幻毛绒 |
-| `kawaii-anime` | 日系萌系 |
-
-<p>
-  <img src="gallery/styles/plush-toy/motion.gif" width="120" alt="3D 毛绒玩具动态验证">
-  <img src="gallery/styles/cinematic-realistic/motion.gif" width="120" alt="电影感写实动态验证">
-  <img src="gallery/styles/iridescent-chibi/motion.gif" width="120" alt="虹彩 Q 版动态验证">
-  <img src="gallery/styles/pixel-art/motion.gif" width="120" alt="像素艺术动态验证">
-  <img src="gallery/styles/manga-cel/motion.gif" width="120" alt="漫画动态验证">
-</p>
+| ID | 风格 | 表情示例 |
+|---|---|---|
+| `3d` | 统一 3D，可明确指定动画或真人写实子风格 | <img src="gallery/styles/plush-toy/static.png" width="96" alt="3D 毛绒表情示例"> |
+| `realistic` | 电影感写实 | <img src="gallery/styles/cinematic-realistic/static.png" width="96" alt="电影感写实表情示例"> |
+| `hand-drawn` | 暖色手绘 | <img src="gallery/styles/hand-drawn/static.png" width="96" alt="暖色手绘表情示例"> |
+| `chibi` | 虹彩 Q 版 | <img src="gallery/styles/iridescent-chibi/static.png" width="96" alt="虹彩 Q 版表情示例"> |
+| `manga` | 国潮漫画 | <img src="gallery/styles/manga-cel/static.png" width="96" alt="国潮漫画表情示例"> |
+| `pixel-art` | 精细像素 | <img src="gallery/styles/pixel-art/static.png" width="96" alt="像素表情示例"> |
+| `cute` | 软萌毛绒 | <img src="gallery/styles/soft-plush/static.png" width="96" alt="软萌毛绒表情示例"> |
+| `caricature-3d` | 夸张 3D 肖像 | <img src="gallery/styles/caricature-3d/static.png" width="96" alt="夸张 3D 肖像表情示例"> |
+| `fashion-realistic` | 时尚写实 | <img src="gallery/styles/fashion-realistic/static.png" width="96" alt="时尚写实表情示例"> |
+| `mascot-toy` | 品牌玩具吉祥物 | <img src="gallery/styles/mascot-toy/static.png" width="96" alt="品牌玩具表情示例"> |
+| `clay-cute` | 软陶萌宠 | <img src="gallery/styles/clay-cute/static.png" width="96" alt="软陶萌宠表情示例"> |
+| `fantasy-plush` | 奇幻毛绒 | <img src="gallery/styles/fantasy-plush/static.png" width="96" alt="奇幻毛绒表情示例"> |
+| `kawaii-anime` | 日系萌系 | <img src="gallery/styles/kawaii-anime/static.png" width="96" alt="日系萌系表情示例"> |
 
 查看或验证选择器：
 

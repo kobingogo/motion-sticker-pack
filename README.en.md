@@ -46,29 +46,21 @@ When no video or local image processing is callable, `prompt-only` delivers prom
 
 The selector exposes only styles backed by a real nine-cell processed run. Every style includes a 240×240 static PNG, a real animated GIF, layout, source route, and processing report.
 
-| ID | Style |
-|---|---|
-| `3d` | Coherent 3D, with explicit animation/realistic sub-style support |
-| `realistic` | Cinematic realistic |
-| `hand-drawn` | Warm hand-drawn |
-| `chibi` | Iridescent chibi |
-| `manga` | Manga/cel |
-| `pixel-art` | Refined pixel art |
-| `cute` | Soft plush |
-| `caricature-3d` | Exaggerated 3D portrait |
-| `fashion-realistic` | Fashion realistic |
-| `mascot-toy` | Product mascot toy |
-| `clay-cute` | Soft clay animal |
-| `fantasy-plush` | Fantasy plush |
-| `kawaii-anime` | Kawaii anime |
-
-<p>
-  <img src="gallery/styles/plush-toy/motion.gif" width="120" alt="Verified 3D plush motion">
-  <img src="gallery/styles/cinematic-realistic/motion.gif" width="120" alt="Verified cinematic realistic motion">
-  <img src="gallery/styles/iridescent-chibi/motion.gif" width="120" alt="Verified iridescent chibi motion">
-  <img src="gallery/styles/pixel-art/motion.gif" width="120" alt="Verified pixel art motion">
-  <img src="gallery/styles/manga-cel/motion.gif" width="120" alt="Verified manga motion">
-</p>
+| ID | Style | Expression example |
+|---|---|---|
+| `3d` | Coherent 3D, with explicit animation/realistic sub-style support | <img src="gallery/styles/plush-toy/static.png" width="96" alt="3D plush expression example"> |
+| `realistic` | Cinematic realistic | <img src="gallery/styles/cinematic-realistic/static.png" width="96" alt="Cinematic realistic expression example"> |
+| `hand-drawn` | Warm hand-drawn | <img src="gallery/styles/hand-drawn/static.png" width="96" alt="Hand-drawn expression example"> |
+| `chibi` | Iridescent chibi | <img src="gallery/styles/iridescent-chibi/static.png" width="96" alt="Iridescent chibi expression example"> |
+| `manga` | Manga/cel | <img src="gallery/styles/manga-cel/static.png" width="96" alt="Manga expression example"> |
+| `pixel-art` | Refined pixel art | <img src="gallery/styles/pixel-art/static.png" width="96" alt="Pixel-art expression example"> |
+| `cute` | Soft plush | <img src="gallery/styles/soft-plush/static.png" width="96" alt="Soft plush expression example"> |
+| `caricature-3d` | Exaggerated 3D portrait | <img src="gallery/styles/caricature-3d/static.png" width="96" alt="Caricature 3D expression example"> |
+| `fashion-realistic` | Fashion realistic | <img src="gallery/styles/fashion-realistic/static.png" width="96" alt="Fashion realistic expression example"> |
+| `mascot-toy` | Product mascot toy | <img src="gallery/styles/mascot-toy/static.png" width="96" alt="Mascot toy expression example"> |
+| `clay-cute` | Soft clay animal | <img src="gallery/styles/clay-cute/static.png" width="96" alt="Clay expression example"> |
+| `fantasy-plush` | Fantasy plush | <img src="gallery/styles/fantasy-plush/static.png" width="96" alt="Fantasy plush expression example"> |
+| `kawaii-anime` | Kawaii anime | <img src="gallery/styles/kawaii-anime/static.png" width="96" alt="Kawaii anime expression example"> |
 
 ```bash
 python3 scripts/style_selector.py --format markdown
