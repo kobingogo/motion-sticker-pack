@@ -18,6 +18,8 @@ $motion-sticker-pack
 - **参数单一来源**：每个 Provider 的 model 来自 `video-providers.json`，时长与分辨率来自任务快照；环境变量只保留凭证或带敏感信息的 ZDR 传输参数。
 - **路由闭环**：route 同时绑定静图、layout、prompt、审批状态和生产配置哈希；任一依赖发生变化，都必须重新路由。
 - **媒体实检**：外部适配器返回后统一用 FFmpeg 解码并检测真实 Alpha，不再相信扩展名或适配器自报字段；opaque 结果才进入色键质检。
+- **xAI 色键闭环**：透明输入会在本地确定性铺成任务指定的 `#00FF00`，近透明噪声归零，并把同一色键硬约束追加到 xAI 提示词，避免透明区域被远端压成黑底。
+- **QC 状态一致**：Provider 虽返回成功、但本地背景或网格 QC 拒绝时，`video-result.json` 会同步写成 `rejected`，不再留下互相矛盾的成功状态。
 - **防误删与布局一致性**：所有主要输出链路拒绝与输入重叠，`--overwrite` 不再可能删除源素材；非 3×3 布局不再混入“九宫格/九格”提示。
 
 ## v0.2.0 更新
@@ -34,12 +36,14 @@ $motion-sticker-pack
 
 > 下面是仓库内的真实输出预览。GIF 会自动循环播放；点击图片可打开原文件。每组展示 3 个精选动作，完整案例目录同时保留 GIF、WebP 和 PNG 三种格式。
 
-<p align="center"><strong>🐈‍⬛ 黑猫 · 3D 玩具贴纸</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
+<p align="center"><strong>🐈‍⬛ 黑猫 · xAI Direct 真实付费链路（2026-09-01）</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
+<p align="center"><a href="examples/black-cat/preview.png"><img src="examples/black-cat/preview.png" width="720" loading="lazy" alt="最新黑猫动态表情包完整预览"></a></p>
 <p align="center">
   <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="黑猫动态贴纸：开心"></a>
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="黑猫动态贴纸：爱心"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="黑猫动态贴纸：哭泣"></a>
 </p>
+<p align="center"><sub>3.04 秒、960×960 源视频；73 个原生帧通过色键 QC；9/9 单元导出为透明 PNG、Animated WebP 与 GIF。</sub></p>
 
 <p align="center"><strong>👶 宝宝 · 萌系角色</strong> · <a href="examples/child/">查看完整案例 →</a></p>
 <p align="center">

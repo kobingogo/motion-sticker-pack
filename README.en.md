@@ -18,6 +18,8 @@ $motion-sticker-pack
 - Each provider attempt now carries its own duration and resolution; xAI model selection comes from provider configuration instead of environment-variable overrides.
 - Routes bind the image, layout, prompt, approval state, and production-settings hashes, so changed inputs invalidate stale routes.
 - Returned videos are decoded locally to detect real alpha before key-background QC.
+- Transparent xAI inputs are deterministically composited onto the task's exact `#00FF00` key, near-transparent noise is cleared, and the same hard color contract is appended to the prompt so transparency cannot silently become black.
+- If local background or grid QC rejects a provider-successful video, `video-result.json` is now rewritten to `rejected` instead of retaining a contradictory success state.
 - Output/input overlap is rejected before overwrite cleanup, and non-3×3 prompts no longer contain nine-grid wording.
 
 ## What's new in v0.2.0
@@ -34,12 +36,14 @@ See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the complete release notes and up
 
 > These are real outputs from this repository. GIFs loop automatically; click any image to open the original file. Each case shows 3 selected reactions, while the linked folder contains the complete GIF, WebP, and PNG set.
 
-<p align="center"><strong>🐈‍⬛ Black cat · 3D toy sticker</strong> · <a href="examples/black-cat/">View the complete 9-cell case →</a></p>
+<p align="center"><strong>🐈‍⬛ Black cat · paid xAI Direct run (2026-09-01)</strong> · <a href="examples/black-cat/">View the complete 9-cell case →</a></p>
+<p align="center"><a href="examples/black-cat/preview.png"><img src="examples/black-cat/preview.png" width="720" loading="lazy" alt="Latest complete black-cat animated sticker pack preview"></a></p>
 <p align="center">
   <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="Black cat animated sticker: happy"></a>
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="Black cat animated sticker: heart"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="Black cat animated sticker: crying"></a>
 </p>
+<p align="center"><sub>3.04-second 960×960 source video; 73 native frames passed key-background QC; all 9 cells were exported as transparent PNG, Animated WebP, and GIF.</sub></p>
 
 <p align="center"><strong>👶 Baby · Cute character</strong> · <a href="examples/child/">View the complete case →</a></p>
 <p align="center">
