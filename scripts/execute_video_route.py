@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 
 from artifact_manifest import record_artifact
-from attempt_ledger import claim_attempt, finish_attempt, progress_path_for
+from attempt_ledger import atomic_write_json, claim_attempt, finish_attempt, progress_path_for
 from config_contract import (
     ContractError,
     object_sha256,
@@ -21,6 +21,7 @@ from config_contract import (
     validate_video_task,
 )
 from manage_job_state import read_state, verify_state
+from video_adapter_common import write_result
 from video_background_qc import probe_video_alpha, validate_video_background, validate_video_grid_safety
 
 
@@ -72,6 +73,67 @@ def provider_by_id(config: dict, provider_id: str) -> dict:
     if len(matches) != 1:
         raise ContractError(f"provider {provider_id!r} does not exist exactly once")
     return matches[0]
+
+
+def write_rejected_result(output: Path, result: dict, error: Exception) -> None:
+    result["status"] = "rejected"
+    result["executor_status"] = "rejected"
+    result["qc_status"] = "rejected"
+    result["error"] = str(error)
+    write_result(output, result)
+
+
+def record_execution_artifacts(
+    task: dict,
+    config_path: Path,
+    task_path: Path,
+    ledger: Path,
+    output: Path,
+    generated: Path | None,
+    *,
+    stage: str,
+) -> None:
+    manifest_value = task.get("artifact_manifest_file")
+    if not isinstance(manifest_value, str):
+        return
+    manifest_path = Path(manifest_value).expanduser().resolve()
+    config_id = record_artifact(manifest_path, config_path, kind="provider-config", stage=stage)
+    task_id = record_artifact(manifest_path, task_path, kind="video-task", stage=stage)
+    dependencies = [config_id, task_id]
+    if generated is not None and generated.is_file():
+        generated_id = record_artifact(
+            manifest_path,
+            generated,
+            kind="generated-video",
+            stage=stage,
+            dependencies=dependencies,
+        )
+        dependencies = [generated_id]
+    if output.is_file():
+        result_id = record_artifact(
+            manifest_path,
+            output,
+            kind="provider-result",
+            stage=stage,
+            dependencies=dependencies,
+        )
+        dependencies = [result_id]
+    ledger_value = read_json_object(ledger)
+    ledger_snapshot = ledger.with_name(
+        f"{ledger.stem}.snapshot-{object_sha256(ledger_value)[:16]}{ledger.suffix}"
+    )
+    if ledger_snapshot.is_file():
+        if object_sha256(read_json_object(ledger_snapshot)) != object_sha256(ledger_value):
+            raise ContractError(f"attempt ledger snapshot collision: {ledger_snapshot}")
+    else:
+        atomic_write_json(ledger_snapshot, ledger_value)
+    record_artifact(
+        manifest_path,
+        ledger_snapshot,
+        kind="attempt-ledger",
+        stage=stage,
+        dependencies=dependencies,
+    )
 
 
 def execute_attempt(
@@ -228,21 +290,27 @@ def execute_attempt(
         ambiguous_request = bool(
             progress.get("request_id") and progress.get("status") not in {"failed", "succeeded"}
         )
+        attempt_status = "uncertain" if ambiguous_request else "failed"
         finish_attempt(
             ledger,
             route,
             attempt,
-            "uncertain" if ambiguous_request else "failed",
+            attempt_status,
             result_path=output if output.is_file() else None,
             error=detail,
             request_id=request_id if isinstance(request_id, str) else None,
         )
+        if attempt_status == "failed":
+            record_execution_artifacts(
+                task, config_path, task_path, ledger, output, None, stage="failed"
+            )
         raise ContractError(f"video adapter failed with exit code {completed.returncode}: {detail}")
     if not output.is_file():
         detail = diagnostic_tail(completed.stderr) or diagnostic_tail(completed.stdout) or "no diagnostic output"
         finish_attempt(ledger, route, attempt, "uncertain", error=detail)
         raise ContractError(f"video adapter exited without writing its result file: {detail}")
     generated: Path | None = None
+    result: dict | None = None
     try:
         result = read_json_object(output)
         if result.get("status") != "succeeded" or not isinstance(result.get("output"), str):
@@ -268,8 +336,12 @@ def execute_attempt(
             )
             result["background_qc"] = background_qc
             result["grid_safety_qc"] = grid_safety_qc
-        output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        result["executor_status"] = "accepted"
+        result["qc_status"] = "passed"
+        write_result(output, result)
     except Exception as exc:
+        if result is not None:
+            write_rejected_result(output, result, exc)
         finish_attempt(
             ledger,
             route,
@@ -278,6 +350,9 @@ def execute_attempt(
             result_path=output if output.is_file() else None,
             generated_path=generated if generated and generated.is_file() else None,
             error=str(exc),
+        )
+        record_execution_artifacts(
+            task, config_path, task_path, ledger, output, generated, stage="rejected"
         )
         raise
     finish_attempt(
@@ -289,32 +364,9 @@ def execute_attempt(
         generated_path=generated,
         request_id=result.get("request_id") if isinstance(result.get("request_id"), str) else None,
     )
-    manifest_value = task.get("artifact_manifest_file")
-    if isinstance(manifest_value, str):
-        manifest_path = Path(manifest_value).expanduser().resolve()
-        config_id = record_artifact(manifest_path, config_path, kind="provider-config", stage="executed")
-        task_id = record_artifact(manifest_path, task_path, kind="video-task", stage="executed")
-        generated_id = record_artifact(
-            manifest_path,
-            generated,
-            kind="generated-video",
-            stage="executed",
-            dependencies=[config_id, task_id],
-        )
-        result_id = record_artifact(
-            manifest_path,
-            output,
-            kind="provider-result",
-            stage="executed",
-            dependencies=[generated_id],
-        )
-        record_artifact(
-            manifest_path,
-            ledger,
-            kind="attempt-ledger",
-            stage="executed",
-            dependencies=[result_id],
-        )
+    record_execution_artifacts(
+        task, config_path, task_path, ledger, output, generated, stage="executed"
+    )
     return {"idempotent": False, "ledger": str(ledger), "attempt": attempt}
 
 

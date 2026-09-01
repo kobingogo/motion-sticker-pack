@@ -266,19 +266,12 @@ def main() -> int:
             manifest_path, args.capabilities, kind="capability-report", stage="routed"
         )
         task_id = record_artifact(manifest_path, args.task, kind="video-task", stage="routed")
-        route_id = record_artifact(
+        record_artifact(
             manifest_path,
             route_path,
             kind="provider-route",
             stage="routed",
             dependencies=[config_id, capabilities_id, task_id],
-        )
-        record_artifact(
-            manifest_path,
-            ledger_path,
-            kind="attempt-ledger",
-            stage="routed",
-            dependencies=[route_id],
         )
     print(json.dumps(result, ensure_ascii=False))
     return 0

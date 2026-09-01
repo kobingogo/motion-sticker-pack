@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import http.client
+import io
 import json
 import os
 import sys
@@ -14,6 +15,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+from PIL import Image
 
 from attempt_ledger import atomic_write_json, file_sha256, utc_now
 from config_contract import ContractError, read_json_object, validate_provider_config
@@ -41,6 +44,49 @@ def data_url(path: Path) -> str:
         path.suffix.lower(), "image/png"
     )
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
+
+
+def parse_key_color(value: str) -> tuple[int, int, int]:
+    normalized = value.strip().upper()
+    if len(normalized) != 7 or not normalized.startswith("#"):
+        raise ContractError("key_color must use #RRGGBB format")
+    try:
+        return tuple(int(normalized[index:index + 2], 16) for index in (1, 3, 5))
+    except ValueError as exc:
+        raise ContractError("key_color must use #RRGGBB format") from exc
+
+
+def keyed_image_data_url(path: Path, key_color: str) -> tuple[str, bool]:
+    """Encode an opaque PNG so providers cannot flatten transparency to black."""
+    rgb = parse_key_color(key_color)
+    try:
+        with Image.open(path) as source:
+            rgba = source.convert("RGBA")
+    except (OSError, ValueError) as exc:
+        raise ContractError(f"cannot decode xAI input image: {exc}") from exc
+    alpha = rgba.getchannel("A")
+    materialized = alpha.getextrema()[0] < 255
+    alpha = alpha.point([0 if opacity <= 8 else opacity for opacity in range(256)])
+    rgba.putalpha(alpha)
+    background = Image.new("RGBA", rgba.size, (*rgb, 255))
+    background.alpha_composite(rgba)
+    payload = io.BytesIO()
+    background.convert("RGB").save(payload, format="PNG", optimize=False)
+    encoded = base64.b64encode(payload.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}", materialized
+
+
+def xai_prompt(prompt: str, key_color: str | None) -> str:
+    if key_color is None:
+        return prompt.strip()
+    return (
+        f"{prompt.strip()}\n\n"
+        "HARD OUTPUT CONTRACT FOR EVERY FRAME: keep every pixel outside the sticker "
+        f"artwork as the exact flat uniform RGB color {key_color}. Preserve this color "
+        "to the image edges and between every grid cell. Never use black, white, gray, "
+        "a checkerboard, gradients, texture, lighting, shadows, or camera/background "
+        "movement outside the artwork. Keep the camera fixed and each cell isolated."
+    )
 
 
 def json_request(url: str, api_key: str, *, method: str = "GET", body: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, str]]:
@@ -146,10 +192,16 @@ def main() -> int:
         settings_path = Path(task.get("production_settings_file") or default_settings_path())
         configured_resolution = load_production_settings(settings_path)["generation"]["resolution"]
         resolution = resolution_for_provider(task, args.provider_id, default=configured_resolution)
+        key_color = str(task.get("key_color") or "#00FF00").upper() if task.get("allow_key_background") else None
+        if key_color is not None:
+            image_url, input_background_materialized = keyed_image_data_url(image, key_color)
+        else:
+            image_url = data_url(image)
+            input_background_materialized = False
         body: dict[str, Any] = {
             "model": model,
-            "prompt": prompt["grid_video_prompt"].strip(),
-            "image": {"url": data_url(image)},
+            "prompt": xai_prompt(prompt["grid_video_prompt"], key_color),
+            "image": {"url": image_url},
             "duration": duration,
             "resolution": resolution,
         }
@@ -252,6 +304,8 @@ def main() -> int:
                 "resolution": resolution,
                 "zero_data_retention": headers.get("x-zero-data-retention"),
                 "has_alpha": False,
+                "input_background_materialized": input_background_materialized,
+                "background_key": key_color,
             },
         )
         print(json.dumps({"status": "succeeded", "request_id": request_id, "output": str(video)}, ensure_ascii=False))

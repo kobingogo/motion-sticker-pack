@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import atexit
+import base64
+import io
 import json
 import os
 import sys
@@ -9,6 +11,8 @@ import textwrap
 import unittest
 from unittest.mock import patch
 from pathlib import Path
+
+from PIL import Image
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -31,7 +35,13 @@ from attempt_ledger import (  # noqa: E402
     ledger_lock,
     progress_path_for,
 )
-from execute_video_route import child_environment, diagnostic_tail, execute_attempt  # noqa: E402
+from execute_video_route import (  # noqa: E402
+    child_environment,
+    diagnostic_tail,
+    execute_attempt,
+    record_execution_artifacts,
+    write_rejected_result,
+)
 from grok_build_video_adapter import (  # noqa: E402
     annotate_error,
     build_instruction,
@@ -53,6 +63,7 @@ from output_safety import (  # noqa: E402
 from prompt_compiler import load_tile_plan  # noqa: E402
 from render_keypose_pack import natural_key  # noqa: E402
 from route_video_provider import route  # noqa: E402
+from xai_rest_video_adapter import keyed_image_data_url, xai_prompt  # noqa: E402
 
 
 def base_config() -> dict:
@@ -64,6 +75,66 @@ def base_config() -> dict:
 
 
 class AdversarialContractTests(unittest.TestCase):
+    def test_xai_materializes_transparency_on_exact_key_color(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source.png"
+            image = Image.new("RGBA", (2, 2), (255, 0, 0, 0))
+            image.putpixel((0, 0), (0, 0, 0, 1))
+            image.putpixel((1, 1), (12, 34, 56, 255))
+            image.save(source)
+            url, materialized = keyed_image_data_url(source, "#00FF00")
+            payload = base64.b64decode(url.split(",", 1)[1])
+            with Image.open(io.BytesIO(payload)) as keyed:
+                self.assertEqual(keyed.convert("RGB").getpixel((0, 0)), (0, 255, 0))
+                self.assertEqual(keyed.convert("RGB").getpixel((1, 1)), (12, 34, 56))
+                self.assertEqual(keyed.mode, "RGB")
+            self.assertTrue(materialized)
+        prompt = xai_prompt("move", "#00FF00")
+        self.assertIn("exact flat uniform RGB color #00FF00", prompt)
+        self.assertIn("Never use black", prompt)
+
+    def test_executor_rejection_overwrites_provider_success_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "result.json"
+            write_rejected_result(
+                output,
+                {"status": "succeeded", "provider": "xai-direct", "request_id": "request-1"},
+                ContractError("wrong key background"),
+            )
+            result = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "rejected")
+            self.assertEqual(result["qc_status"], "rejected")
+            self.assertEqual(result["request_id"], "request-1")
+            self.assertIn("wrong key background", result["error"])
+
+    def test_terminal_execution_artifacts_form_a_verifiable_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = {
+                name: root / name
+                for name in ("providers.json", "task.json", "attempt-ledger.json", "result.json", "video.mp4")
+            }
+            for path in paths.values():
+                path.write_text("{}", encoding="utf-8")
+            manifest = root / "artifact-manifest.json"
+            record_execution_artifacts(
+                {"artifact_manifest_file": str(manifest)},
+                paths["providers.json"],
+                paths["task.json"],
+                paths["attempt-ledger.json"],
+                paths["result.json"],
+                paths["video.mp4"],
+                stage="rejected",
+            )
+            self.assertTrue(verify_manifest(manifest)["valid"])
+            paths["attempt-ledger.json"].write_text('{"status":"later-attempt"}', encoding="utf-8")
+            self.assertTrue(verify_manifest(manifest)["valid"])
+            kinds = {item["kind"] for item in json.loads(manifest.read_text())["artifacts"]}
+            self.assertEqual(
+                kinds,
+                {"provider-config", "video-task", "generated-video", "provider-result", "attempt-ledger"},
+            )
+
     def test_output_transaction_rolls_back_and_preserves_prior_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "pack"

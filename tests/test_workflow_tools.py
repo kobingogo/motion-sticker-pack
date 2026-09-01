@@ -89,7 +89,11 @@ class WorkflowToolTests(unittest.TestCase):
             self.assertTrue((work / "attempt-ledger.json").is_file())
             self.assertIn("preflight", json.loads((work / "route.json").read_text()))
             routed_manifest = json.loads((work / "artifact-manifest.json").read_text())
-            self.assertIn("provider-route", {item["kind"] for item in routed_manifest["artifacts"]})
+            routed_kinds = {
+                item["kind"] for item in routed_manifest["artifacts"] if item.get("current", True)
+            }
+            self.assertIn("provider-route", routed_kinds)
+            self.assertNotIn("attempt-ledger", routed_kinds)
 
     def test_prepare_workflow_can_select_xai_and_order_a_grok_fallback_per_task(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

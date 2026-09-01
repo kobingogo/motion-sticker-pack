@@ -27,7 +27,7 @@ The Gateway explicitly maps declared environment variables into provider factori
 It also includes two command adapters for Grok Imagine:
 
 - `scripts/grok_build_video_adapter.py` launches the logged-in local Grok Build CLI and instructs its internal `image_to_video` tool exactly once. Current Grok CLI flags are `--always-approve` and `--permission-mode bypassPermissions`; `--yolo` is not portable across releases. The adapter pins `--leader-socket` under `GROK_HOME` so a parent Grok/Codex session cannot reuse another leader's config. By default it removes `XAI_API_KEY` so an ambient key cannot silently replace the grok.com login. Set `GROK_USE_XAI_API_KEY=1` only when that behavior is intentional. Optional `GROK_DEBUG_FILE` / `GROK_LOG_FILE` capture CLI diagnostics without putting secrets in the result JSON.
-- `scripts/xai_rest_video_adapter.py` calls the xAI Videos REST API directly, polls boundedly, and downloads or copies the resulting MP4. Its model comes from the selected provider config; duration and resolution come from the task snapshot. `XAI_VIDEO_REQUEST_ID` resumes polling an existing request without submitting or charging for another generation.
+- `scripts/xai_rest_video_adapter.py` calls the xAI Videos REST API directly, polls boundedly, and downloads or copies the resulting MP4. Its model comes from the selected provider config; duration and resolution come from the task snapshot. For key-background tasks it deterministically composites transparent input pixels onto the task's exact key color before upload and appends the same immutable color contract to the prompt, preventing a provider from silently flattening transparency to black. `XAI_VIDEO_REQUEST_ID` resumes polling an existing request without submitting or charging for another generation.
 
 For a general setup, assign priorities so the order is `grok-build-local` → `xai-direct` → `transform-local`. For a Grok-mandated job, use the shipped task defaults (`provider: grok-build-local`, `allow_fallback: false`) so a failed Grok generation cannot be replaced by a local animation.
 
@@ -62,6 +62,8 @@ An explicit provider selection is honored first. `provider_chain` is an ordered 
 ## Attempt Ledger and paid-call recovery
 
 Routing creates `attempt-ledger.json` beside the route (or at `video-task.json.attempt_ledger_file`). Each numbered attempt begins as `planned`; claiming it records `running` before the adapter starts. A crash with no provider request ID reconciles to `uncertain`. A crash after xAI submission reconciles to `submitted` because the direct adapter atomically persists the request ID immediately after the one POST.
+
+The live ledger is intentionally not hash-recorded at routing time because execution must mutate it. Each terminal attempt instead writes an immutable content-addressed ledger snapshot and records that snapshot in `artifact-manifest.json`, so later numbered attempts cannot invalidate earlier lineage.
 
 Never delete or edit the ledger to make an attempt runnable again. A terminal `failed` or `rejected` attempt can only be followed by explicit execution of the next numbered route. A `submitted` or `uncertain` xAI attempt with a request ID may use `execute_video_route.py --resume`; this polls the original request and never submits another generation. Other providers are intentionally not marked resumable until their adapters can prove equivalent request-ID semantics. A succeeded attempt is idempotent only while both its result path and recorded SHA-256 still match.
 
