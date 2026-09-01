@@ -59,7 +59,7 @@ For independent static stickers, `layout.json` may declare a synthetic single-ro
 - Preserve aspect ratio inside each detected cell. Do not stretch a crop to square unless a target platform profile explicitly requires a square canvas with padding.
 - Prefer a real source alpha channel. Otherwise estimate the uniform background from corners and borders, then remove only background-like regions connected to the crop edge.
 - A video declared as green-screen must pass strict QC before matting: every native frame's corners and border must match the declared `#00FF00` key. A gray/white checkerboard is not transparency and must be rejected, not color-inferred or globally deleted.
-- For grid videos, repack each cell from its actual Alpha bounding box so every side has at least a 10% green safety corridor. Decode and inspect every native frame. Internal-seam crossings are evidence for instance assignment and safe-window selection, not automatic whole-video failure; only inseparable multi-instance merges are bad frames.
+- For grid videos, repack each cell from its actual Alpha bounding box so every side has at least a 10% green safety corridor. Decode and inspect every native frame. Internal-seam crossings are evidence for instance assignment and safe-window selection, not automatic whole-video failure; small accents do not count as independent subjects when a full-size component is fused across a seam. A short balanced merge run (up to 0.2 seconds) may be repaired from temporally adjacent safe frames and must be recorded; longer or identity-ambiguous merges remain bad frames.
 - Avoid global color deletion: a face, garment, or prop similar to the key color must remain opaque when not connected to the outer background.
 - Near-black and near-white plates use a tight key automatically. Default chroma radii eat dark fur or light clothing, and GIF binary transparency turns those pixels into holes on a light chat or README background.
 - Retain a clean first-frame transparent PNG for each animation.
@@ -73,7 +73,7 @@ For independent static stickers, `layout.json` may declare a synthetic single-ro
 
 ## QC report
 
-`processing.json` should record source size and native fps/frame count, measured duration, selected duration profile, output fps/size, production-settings path and hash, detected grid, full-frame alpha method, registration, recovered crossings, ambiguous merged frames, per-cell selected source frames, bad-frame repairs, fixed-canvas transform, adaptive GIF threshold, file-budget result, encoded-output QC, warnings, and the exact output list. Warn when:
+`processing.json` should record source size and native fps/frame count, measured duration, selected duration profile, output fps/size, production-settings path and hash, detected grid, full-frame alpha method, registration, recovered crossings, ambiguous merged frames, per-cell invalid native-frame numbers, selected source frames, bad-frame repair details, fixed-canvas transform, adaptive GIF threshold, file-budget result, encoded-output QC, warnings, and the exact output list. Warn when:
 
 - layout confidence is below `0.75`;
 - foreground touches a crop boundary;
