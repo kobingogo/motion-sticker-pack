@@ -86,15 +86,30 @@ def prepare_call(contract: dict, supported_arguments: set[str]) -> dict:
     if not isinstance(fallback, dict):
         raise ValueError("image_generation_request is missing opaque_fallback")
     fallback_arguments = fallback.get("arguments")
-    fallback_suffix = fallback.get("prompt_suffix")
     if not isinstance(fallback_arguments, dict) or set(fallback_arguments) != OPTIONAL_PROVIDER_ARGUMENTS:
         raise ValueError("opaque_fallback must declare background and output_format")
-    if not isinstance(fallback_suffix, str) or not fallback_suffix.strip():
-        raise ValueError("opaque_fallback is missing prompt_suffix")
+    fallback_prompt = fallback.get("prompt")
+    fallback_suffix = fallback.get("prompt_suffix")
+    if fallback_prompt is not None:
+        if not isinstance(fallback_prompt, str) or not fallback_prompt.strip():
+            raise ValueError("opaque_fallback prompt must be a non-empty string")
+    elif not isinstance(fallback_suffix, str) or not fallback_suffix.strip():
+        raise ValueError("opaque_fallback is missing prompt or prompt_suffix")
+    prompt_mode = fallback.get("prompt_mode")
+    if prompt_mode is not None and prompt_mode != "standalone-opaque":
+        raise ValueError("opaque_fallback prompt_mode must be standalone-opaque")
+    # New contracts provide a standalone opaque prompt.  Keep the suffix-only
+    # path for older snapshots, but never mix transparent-first instructions
+    # into a new fallback call.
+    prepared_fallback_prompt = (
+        fallback_prompt.strip()
+        if isinstance(fallback_prompt, str)
+        else f"{prompt}\n\n{fallback_suffix.strip()}"
+    )
     fallback_record = _call_record(
         contract,
         supported_arguments,
-        prompt=f"{prompt}\n\n{fallback_suffix.strip()}",
+        prompt=prepared_fallback_prompt,
         requested_arguments=fallback_arguments,
     )
     reference = contract.get("reference_image")

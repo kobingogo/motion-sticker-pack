@@ -159,6 +159,17 @@ class GridDetectionTests(unittest.TestCase):
         self.assertEqual(report["ambiguous_components"], 1)
         self.assertIn("merged-instance-ambiguous", reasons[0])
 
+    def test_small_reaction_accents_do_not_hide_a_balanced_merged_instance(self) -> None:
+        rgba = np.zeros((80, 120, 4), dtype=np.uint8)
+        rgba[10:70, 18:108] = (240, 60, 80, 255)
+        rgba[0:8, 84:92] = (240, 60, 80, 255)
+        rgba[72:80, 20:28] = (240, 60, 80, 255)
+        ownership, valid, reasons, report = assign_grid_components(rgba, 2, 1)
+        self.assertFalse(any(valid))
+        self.assertEqual(report["ambiguous_components"], 1)
+        self.assertIn("merged-instance-ambiguous", reasons[0])
+        self.assertIn("merged-instance-ambiguous", reasons[1])
+
     def test_subject_alpha_damage_flags_moth_eaten_dark_fur(self) -> None:
         rgba = np.zeros((80, 80, 4), dtype=np.uint8)
         rgba[18:62, 18:62] = (32, 24, 28, 48)
@@ -208,6 +219,24 @@ class GridDetectionTests(unittest.TestCase):
         result = sample_full_duration_indices(valid, signatures, 24.0, 12)
         self.assertEqual(result["indices"][10], 21)
         self.assertEqual(result["repairs"], 1)
+
+    def test_full_duration_sampling_uses_bounded_temporal_repair_for_empty_bin(self) -> None:
+        signatures = [np.full((4, 4, 4), index, dtype=np.float32) for index in range(24)]
+        valid = [True] * 24
+        for index in range(9, 13):
+            valid[index] = False
+        result = sample_full_duration_indices(valid, signatures, 24.0, 8)
+        self.assertGreaterEqual(result["repairs"], 1)
+        self.assertTrue(all(valid[index] for index in result["indices"]))
+        self.assertTrue(any(item["reason"] == "bounded-temporal-repair" for item in result["repair_details"]))
+
+    def test_full_duration_sampling_rejects_an_unbounded_temporal_repair(self) -> None:
+        signatures = [np.full((4, 4, 4), index, dtype=np.float32) for index in range(24)]
+        valid = [True] * 24
+        for index in range(5, 12):
+            valid[index] = False
+        with self.assertRaisesRegex(GridBoundaryError, "exceeds bounded temporal repair window"):
+            sample_full_duration_indices(valid, signatures, 24.0, 8)
 
     def test_short_delivery_uses_first_three_seconds(self) -> None:
         images = []

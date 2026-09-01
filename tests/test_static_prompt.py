@@ -139,10 +139,28 @@ class StaticPromptTests(unittest.TestCase):
             result["generation_policy"]["on_missing_real_alpha_or_simulated_transparency"],
             "use-opaque-fallback-call",
         )
-        self.assertEqual(
-            result["opaque_fallback_call"]["call_arguments"]["prompt"].splitlines()[-1],
-            "备用调用（首次真实透明输出未通过本地检查）：不要尝试透明输出，将所有空白区域渲染为完全一致的 #00FF00 纯绿色，不要棋盘格、纹理、渐变、阴影、地面或环境背景。",
-        )
+        fallback_prompt = result["opaque_fallback_call"]["call_arguments"]["prompt"]
+        self.assertIn("#00FF00", fallback_prompt)
+        self.assertIn("纯色抠像硬约束", fallback_prompt)
+        self.assertNotIn("真实 alpha 通道", fallback_prompt)
+        self.assertNotIn("透明九宫格", fallback_prompt)
+        self.assertNotIn("首次调用", fallback_prompt)
+
+    def test_opaque_fallback_uses_a_standalone_prompt(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        contract = compile_prompt("角色", style_id, label, style_prompt, ["开心"], 3, 3)
+        fallback = contract["image_generation_request"]["opaque_fallback"]
+        self.assertEqual(fallback["prompt_mode"], "standalone-opaque")
+        prompt = fallback["prompt"]
+        self.assertLessEqual(len(prompt.encode("utf-8")), 3800)
+        self.assertIn("#00FF00", prompt)
+        self.assertIn("背景只能使用这一种颜色", prompt)
+        self.assertNotIn("真实 alpha 通道", prompt)
+        self.assertNotIn("透明区域", prompt)
+        self.assertNotIn("首次调用", prompt)
+        prepared = prepare_call(contract, {"prompt", "referenced_image_paths", "background", "output_format"})
+        self.assertEqual(prepared["opaque_fallback_call"]["call_arguments"]["prompt"], prompt)
 
     def test_future_image_gen_schema_receives_background_and_output_format(self) -> None:
         presets = load_presets(PRESETS)

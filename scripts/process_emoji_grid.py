@@ -570,10 +570,15 @@ def assign_grid_components(
         component["counts"] = counts
         component["owner"] = owner
         component["owner_fraction"] = float(counts[owner] / component["size"])
-    substantial_by_owner = [False] * count
+    # A small reaction accent (star, sweat drop, punctuation) must not count as
+    # an independent subject when a full-size component fuses across a seam.
+    # Keep the old absolute threshold as a floor, but require the largest
+    # component owned by the secondary cell to be substantial relative to the
+    # crossing component as well.
+    largest_by_owner = [0] * count
     for component in components:
-        if component["size"] >= max(24, int(cell_area * 0.006)):
-            substantial_by_owner[component["owner"]] = True
+        owner = component["owner"]
+        largest_by_owner[owner] = max(largest_by_owner[owner], int(component["size"]))
     valid = [True] * count
     reasons: list[list[str]] = [[] for _ in range(count)]
     ownership = [np.zeros((height, width), dtype=bool) for _ in range(count)]
@@ -590,7 +595,16 @@ def assign_grid_components(
         ambiguous = False
         if is_large and len(affected) > 1:
             secondary = [cell for cell in affected if cell != owner]
-            ambiguous = any(not substantial_by_owner[cell] for cell in secondary)
+            independent_main = {
+                cell: largest_by_owner[cell]
+                >= max(
+                    64,
+                    int(cell_area * 0.01),
+                    int(component["size"] * 0.15),
+                )
+                for cell in secondary
+            }
+            ambiguous = any(not independent_main[cell] for cell in secondary)
             if ambiguous:
                 ambiguous_components += 1
                 for cell in affected:
@@ -784,6 +798,8 @@ def sample_full_duration_indices(
     signatures: list[np.ndarray],
     source_fps: float,
     output_fps: int,
+    *,
+    max_temporal_repair_frames: int | None = None,
 ) -> dict:
     """Sample the complete source timeline at a lower regular output rate."""
     if len(valid) != len(signatures) or len(valid) < 2:
@@ -793,18 +809,56 @@ def sample_full_duration_indices(
     source_duration = len(valid) / source_fps
     output_count = max(2, int(round(source_duration * output_fps)))
     step = source_fps / output_fps
+    repair_radius = (
+        max(1, int(round(source_fps * 0.20)))
+        if max_temporal_repair_frames is None
+        else max(1, int(max_temporal_repair_frames))
+    )
+    invalid_runs: list[tuple[int, int]] = []
+    run_start: int | None = None
+    for index, is_valid in enumerate(valid + [True]):
+        if not is_valid and run_start is None:
+            run_start = index
+        elif is_valid and run_start is not None:
+            invalid_runs.append((run_start, index - 1))
+            run_start = None
+    if any(end - start + 1 > repair_radius for start, end in invalid_runs):
+        raise GridBoundaryError(
+            "unsafe native-frame run exceeds bounded temporal repair window"
+        )
     requested = [min(len(valid) - 1, int(np.floor(index * step))) for index in range(output_count)]
     resolved: list[int] = []
     repairs = 0
+    repair_details: list[dict] = []
     for output_index, requested_index in enumerate(requested):
         left = int(np.floor(output_index * step))
         right = min(len(valid), max(left + 1, int(np.floor((output_index + 1) * step))))
         candidates = [index for index in range(left, right) if valid[index]]
         if not candidates:
-            raise GridBoundaryError(
-                f"no safe native frame remains in output time bin {output_index + 1}"
+            selected = _nearest_valid(requested_index, valid, repair_radius)
+            if selected is None:
+                raise GridBoundaryError(
+                    f"no safe native frame remains in output time bin {output_index + 1}"
+                )
+            repair_details.append(
+                {
+                    "output_frame": output_index + 1,
+                    "requested_native_frame": requested_index + 1,
+                    "selected_native_frame": selected + 1,
+                    "reason": "bounded-temporal-repair",
+                }
             )
-        selected = min(candidates, key=lambda index: abs(index - requested_index))
+        else:
+            selected = min(candidates, key=lambda index: abs(index - requested_index))
+            if selected != requested_index:
+                repair_details.append(
+                    {
+                        "output_frame": output_index + 1,
+                        "requested_native_frame": requested_index + 1,
+                        "selected_native_frame": selected + 1,
+                        "reason": "in-bin-safe-frame-repair",
+                    }
+                )
         repairs += int(selected != requested_index)
         resolved.append(selected)
     changes = [
@@ -816,6 +870,7 @@ def sample_full_duration_indices(
         "requested": requested,
         "indices": resolved,
         "repairs": repairs,
+        "repair_details": repair_details,
         "frame_step": round(step, 6),
         "loop_difference": float(
             np.mean(np.abs(signatures[resolved[0]] - signatures[resolved[-1]])) / 255.0
@@ -916,6 +971,8 @@ def validate_encoded_animation(
     *,
     expected_size: tuple[int, int],
     max_alpha_coverage_delta: float = 0.15,
+    output_fps: float | None = None,
+    final_hold_seconds: float | None = None,
 ) -> dict:
     frames = read_animation_frames(path)
     if len(frames) < 2:
@@ -949,7 +1006,12 @@ def validate_encoded_animation(
         float(np.hypot(right[0] - left[0], right[1] - left[1]))
         for left, right in zip(centroids, centroids[1:])
     ]
-    hold_centroids = centroids[len(centroids) // 2 :]
+    if output_fps and final_hold_seconds and final_hold_seconds > 0:
+        hold_count = max(2, int(round(output_fps * final_hold_seconds)))
+        hold_centroids = centroids[-hold_count:]
+    else:
+        hold_count = max(2, len(centroids) // 2)
+        hold_centroids = centroids[-hold_count:]
     hold_steps = [
         float(np.hypot(right[0] - left[0], right[1] - left[1]))
         for left, right in zip(hold_centroids, hold_centroids[1:])
@@ -964,6 +1026,7 @@ def validate_encoded_animation(
         "centroid_step_pixels_max": round(max(centroid_steps), 6),
         "hold_centroid_step_pixels_mean": round(float(np.mean(hold_steps)), 6),
         "hold_centroid_step_pixels_max": round(max(hold_steps), 6),
+        "hold_frames_checked": len(hold_centroids),
     }
 
 
@@ -991,6 +1054,13 @@ def encode_sticker_images(
         if settings
         else 0.15
     )
+    final_hold_seconds = None
+    if settings:
+        timeline = settings["generation"].get("motion_timeline", {})
+        if isinstance(timeline, dict):
+            configured_hold = timeline.get("final_hold_seconds")
+            if configured_hold is not None:
+                final_hold_seconds = float(configured_hold)
     names: list[str] = []
     if webp_settings["enabled"]:
         encode_webp_images(
@@ -1019,6 +1089,8 @@ def encode_sticker_images(
             output / gif_name,
             expected_size=target_size,
             max_alpha_coverage_delta=max_alpha_coverage_delta,
+            output_fps=output_fps,
+            final_hold_seconds=final_hold_seconds,
         ),
     }
     if webp_settings["enabled"]:
@@ -1026,6 +1098,8 @@ def encode_sticker_images(
             output / webp_name,
             expected_size=target_size,
             max_alpha_coverage_delta=max_alpha_coverage_delta,
+            output_fps=output_fps,
+            final_hold_seconds=final_hold_seconds,
         )
     gif_bytes = (output / gif_name).stat().st_size
     budget_report = None
@@ -1416,6 +1490,9 @@ def main() -> int:
                         "alpha_method": alpha_method,
                         "native_frames_analyzed": frame_count,
                         "invalid_native_frames": sum(not value for value in valid_frames[tile]),
+                        "invalid_native_frame_numbers": [
+                            index + 1 for index, value in enumerate(valid_frames[tile]) if not value
+                        ],
                         "invalid_reasons": sorted(
                             {reason for frame in invalid_reasons[tile] for reason in frame}
                         ),
@@ -1491,6 +1568,9 @@ def main() -> int:
                         "status": "failed",
                         "native_frames_analyzed": frame_count,
                         "invalid_native_frames": sum(not value for value in valid_frames[tile]),
+                        "invalid_native_frame_numbers": [
+                            index + 1 for index, value in enumerate(valid_frames[tile]) if not value
+                        ],
                         "invalid_reasons": sorted(
                             {reason for frame in invalid_reasons[tile] for reason in frame}
                         ),

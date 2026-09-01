@@ -12,6 +12,11 @@ After install, use it as a conversation: upload an image or describe a character
 $motion-sticker-pack
 ```
 
+## What's new in v0.3.1
+
+- **Cross-cell alpha flicker recovery:** relative subject-size checks identify true merged instances, and short (≤0.2 s) merged runs can be recovered from adjacent safe frames; cells 04 and 07 are no longer rejected for coverage flicker.
+- **Auditable recovery:** `processing.json` records invalid native-frame numbers, output-sample replacements, and the final-hold QC range.
+
 ## What's new in v0.3.0
 
 - **Idempotent paid execution:** every route creates `attempt-ledger.json`; an attempt can be submitted only once, and an interrupted run becomes `uncertain` instead of being silently replayed.
@@ -622,7 +627,7 @@ Create the folder from the character name first (Chinese names are kept):
 python3 scripts/character_workspace.py --name '小黑猫'
 ```
 
-Write the static sheet, layout, approval, prompts, video, crops, and ZIP into the printed `work_dir`, for example `works/小黑猫/`. See [`works/README.md`](works/README.md).
+Write the static sheet, layout, approval, prompts, video, crops, and ZIP into the printed `work_dir`, for example `works/小黑猫/`. See [`references/output-contract.md`](references/output-contract.md).
 
 After approval and a per-cell `tile-plan.json`:
 

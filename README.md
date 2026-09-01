@@ -12,6 +12,11 @@
 $motion-sticker-pack
 ```
 
+## v0.3.1 更新
+
+- **跨格 Alpha 闪烁修复**：相对主体规模识别真正的合并实例，短时（≤0.2 秒）合并坏帧使用邻帧安全恢复；04、07 不再因覆盖闪烁被误拒绝。
+- **可审计恢复**：`processing.json` 记录原生坏帧编号、输出采样替换来源和 final-hold 检查范围。
+
 ## v0.3.0 更新
 
 - **付费调用幂等**：每条 route 自动生成 `attempt-ledger.json`；同一 attempt 只允许提交一次，进程中断后默认标记为 `uncertain`，禁止静默重放。
@@ -626,7 +631,7 @@ motion-sticker-pack/
 python3 scripts/character_workspace.py --name '小黑猫'
 ```
 
-之后静图、layout、审批、提示词、视频、切图和 ZIP 都写进打印出来的 `work_dir`，例如 `works/小黑猫/`。目录约定见 [`works/README.md`](works/README.md)。
+之后静图、layout、审批、提示词、视频、切图和 ZIP 都写进打印出来的 `work_dir`，例如 `works/小黑猫/`。目录约定见 [`references/output-contract.md`](references/output-contract.md)。
 
 审批和逐格 `tile-plan.json` 就绪后：
 
