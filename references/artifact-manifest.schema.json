@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/motion-sticker-pack/artifact-manifest.schema.json",
+  "title": "Motion Sticker Pack artifact lineage manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "workspace", "created_at", "updated_at", "artifacts"],
+  "properties": {
+    "version": {"const": 1},
+    "workspace": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"},
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "sha256", "bytes", "kind", "stage", "dependencies", "recorded_at", "current"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}:.+$"},
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "bytes": {"type": "integer", "minimum": 0},
+          "kind": {"type": "string", "minLength": 1},
+          "stage": {"type": "string", "minLength": 1},
+          "dependencies": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "recorded_at": {"type": "string"},
+          "reactivated_at": {"type": "string"},
+          "current": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

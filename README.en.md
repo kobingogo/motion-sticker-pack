@@ -12,14 +12,23 @@ After install, use it as a conversation: upload an image or describe a character
 $motion-sticker-pack
 ```
 
+## What's new in v0.3.0
+
+- **Idempotent paid execution:** every route creates `attempt-ledger.json`; an attempt can be submitted only once, and an interrupted run becomes `uncertain` instead of being silently replayed.
+- **xAI request resumption:** the request ID is atomically persisted immediately after submission; only explicit `--resume` continues that same request without a second paid generation.
+- **Transactional outputs:** primary output paths keep a recovery journal and prior-directory backup until commit, so exceptions and abandoned runs do not publish partial replacements.
+- **Hash lineage:** `artifact-manifest.json` records SHA-256 dependencies across approved inputs, routing, generated video, and delivery artifacts, and detects current-file tampering.
+- **Execution preflight:** route reports now expose the selected provider, billable attempts, resume support, blockers, and the fact that remote quota and health remain unknown.
+- **Closed xAI key-background contract:** transparent inputs are deterministically composited onto exact `#00FF00`, near-transparent noise is cleared, and the same per-frame color contract is appended to the prompt.
+- **Consistent terminal audit:** local QC rejection rewrites the provider result; the mutable live ledger is no longer recorded at route time, and terminal lineage uses immutable content-addressed snapshots.
+- **Cross-directory artifact identity:** artifact IDs bind both content and absolute path, so identical names and bytes in trial and full-output directories no longer collide.
+
 ## What's new in v0.2.1
 
 - Task-level provider selection supports an explicit preferred provider and ordered fallback chain without editing shared defaults.
 - Each provider attempt now carries its own duration and resolution; xAI model selection comes from provider configuration instead of environment-variable overrides.
 - Routes bind the image, layout, prompt, approval state, and production-settings hashes, so changed inputs invalidate stale routes.
 - Returned videos are decoded locally to detect real alpha before key-background QC.
-- Transparent xAI inputs are deterministically composited onto the task's exact `#00FF00` key, near-transparent noise is cleared, and the same hard color contract is appended to the prompt so transparency cannot silently become black.
-- If local background or grid QC rejects a provider-successful video, `video-result.json` is now rewritten to `rejected` instead of retaining a contradictory success state.
 - Output/input overlap is rejected before overwrite cleanup, and non-3×3 prompts no longer contain nine-grid wording.
 
 ## What's new in v0.2.0
@@ -36,14 +45,14 @@ See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the complete release notes and up
 
 > These are real outputs from this repository. GIFs loop automatically; click any image to open the original file. Each case shows 3 selected reactions, while the linked folder contains the complete GIF, WebP, and PNG set.
 
-<p align="center"><strong>🐈‍⬛ Black cat · paid xAI Direct run (2026-09-01)</strong> · <a href="examples/black-cat/">View the complete 9-cell case →</a></p>
+<p align="center"><strong>🐈‍⬛ Black cat · latest complete xAI Direct validation (2026-09-01)</strong> · <a href="examples/black-cat/">View the complete 9-cell case →</a></p>
 <p align="center"><a href="examples/black-cat/preview.png"><img src="examples/black-cat/preview.png" width="720" loading="lazy" alt="Latest complete black-cat animated sticker pack preview"></a></p>
 <p align="center">
   <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="Black cat animated sticker: happy"></a>
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="Black cat animated sticker: heart"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="Black cat animated sticker: crying"></a>
 </p>
-<p align="center"><sub>3.04-second 960×960 source video; 73 native frames passed key-background QC; all 9 cells were exported as transparent PNG, Animated WebP, and GIF.</sub></p>
+<p align="center"><sub>The gallery uses the same-day complete 9/9 xAI run. A separate v0.3 adversarial run delivered 7/9; cells 04 and 07 were safely withheld for encoded alpha-coverage flicker.</sub></p>
 
 <p align="center"><strong>👶 Baby · Cute character</strong> · <a href="examples/child/">View the complete case →</a></p>
 <p align="center">
@@ -462,6 +471,8 @@ Tell the agent where the config file lives. Full fields and the adapter contract
 - [`assets/video-task.example.json`](assets/video-task.example.json)
 - [`references/video-providers.schema.json`](references/video-providers.schema.json)
 - [`references/video-task.schema.json`](references/video-task.schema.json)
+- [`references/attempt-ledger.schema.json`](references/attempt-ledger.schema.json)
+- [`references/artifact-manifest.schema.json`](references/artifact-manifest.schema.json)
 - [`references/runtime-routing.md`](references/runtime-routing.md)
 
 For an arbitrary relay, write a `command` adapter that takes `--task` and `--output` as absolute paths and writes a normalized result JSON. This skill does not pretend that changing `baseURL` is enough for every vendor.
@@ -471,8 +482,8 @@ The Kling / Seedance / Wan / FAL routes here are image-to-video (`.video()`) int
 ## Privacy, cost, and credentials
 
 - For a fully local run, say “do not call any external API” in the request
-- External video models receive the reference image and prompt, and may bill, including on retries
-- Attempts are bounded; the skill does not retry forever
+- External video models receive the reference image and prompt, and a later route attempt may incur another charge
+- The same paid attempt is never replayed automatically; uncertain state requires explicit request resumption or a different route attempt
 - Config files store environment-variable names only; child processes inherit a small runtime allowlist plus the selected provider's declared credential names
 - Secrets must not appear in prompts, reports, command lines, or git
 - Grok `/privacy` Opt in and team ZDR are account-level policies; see the section above
@@ -481,6 +492,8 @@ The Kling / Seedance / Wan / FAL routes here are image-to-video (`.video()`) int
 
 ```text
 works/<character-slug>/
+├── attempt-ledger.json          # paid-attempt state and immutable transition history
+├── artifact-manifest.json       # artifact hashes and dependency lineage
 ├── raw-video/
 │   └── <provider>.mp4           # one accepted canonical source video
 └── delivered/
@@ -492,6 +505,8 @@ works/<character-slug>/
     ├── job-state.json           # when static approval was required
     ├── prompts.json             # when generation ran
     ├── route.json               # when routing ran
+    ├── attempt-ledger.json
+    ├── artifact-manifest.json
     ├── processing.json
     └── sticker-pack.zip
 ```
@@ -501,6 +516,7 @@ works/<character-slug>/
 - `.png`: transparent first frame
 - `layout.json`: detected grid
 - `job-state.json` / `prompts.json` / `route.json`: approval, prompt, and route audit, copied into the final directory and ZIP by `assemble_delivery.py`
+- `attempt-ledger.json` / `artifact-manifest.json`: paid-attempt state and SHA-256 artifact lineage
 - `processing.json`: size, fps, alpha, edge, hold-jitter, and loop-quality notes
 
 `output/` is an encoding staging directory. After the final ZIP succeeds, `assemble_delivery.py --cleanup-media-dir` removes it so normal delivery leaves only `delivered/`. An accepted Grok attempt is promoted to the canonical filename rather than copied into a byte-identical duplicate; rejected attempts may remain for diagnosis.

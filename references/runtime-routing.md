@@ -59,6 +59,18 @@ An explicit provider selection is honored first. `provider_chain` is an ordered 
 
 `scripts/execute_video_route.py` executes exactly one numbered route attempt. AI SDK attempts are delegated to `scripts/video_gateway.mjs`; command and HTTP-job attempts are delegated to their configured executable. The Gateway verifies the approved image/layout hashes before importing a provider or submitting a request. Non-alpha video results are checked on all native frames with `scripts/video_background_qc.py` before post-processing; a result that is not a uniform declared key color is rejected. Seam crossings are recorded for downstream recovery and do not trigger a paid regeneration. Grok requires `max_retries: 0`. The task output-size limit is applied during download, not only after the response has already been loaded into memory.
 
+## Attempt Ledger and paid-call recovery
+
+Routing creates `attempt-ledger.json` beside the route (or at `video-task.json.attempt_ledger_file`). Each numbered attempt begins as `planned`; claiming it records `running` before the adapter starts. A crash with no provider request ID reconciles to `uncertain`. A crash after xAI submission reconciles to `submitted` because the direct adapter atomically persists the request ID immediately after the one POST.
+
+The live ledger is intentionally not hash-recorded at routing time because execution must mutate it. Each terminal attempt instead writes an immutable content-addressed ledger snapshot and records that snapshot in `artifact-manifest.json`, so later numbered attempts cannot invalidate earlier lineage.
+
+Never delete or edit the ledger to make an attempt runnable again. A terminal `failed` or `rejected` attempt can only be followed by explicit execution of the next numbered route. A `submitted` or `uncertain` xAI attempt with a request ID may use `execute_video_route.py --resume`; this polls the original request and never submits another generation. Other providers are intentionally not marked resumable until their adapters can prove equivalent request-ID semantics. A succeeded attempt is idempotent only while both its result path and recorded SHA-256 still match.
+
+When approved inputs intentionally change and a new route is required, use `route_video_provider.py --archive-existing-ledger`. The old ledger and any request-progress files are moved to timestamped sibling audit files before the new route is published; they are never deleted or reset in place.
+
+The route `preflight` object is non-billable and must be reviewed before external execution. It reports billable attempt numbers, whether charge authorization is required, resume support, and local blockers. `cost_estimate` remains unknown because this repository does not query account-specific price, quota, or service health.
+
 ## Adapter result contract
 
 For `command` adapters, the gateway appends `--task <absolute-task-json> --output <absolute-result-json>` to the configured command array. The task file uses this minimum request contract:
@@ -79,6 +91,8 @@ For `command` adapters, the gateway appends `--task <absolute-task-json> --outpu
     "grok-build-local": {"duration_seconds": 6, "resolution": "720p"}
   },
   "production_settings_file": "/absolute/path/to/sticker-production.json",
+  "attempt_ledger_file": "/absolute/path/to/attempt-ledger.json",
+  "artifact_manifest_file": "/absolute/path/to/artifact-manifest.json",
   "aspect_ratio": "source",
   "output_directory": "/absolute/path/to/raw"
 }

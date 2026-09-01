@@ -18,7 +18,8 @@ import numpy as np
 from PIL import Image
 
 from animation_export import choose_gif_alpha_threshold, encode_gif_images, encode_webp_images
-from output_safety import prepare_output, validate_archive_name, validate_output_boundaries
+from artifact_manifest import record_artifact
+from output_safety import begin_output_transaction, validate_archive_name
 from sticker_production_config import load_production_settings, match_duration_profile
 from video_background_qc import validate_frame_background
 
@@ -1123,6 +1124,7 @@ def main() -> int:
     parser.add_argument("output", type=Path)
     parser.add_argument("--layout", type=Path, required=True)
     parser.add_argument("--settings", type=Path, help="sticker-production settings JSON")
+    parser.add_argument("--manifest", type=Path, help="artifact manifest to extend after output commit")
     parser.add_argument("--trial", action="store_true", help="encode only the configured trial cell")
     parser.add_argument("--fps", type=int, default=6)
     parser.add_argument("--loop-min-seconds", type=float, default=1.5)
@@ -1201,11 +1203,18 @@ def main() -> int:
         raise ValueError("effective output fps must be between 1 and 60")
     if width * height > args.max_pixels:
         raise ValueError(f"video frame exceeds max-pixels ({width}x{height})")
-    args.output = validate_output_boundaries(
+    output_transaction = begin_output_transaction(
         args.output,
-        [args.video, args.layout, *([args.settings] if args.settings else [])],
+        overwrite=args.overwrite,
+        archive_names={args.zip_name},
+        protected_paths=[
+            args.video,
+            args.layout,
+            *([args.settings] if args.settings else []),
+            *([args.manifest] if args.manifest else []),
+        ],
     )
-    prepare_output(args.output, overwrite=args.overwrite, archive_names={args.zip_name})
+    args.output = output_transaction.output
     delivery_variant = None
     delivery_variant_name = None
     delivery_variant_root = None
@@ -1678,6 +1687,36 @@ def main() -> int:
             args.zip_name,
         )
         print(json.dumps(report, ensure_ascii=False))
+        output_transaction.commit()
+        if args.manifest:
+            manifest_path = args.manifest.expanduser().resolve()
+            dependency_ids = [
+                record_artifact(manifest_path, args.video, kind="generated-video", stage="processed"),
+                record_artifact(manifest_path, args.layout, kind="layout", stage="processed"),
+            ]
+            if args.settings:
+                dependency_ids.append(
+                    record_artifact(
+                        manifest_path,
+                        args.settings,
+                        kind="production-settings",
+                        stage="processed",
+                    )
+                )
+            for relative in report["outputs"]:
+                artifact = args.output / relative
+                if artifact.is_file():
+                    record_artifact(
+                        manifest_path,
+                        artifact,
+                        kind=(
+                            "sticker-output"
+                            if artifact.suffix.lower() in {".png", ".webp", ".gif"}
+                            else "processing-report"
+                        ),
+                        stage="processed",
+                        dependencies=dependency_ids,
+                    )
         if not succeeded or delivery_failures:
             return 1
         if budget_failures and args.trial:

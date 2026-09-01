@@ -20,6 +20,8 @@ works/<character-slug>/
 ├── prompts.json
 ├── video-task.json
 ├── route.json
+├── attempt-ledger.json
+├── artifact-manifest.json
 ├── raw-video/
 │   └── <provider>.mp4           # one accepted canonical source video
 └── delivered/                   # numbered stickers + reports + one ZIP
@@ -37,6 +39,8 @@ works/<character-slug>/delivered/
 ├── job-state.json               when static approval was required
 ├── prompts.json                 when generation occurred
 ├── route.json                   when routing occurred
+├── attempt-ledger.json          paid-attempt status and transition history
+├── artifact-manifest.json       SHA-256 artifact lineage snapshot
 ├── processing.json
 ├── 3s/                          Grok only: 24-frame derivative + reports
 └── sticker-pack.zip
@@ -63,7 +67,8 @@ For independent static stickers, `layout.json` may declare a synthetic single-ro
 - Package only delivery artifacts and reports; omit temporary raw-frame directories. When this Skill generated the static sheet, include `static-prompt.json`, `static-generation.json`, and `static-alpha.json` so parameter fallback and alpha repair remain auditable.
 - For static generation, `static-generation.json` must preserve the transparent-first call, the bounded `opaque_fallback_call`, the schema fields that were omitted, and the selected attempt. It must record that schema omission does not select the fallback and that reference-image presence does not change the background policy. Only local pixel-validation failure may select the fallback. A checkerboard/two-tone result is a failed attempt and must never be recorded as an accepted normalized source.
 - Use `scripts/assemble_delivery.py --cleanup-media-dir` to collect media and audit artifacts into the canonical `delivered/` directory and remove the intermediate media directory after the ZIP succeeds. The ZIP must include `job-state.json`, `prompts.json`, and `route.json` whenever those stages occurred. Do not copy variant ZIPs into the final directory or nest one ZIP inside another.
-- Refuse to mix new output with prior numbered files by default. Reuse an output directory only with an explicit `--overwrite`, which removes known generated artifacts but preserves unrelated files.
+- Refuse to mix new output with prior numbered files by default. Reuse an output directory only with an explicit `--overwrite`. Primary output scripts now start a recoverable directory transaction: the prior directory is moved to a same-parent backup, unrelated files are copied into the fresh output, and the backup is removed only on explicit commit. Exceptions roll back automatically; a dead process is recovered from its journal on the next invocation. An active process owns the journal and cannot be taken over.
+- Treat `artifact-manifest.json` as the hash-lineage authority. `prepare_workflow.py` records approved inputs and task dependencies, routing adds config/capability/route records, execution adds the accepted video/result/ledger revision, and `process_emoji_grid.py --manifest` adds processed artifacts. `scripts/artifact_manifest.py verify --manifest <path>` must fail if a current artifact is missing or has a different SHA-256.
 - Run the configured trial cell before full-pack encoding. The default is cell `01`, so the rule works for any non-empty layout, with a 1 MiB GIF target. For Grok, test both the full 6-second file and the 3-second derivative. A trial budget or encoded-frame failure must produce a report and stop; a pass authorizes processing the remaining cells from the same already-generated grid video, not another provider call. In the full-pack run, later GIF budget overages are warnings and do not block delivery; encoded-frame failures remain blocking.
 
 ## QC report

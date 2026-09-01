@@ -8,7 +8,16 @@ import hashlib
 import json
 from pathlib import Path
 
-from config_contract import object_sha256, read_json_object, validate_provider_config, validate_video_task
+from artifact_manifest import record_artifact
+from attempt_ledger import (
+    archive_ledger,
+    atomic_write_json,
+    initialize_ledger,
+    ledger_lock,
+    read_json as read_ledger,
+    validate_ledger,
+)
+from config_contract import ContractError, object_sha256, read_json_object, validate_provider_config, validate_video_task
 
 
 def read_json(path: Path) -> dict:
@@ -156,9 +165,26 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
     elif allow_fallback and (fallback_policy == "prompt-only" or not local.get("transform_local")):
         fallback = {"id": "prompt-only", "driver": "none"}
 
+    external_attempts = [item for item in attempts if item.get("driver") != "native-tool"]
+    preflight = {
+        "ready": bool(attempts or fallback),
+        "selected_provider": attempts[0]["id"] if attempts else fallback.get("id") if fallback else None,
+        "billable_external_attempts": [item["attempt"] for item in external_attempts],
+        "charge_authorization_required": bool(external_attempts),
+        "cost_estimate": "unknown-check-provider-account-before-execution" if external_attempts else "local-or-host-tool",
+        "resume_support": {
+            str(item["attempt"]): item.get("id") == "xai-direct" for item in external_attempts
+        },
+        "blockers": [item for item in rejected if item.get("reason") == "unavailable"],
+        "notes": [
+            "availability does not prove remote quota or service health",
+            "each external attempt requires an explicit executor invocation and is never auto-retried",
+        ],
+    }
     return {
         "version": 1,
         "config_sha256": object_sha256(config),
+        "capabilities_sha256": object_sha256(capabilities),
         "task_sha256": object_sha256(task),
         "dependency_sha256": dependency_hashes(task),
         "operation": task.get("operation", "image-to-video"),
@@ -174,6 +200,7 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
             "explicit-provider" if explicit != "auto" else
             "local-first-priority"
         ),
+        "preflight": preflight,
     }
 
 
@@ -183,10 +210,69 @@ def main() -> int:
     parser.add_argument("--capabilities", type=Path, required=True)
     parser.add_argument("--task", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--ledger", type=Path)
+    parser.add_argument(
+        "--archive-existing-ledger",
+        action="store_true",
+        help="archive a ledger bound to an older route before creating the new one",
+    )
     args = parser.parse_args()
-    result = route(read_json(args.config), read_json(args.capabilities), read_json(args.task))
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    config = read_json(args.config)
+    capability_report = read_json(args.capabilities)
+    task = read_json(args.task)
+    result = route(config, capability_report, task)
+    ledger_path = (
+        args.ledger
+        or Path(task.get("attempt_ledger_file") or args.output.resolve().parent / "attempt-ledger.json")
+    ).expanduser().resolve()
+    route_path = args.output.expanduser().resolve()
+    manifest_value = task.get("artifact_manifest_file")
+    manifest_path = Path(manifest_value).expanduser().resolve() if isinstance(manifest_value, str) else None
+    route_inputs = {
+        args.config.expanduser().resolve(),
+        args.capabilities.expanduser().resolve(),
+        args.task.expanduser().resolve(),
+    }
+    if ledger_path in route_inputs or (manifest_path is not None and manifest_path in route_inputs | {ledger_path}):
+        raise ValueError("route inputs, attempt ledger, and artifact manifest must use distinct paths")
+    protected_paths = route_inputs | {ledger_path}
+    if manifest_path is not None:
+        protected_paths.add(manifest_path)
+    if route_path in protected_paths:
+        raise ValueError("route output must use a path distinct from its inputs, ledger, and manifest")
+    archived_ledgers: list[Path] = []
+    with ledger_lock(ledger_path):
+        if ledger_path.is_file():
+            try:
+                validate_ledger(read_ledger(ledger_path), result)
+            except ContractError:
+                if not args.archive_existing_ledger:
+                    raise
+                archived_ledgers = archive_ledger(ledger_path)
+        route_path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write_json(route_path, result)
+        if not ledger_path.is_file():
+            initialize_ledger(ledger_path, result)
+    if manifest_path is not None:
+        for archived in archived_ledgers:
+            record_artifact(
+                manifest_path,
+                archived,
+                kind="attempt-ledger-archive",
+                stage="routed",
+            )
+        config_id = record_artifact(manifest_path, args.config, kind="provider-config", stage="routed")
+        capabilities_id = record_artifact(
+            manifest_path, args.capabilities, kind="capability-report", stage="routed"
+        )
+        task_id = record_artifact(manifest_path, args.task, kind="video-task", stage="routed")
+        record_artifact(
+            manifest_path,
+            route_path,
+            kind="provider-route",
+            stage="routed",
+            dependencies=[config_id, capabilities_id, task_id],
+        )
     print(json.dumps(result, ensure_ascii=False))
     return 0
 

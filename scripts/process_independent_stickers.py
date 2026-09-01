@@ -14,7 +14,7 @@ from PIL import Image
 
 from animation_export import encode_gif_images, encode_webp_images
 from keyframe_fallback import add_motion_margin, transformed, transparent_tile
-from output_safety import prepare_output, validate_output_boundaries
+from output_safety import begin_output_transaction
 
 
 def natural_key(path: Path) -> list[tuple[int, object]]:
@@ -40,8 +40,10 @@ def main() -> int:
     )
     if not 1 <= len(sources) <= 48:
         raise ValueError("input_dir must contain between 1 and 48 static stickers")
-    args.output = validate_output_boundaries(args.output, [source_dir])
-    prepare_output(args.output, overwrite=args.overwrite)
+    output_transaction = begin_output_transaction(
+        args.output, overwrite=args.overwrite, protected_paths=[source_dir]
+    )
+    args.output = output_transaction.output
     frame_count = max(2, round(args.fps * args.duration))
     outputs: list[str] = []
     cells: list[dict] = []
@@ -74,6 +76,7 @@ def main() -> int:
     with zipfile.ZipFile(args.output / "sticker-pack.zip", "w", zipfile.ZIP_DEFLATED) as bundle:
         for name in outputs + ["layout.json", "processing.json"]:
             bundle.write(args.output / name, arcname=name)
+    output_transaction.commit()
     print(json.dumps(report, ensure_ascii=False))
     return 0
 

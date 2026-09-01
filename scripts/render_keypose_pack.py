@@ -14,7 +14,7 @@ from PIL import Image
 
 from animation_export import encode_gif_images, encode_webp_images
 from keyframe_fallback import transparent_tile
-from output_safety import prepare_output, validate_output_boundaries
+from output_safety import begin_output_transaction
 from process_emoji_grid import load_layout
 from manage_job_state import read_state, verify_state
 
@@ -68,10 +68,12 @@ def main() -> int:
         raise ValueError(
             f"keypose directory has {len(sticker_dirs)} stickers; detected layout requires {layout['count']}"
         )
-    args.output = validate_output_boundaries(
-        args.output, [args.keyposes, args.image, args.layout, args.state]
+    output_transaction = begin_output_transaction(
+        args.output,
+        overwrite=args.overwrite,
+        protected_paths=[args.keyposes, args.image, args.layout, args.state],
     )
-    prepare_output(args.output, overwrite=args.overwrite)
+    args.output = output_transaction.output
     outputs: list[str] = []
     cells: list[dict] = []
     digits = max(2, len(str(len(sticker_dirs))))
@@ -139,6 +141,7 @@ def main() -> int:
     with zipfile.ZipFile(args.output / "sticker-pack.zip", "w", zipfile.ZIP_DEFLATED) as bundle:
         for name in outputs + ["layout.json", "processing.json"]:
             bundle.write(args.output / name, arcname=name)
+    output_transaction.commit()
     print(json.dumps(report, ensure_ascii=False))
     return 0
 

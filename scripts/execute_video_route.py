@@ -11,6 +11,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from artifact_manifest import record_artifact
+from attempt_ledger import atomic_write_json, claim_attempt, finish_attempt, progress_path_for
 from config_contract import (
     ContractError,
     object_sha256,
@@ -81,7 +83,69 @@ def write_rejected_result(output: Path, result: dict, error: Exception) -> None:
     write_result(output, result)
 
 
-def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Path, attempt: int) -> None:
+def record_execution_artifacts(
+    task: dict,
+    config_path: Path,
+    task_path: Path,
+    ledger: Path,
+    output: Path,
+    generated: Path | None,
+    *,
+    stage: str,
+) -> None:
+    manifest_value = task.get("artifact_manifest_file")
+    if not isinstance(manifest_value, str):
+        return
+    manifest_path = Path(manifest_value).expanduser().resolve()
+    config_id = record_artifact(manifest_path, config_path, kind="provider-config", stage=stage)
+    task_id = record_artifact(manifest_path, task_path, kind="video-task", stage=stage)
+    dependencies = [config_id, task_id]
+    if generated is not None and generated.is_file():
+        generated_id = record_artifact(
+            manifest_path,
+            generated,
+            kind="generated-video",
+            stage=stage,
+            dependencies=dependencies,
+        )
+        dependencies = [generated_id]
+    if output.is_file():
+        result_id = record_artifact(
+            manifest_path,
+            output,
+            kind="provider-result",
+            stage=stage,
+            dependencies=dependencies,
+        )
+        dependencies = [result_id]
+    ledger_value = read_json_object(ledger)
+    ledger_snapshot = ledger.with_name(
+        f"{ledger.stem}.snapshot-{object_sha256(ledger_value)[:16]}{ledger.suffix}"
+    )
+    if ledger_snapshot.is_file():
+        if object_sha256(read_json_object(ledger_snapshot)) != object_sha256(ledger_value):
+            raise ContractError(f"attempt ledger snapshot collision: {ledger_snapshot}")
+    else:
+        atomic_write_json(ledger_snapshot, ledger_value)
+    record_artifact(
+        manifest_path,
+        ledger_snapshot,
+        kind="attempt-ledger",
+        stage=stage,
+        dependencies=dependencies,
+    )
+
+
+def execute_attempt(
+    config_path: Path,
+    task_path: Path,
+    route: dict,
+    output: Path,
+    attempt: int,
+    *,
+    ledger_path: Path | None = None,
+    resume: bool = False,
+) -> dict:
     attempts = route.get("attempts", [])
     if not isinstance(attempts, list) or not 1 <= attempt <= len(attempts):
         raise ContractError(f"attempt must be between 1 and {len(attempts)}")
@@ -127,6 +191,36 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
     if not isinstance(prompt_data.get("grid_video_prompt"), str) or not prompt_data["grid_video_prompt"].strip():
         raise ContractError("prompt file is missing grid_video_prompt")
     provider = provider_by_id(config, selected["id"])
+    if provider["driver"] == "native-tool":
+        raise ContractError("native-tool routes must be invoked by the host Agent, not this subprocess executor")
+    ledger = (
+        ledger_path
+        or Path(task.get("attempt_ledger_file") or task_path.resolve().parent / "attempt-ledger.json")
+    ).expanduser().resolve()
+    result_path = output.expanduser().resolve()
+    protected_results = {
+        config_path.expanduser().resolve(),
+        task_path.expanduser().resolve(),
+        ledger,
+    }
+    for field in (
+        "input_image",
+        "layout_file",
+        "prompt_file",
+        "approval_file",
+        "production_settings_file",
+        "artifact_manifest_file",
+    ):
+        value = task.get(field)
+        if isinstance(value, str):
+            protected_results.add(Path(value).expanduser().resolve())
+    if result_path in protected_results:
+        raise ContractError("result output must not overwrite task inputs, ledger, or artifact manifest")
+    output = result_path
+    claim = claim_attempt(ledger, route, attempt, output, resume=resume)
+    if claim["idempotent"]:
+        return {"idempotent": True, "ledger": str(ledger), "attempt": attempt}
+    progress_path = progress_path_for(ledger, attempt)
     if provider["driver"] == "ai-sdk":
         command = [
             "node", str(GATEWAY), "--config", str(config_path.resolve()), "--task", str(task_path.resolve()),
@@ -136,11 +230,26 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
         command = list(provider.get("command") or provider.get("adapter_command") or [])
         command += ["--task", str(task_path.resolve()), "--output", str(output.resolve())]
         if provider["id"] == "xai-direct":
-            command += ["--config", str(config_path.resolve()), "--provider-id", provider["id"]]
+            command += [
+                "--config", str(config_path.resolve()),
+                "--provider-id", provider["id"],
+                "--progress", str(progress_path),
+            ]
     else:
-        raise ContractError("native-tool routes must be invoked by the host Agent, not this subprocess executor")
+        raise ContractError("selected provider driver is not executable by this subprocess executor")
     output.parent.mkdir(parents=True, exist_ok=True)
+    if output.exists() and resume:
+        try:
+            prior_result = read_json_object(output)
+        except ContractError:
+            prior_result = {}
+        if prior_result.get("status") == "failed" and prior_result.get("request_id") == claim["resume_request_id"]:
+            output.unlink()
     if output.exists():
+        finish_attempt(
+            ledger, route, attempt, "uncertain",
+            error=f"result path already existed before adapter execution: {output}",
+        )
         raise FileExistsError(f"result file already exists: {output}")
     child_env = child_environment(provider)
     timeout = float(task.get("timeout_seconds", 900)) + 30
@@ -154,6 +263,10 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
             timeout=timeout,
         )
     except subprocess.TimeoutExpired as exc:
+        finish_attempt(
+            ledger, route, attempt, "uncertain",
+            error=f"video adapter exceeded its {timeout:g}-second execution limit",
+        )
         raise ContractError(f"video adapter exceeded its {timeout:g}-second execution limit") from exc
     if completed.returncode:
         detail = ""
@@ -167,10 +280,36 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
                 pass
         if not detail:
             detail = diagnostic_tail(completed.stderr) or diagnostic_tail(completed.stdout) or "no diagnostic output"
+        request_id = None
+        if output.is_file():
+            try:
+                request_id = read_json_object(output).get("request_id")
+            except ContractError:
+                pass
+        progress = read_json_object(progress_path) if progress_path.is_file() else {}
+        ambiguous_request = bool(
+            progress.get("request_id") and progress.get("status") not in {"failed", "succeeded"}
+        )
+        attempt_status = "uncertain" if ambiguous_request else "failed"
+        finish_attempt(
+            ledger,
+            route,
+            attempt,
+            attempt_status,
+            result_path=output if output.is_file() else None,
+            error=detail,
+            request_id=request_id if isinstance(request_id, str) else None,
+        )
+        if attempt_status == "failed":
+            record_execution_artifacts(
+                task, config_path, task_path, ledger, output, None, stage="failed"
+            )
         raise ContractError(f"video adapter failed with exit code {completed.returncode}: {detail}")
     if not output.is_file():
         detail = diagnostic_tail(completed.stderr) or diagnostic_tail(completed.stdout) or "no diagnostic output"
+        finish_attempt(ledger, route, attempt, "uncertain", error=detail)
         raise ContractError(f"video adapter exited without writing its result file: {detail}")
+    generated: Path | None = None
     result: dict | None = None
     try:
         result = read_json_object(output)
@@ -184,24 +323,17 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
         try:
             alpha_qc = probe_video_alpha(generated)
         except ContractError as exc:
-            raise ContractError(
-                f"generated video was rejected before post-processing: {exc}"
-            ) from exc
+            raise ContractError(f"generated video was rejected before post-processing: {exc}") from exc
         result["alpha_qc"] = alpha_qc
         result["has_alpha"] = alpha_qc["has_meaningful_alpha"]
         if task.get("require_alpha") and not result["has_alpha"] and not task.get("allow_key_background"):
             raise ContractError("generated video is opaque but the task requires alpha and disallows key matting")
         if task.get("allow_key_background") and not result["has_alpha"]:
             key_color = str(task.get("key_color") or "#00FF00").upper()
-            try:
-                background_qc = validate_video_background(generated, key_color)
-                grid_safety_qc = validate_video_grid_safety(
-                    generated, key_color, layout, fail_on_crossing=False
-                )
-            except ContractError as exc:
-                raise ContractError(
-                    f"generated video was rejected before post-processing: {exc}"
-                ) from exc
+            background_qc = validate_video_background(generated, key_color)
+            grid_safety_qc = validate_video_grid_safety(
+                generated, key_color, layout, fail_on_crossing=False
+            )
             result["background_qc"] = background_qc
             result["grid_safety_qc"] = grid_safety_qc
         result["executor_status"] = "accepted"
@@ -210,7 +342,32 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
     except Exception as exc:
         if result is not None:
             write_rejected_result(output, result, exc)
+        finish_attempt(
+            ledger,
+            route,
+            attempt,
+            "rejected",
+            result_path=output if output.is_file() else None,
+            generated_path=generated if generated and generated.is_file() else None,
+            error=str(exc),
+        )
+        record_execution_artifacts(
+            task, config_path, task_path, ledger, output, generated, stage="rejected"
+        )
         raise
+    finish_attempt(
+        ledger,
+        route,
+        attempt,
+        "succeeded",
+        result_path=output,
+        generated_path=generated,
+        request_id=result.get("request_id") if isinstance(result.get("request_id"), str) else None,
+    )
+    record_execution_artifacts(
+        task, config_path, task_path, ledger, output, generated, stage="executed"
+    )
+    return {"idempotent": False, "ledger": str(ledger), "attempt": attempt}
 
 
 def main() -> int:
@@ -219,10 +376,20 @@ def main() -> int:
     parser.add_argument("--task", type=Path, required=True)
     parser.add_argument("--route", type=Path, required=True)
     parser.add_argument("--attempt", type=int, default=1)
+    parser.add_argument("--ledger", type=Path)
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    execute_attempt(args.config, args.task, read_json_object(args.route), args.output, args.attempt)
-    print(json.dumps({"result": str(args.output.resolve()), "attempt": args.attempt}, ensure_ascii=False))
+    execution = execute_attempt(
+        args.config,
+        args.task,
+        read_json_object(args.route),
+        args.output,
+        args.attempt,
+        ledger_path=args.ledger,
+        resume=args.resume,
+    )
+    print(json.dumps({"result": str(args.output.resolve()), **execution}, ensure_ascii=False))
     return 0
 
 

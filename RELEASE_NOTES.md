@@ -1,3 +1,41 @@
+# Motion Sticker Pack v0.3.0
+
+发布日期：2026-08-30；xAI 实测与修复补充：2026-09-01
+
+v0.3.0 把“避免重复付费”和“失败不污染交付”从约定提升为运行时合同，并为整条生成链补上可验证的制品谱系。
+
+## 主要更新
+
+- 新增 `attempt-ledger.json`：route 中每个 attempt 都有 `planned → running → terminal/uncertain` 的追加式迁移历史。已失败、已拒绝或状态不明的 attempt 不允许静默重放。
+- xAI 直连在 POST 返回后立即原子写入请求 ID。超时、进程退出或轮询网络错误保留为 `uncertain`；`execute_video_route.py --resume` 只继续同一远端请求。
+- xAI 下载完成后同时记录视频路径、SHA-256 与大小。若结果报告写入前中断，恢复时只复用哈希匹配的已下载文件。
+- 主要媒体与交付脚本改用输出事务：旧目录先移入同级备份，运行异常自动回滚；死亡进程留下的 journal 会在下一次运行中恢复，活动进程之间不会互相接管。
+- 新增 `artifact-manifest.json`，记录静态图、layout、prompt、审批、配置、route、源视频、处理结果之间的 SHA-256 依赖；修改后的同路径文件会生成新修订，当前修订可复核。
+- route 新增不触发外部请求的执行前预检，明确计费 attempt、是否需要授权、xAI 恢复能力、阻断原因以及远端配额/服务健康未知边界。
+- `assemble_delivery.py` 会把 Attempt Ledger 与 Artifact Manifest 一并收入最终审计交付；`process_emoji_grid.py --manifest` 可登记处理产物。
+- xAI 色键任务在上传前把透明输入确定性铺为精确 `#00FF00`，清除 Alpha≤8 的近透明噪声，并在提示词中重复逐帧色键硬合同。
+- Provider 成功但本地 QC 拒绝时，结果文件同步进入 `rejected`；终态 ledger 以不可变内容寻址快照写入 Manifest，后续 attempt 不会使旧谱系失效。
+- Artifact ID 加入路径摘要，试产与全量目录中同名同内容的贴纸不会再触发伪碰撞。
+
+## 兼容与升级
+
+- `video-task.json` 可新增绝对路径字段 `attempt_ledger_file` 与 `artifact_manifest_file`；`prepare_workflow.py` 会自动写入。
+- 旧脚本调用仍可不传 manifest；新的 route CLI 默认在 `route.json` 同目录建立 Attempt Ledger。
+- 同一 route 重新执行已完成 attempt 会校验结果哈希后幂等返回；失败 attempt 应显式选择下一编号，只有 xAI 的 `submitted/uncertain` 状态支持 `--resume`。
+- 审批输入确实变更并需要新 route 时，使用 `route_video_provider.py --archive-existing-ledger`；旧 ledger 与 progress 只会改名归档，不会被重置或删除。
+
+## 验证
+
+- Python：142 项测试通过。
+- Node：14 项测试通过。
+- `npm audit`：0 个已知漏洞。
+- 覆盖死亡进程恢复、输出回滚、重复计费阻断、xAI 请求恢复、制品篡改检出、跨目录同名制品和原有媒体集成链路。
+- 已在用户明确授权后执行一次新的 `xai-direct` 付费 attempt，没有自动重试。返回 3.041667 秒、960×960、73 个原生帧的视频，背景硬 QC、Attempt Ledger 和 46 项 Artifact Manifest 验证均通过。
+- 本次随机生成的完整后处理结果为 7/9：04、07 因 `encoded alpha coverage flickers across frames` 被 withheld，其他 7 格及失败报告正常交付。这是质量门按设计工作，不代表另一次生成必然得到相同结果。
+- 实测响应头报告 `zero_data_retention: false`；价格、配额、服务健康和留存仍以实际账户策略为准。
+
+---
+
 # Motion Sticker Pack v0.2.1
 
 发布日期：2026-08-30；xAI 实测与修复补充：2026-09-01

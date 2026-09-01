@@ -168,6 +168,9 @@ class PromptAndRouterTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in result["attempts"]], ["low-priority-first", "high-priority-fallback"])
         self.assertEqual(result["attempts"][1]["execution"]["duration_seconds"], 6)
         self.assertEqual(result["selection_reason"], "task-provider-chain")
+        self.assertTrue(result["preflight"]["charge_authorization_required"])
+        self.assertEqual(result["preflight"]["billable_external_attempts"], [1, 2])
+        self.assertFalse(result["preflight"]["resume_support"]["1"])
 
     def test_missing_alpha_can_use_local_matting(self) -> None:
         provider_config = config()

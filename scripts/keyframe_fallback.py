@@ -16,7 +16,7 @@ from PIL import ImageOps
 
 from animation_export import encode_gif_images, encode_webp_images
 from process_emoji_grid import load_layout, median_background, remove_edge_background, tile_bounds
-from output_safety import prepare_output, validate_output_boundaries
+from output_safety import begin_output_transaction
 from manage_job_state import read_state, verify_state
 
 
@@ -93,7 +93,12 @@ def main() -> int:
     verify_state(read_state(args.state), args.image, args.layout)
     layout = load_layout(args.layout, args.allow_low_confidence)
     columns, rows, count = layout["columns"], layout["rows"], layout["count"]
-    args.output = validate_output_boundaries(args.output, [args.image, args.layout, args.state])
+    output_transaction = begin_output_transaction(
+        args.output,
+        overwrite=args.overwrite,
+        protected_paths=[args.image, args.layout, args.state],
+    )
+    args.output = output_transaction.output
     with Image.open(args.image) as source:
         if source.width * source.height > 64_000_000:
             raise ValueError("input image exceeds the 64 megapixel safety limit")
@@ -101,7 +106,6 @@ def main() -> int:
     height, width, _ = rgba.shape
     frame_count = max(2, round(args.fps * args.duration))
     digits = max(2, len(str(count)))
-    prepare_output(args.output, overwrite=args.overwrite)
     outputs: list[str] = []
     cell_reports = []
 
@@ -159,6 +163,7 @@ def main() -> int:
     with zipfile.ZipFile(args.output / "sticker-pack.zip", "w", zipfile.ZIP_DEFLATED) as bundle:
         for name in outputs + ["layout.json", "processing.json"]:
             bundle.write(args.output / name, arcname=name)
+    output_transaction.commit()
     print(json.dumps(report, ensure_ascii=False))
     return 0
 

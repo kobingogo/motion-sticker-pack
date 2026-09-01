@@ -18,6 +18,8 @@ works/
 │   ├── video-task.json
 │   ├── capabilities.json
 │   ├── route.json
+│   ├── attempt-ledger.json
+│   ├── artifact-manifest.json
 │   ├── raw-video/
 │   └── output/
 └── Elon-Musk/

@@ -50,6 +50,10 @@ class WorkflowToolTests(unittest.TestCase):
                 {"grok-build-local": 6, "xai-direct": 3},
             )
             self.assertTrue(Path(task["production_settings_file"]).is_file())
+            self.assertEqual(Path(task["attempt_ledger_file"]), (work / "attempt-ledger.json").resolve())
+            self.assertEqual(Path(task["artifact_manifest_file"]), (work / "artifact-manifest.json").resolve())
+            manifest = json.loads((work / "artifact-manifest.json").read_text())
+            self.assertGreaterEqual(len(manifest["artifacts"]), 8)
             self.assertEqual(task["max_retries"], 0)
             self.assertEqual(task["min_guard_fraction"], 0.10)
             self.assertTrue((work / "video-providers.json").is_file())
@@ -61,6 +65,35 @@ class WorkflowToolTests(unittest.TestCase):
                 if item.get("id") in {"grok-build-local", "xai-direct"}
             ]
             self.assertEqual(python_commands, [PYTHON, PYTHON])
+            capabilities = work / "capabilities.json"
+            capabilities.write_text(
+                json.dumps({"version": 1, "providers": [], "local_processing": {}}),
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [
+                    PYTHON,
+                    str(ROOT / "scripts" / "route_video_provider.py"),
+                    "--config",
+                    str(work / "video-providers.json"),
+                    "--capabilities",
+                    str(capabilities),
+                    "--task",
+                    str(work / "video-task.json"),
+                    "--output",
+                    str(work / "route.json"),
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
+            self.assertTrue((work / "attempt-ledger.json").is_file())
+            self.assertIn("preflight", json.loads((work / "route.json").read_text()))
+            routed_manifest = json.loads((work / "artifact-manifest.json").read_text())
+            routed_kinds = {
+                item["kind"] for item in routed_manifest["artifacts"] if item.get("current", True)
+            }
+            self.assertIn("provider-route", routed_kinds)
+            self.assertNotIn("attempt-ledger", routed_kinds)
 
     def test_prepare_workflow_can_select_xai_and_order_a_grok_fallback_per_task(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -161,6 +194,8 @@ class WorkflowToolTests(unittest.TestCase):
                 "static-prompt.json",
                 "static-generation.json",
                 "static-alpha.json",
+                "artifact-manifest.json",
+                "attempt-ledger.json",
             ):
                 (audit / name).write_text("{}")
             output = root / "delivered"
@@ -178,6 +213,8 @@ class WorkflowToolTests(unittest.TestCase):
                         "static-prompt.json",
                         "static-generation.json",
                         "static-alpha.json",
+                        "artifact-manifest.json",
+                        "attempt-ledger.json",
                         "3s/01.gif",
                         "3s/processing.json",
                     }.issubset(bundle.namelist())

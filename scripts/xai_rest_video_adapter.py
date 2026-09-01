@@ -18,6 +18,7 @@ from typing import Any
 
 from PIL import Image
 
+from attempt_ledger import atomic_write_json, file_sha256, utc_now
 from config_contract import ContractError, read_json_object, validate_provider_config
 from sticker_production_config import default_settings_path, load_production_settings
 from video_adapter_common import (
@@ -137,12 +138,38 @@ def status_name(value: dict[str, Any]) -> str:
     return status.lower() if isinstance(status, str) else ""
 
 
+def read_progress(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.is_file():
+        return {}
+    value = read_json_object(path)
+    if value.get("version") != 1 or value.get("provider") != PROVIDER_ID:
+        raise ContractError("xAI progress file does not match this adapter")
+    return value
+
+
+def write_progress(path: Path | None, status: str, request_id: str, **details: Any) -> None:
+    if path is None:
+        return
+    atomic_write_json(
+        path,
+        {
+            "version": 1,
+            "provider": PROVIDER_ID,
+            "status": status,
+            "request_id": request_id,
+            "updated_at": utc_now(),
+            **details,
+        },
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--provider-id", default=PROVIDER_ID)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--progress", type=Path)
     args = parser.parse_args()
     request_id: str | None = None
     try:
@@ -183,7 +210,8 @@ def main() -> int:
             if not upload_url.startswith("https://"):
                 raise ContractError("XAI_VIDEO_UPLOAD_URL must use HTTPS")
             body["output"] = {"upload_url": upload_url}
-        resume_request_id = os.environ.get("XAI_VIDEO_REQUEST_ID")
+        progress = read_progress(args.progress)
+        resume_request_id = progress.get("request_id") or os.environ.get("XAI_VIDEO_REQUEST_ID")
         headers: dict[str, str] = {}
         if resume_request_id:
             request_id = resume_request_id.strip()
@@ -198,6 +226,7 @@ def main() -> int:
                 body=body,
             )
             request_id = request_id_from(submitted)
+        write_progress(args.progress, "submitted", request_id)
         deadline = time.monotonic() + float(task.get("timeout_seconds", 900))
         state = submitted
         consecutive_poll_errors = 0
@@ -218,18 +247,28 @@ def main() -> int:
             detail = state.get("error") or state.get("message") or status_name(state)
             if isinstance(detail, dict):
                 detail = detail.get("message") or json.dumps(detail, ensure_ascii=False)
+            write_progress(args.progress, "failed", request_id)
             raise ContractError(f"xAI video request {request_id} {status_name(state)}: {detail}")
+        write_progress(args.progress, "provider-completed", request_id)
 
         output_dir = Path(task["output_directory"]).resolve()
         target = output_dir / "xai-direct.mp4"
-        if target.exists():
-            raise ContractError(f"refusing to overwrite existing video: {target}")
+        completed_output = progress.get("output")
+        completed_sha256 = progress.get("output_sha256")
+        if target.exists() and not (
+            progress.get("status") in {"downloaded", "succeeded"}
+            and completed_output == str(target)
+            and completed_sha256 == file_sha256(target)
+        ):
+            raise ContractError(f"refusing to overwrite unverified existing video: {target}")
         max_bytes = int(task.get("max_output_bytes", 200 * 1024 * 1024))
         video_data = state.get("video") if isinstance(state.get("video"), dict) else {}
         remote_url = video_data.get("url") or state.get("url")
         local_upload = os.environ.get("XAI_VIDEO_LOCAL_OUTPUT_PATH")
         download_url = os.environ.get("XAI_VIDEO_DOWNLOAD_URL")
-        if local_upload and Path(local_upload).expanduser().is_file():
+        if target.exists():
+            video = target
+        elif local_upload and Path(local_upload).expanduser().is_file():
             video = copy_video(Path(local_upload).expanduser(), target, max_bytes)
         elif isinstance(remote_url, str) and remote_url.startswith(("https://", "http://")):
             video = download_video(remote_url, target, max_bytes)
@@ -245,6 +284,14 @@ def main() -> int:
                 "xAI completed without a retrievable video URL; for ZDR set both "
                 "XAI_VIDEO_UPLOAD_URL and XAI_VIDEO_LOCAL_OUTPUT_PATH (or XAI_VIDEO_DOWNLOAD_URL)"
             )
+        write_progress(
+            args.progress,
+            "downloaded",
+            request_id,
+            output=str(video),
+            output_sha256=file_sha256(video),
+            output_bytes=video.stat().st_size,
+        )
         write_result(
             args.output,
             {
@@ -262,6 +309,14 @@ def main() -> int:
             },
         )
         print(json.dumps({"status": "succeeded", "request_id": request_id, "output": str(video)}, ensure_ascii=False))
+        write_progress(
+            args.progress,
+            "succeeded",
+            request_id,
+            output=str(video),
+            output_sha256=file_sha256(video),
+            output_bytes=video.stat().st_size,
+        )
         return 0
     except (ContractError, OSError, ValueError) as exc:
         message = str(exc)

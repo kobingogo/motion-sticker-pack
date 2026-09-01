@@ -59,6 +59,8 @@
     "approval_file": {"type": "string", "minLength": 1},
     "output_directory": {"type": "string", "minLength": 1},
     "production_settings_file": {"type": "string", "minLength": 1},
+    "attempt_ledger_file": {"type": "string", "minLength": 1},
+    "artifact_manifest_file": {"type": "string", "minLength": 1},
     "duration_seconds": {"type": "number", "minimum": 1, "maximum": 30},
     "provider_duration_seconds": {
       "type": "object",

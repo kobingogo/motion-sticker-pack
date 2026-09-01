@@ -12,14 +12,23 @@
 $motion-sticker-pack
 ```
 
+## v0.3.0 更新
+
+- **付费调用幂等**：每条 route 自动生成 `attempt-ledger.json`；同一 attempt 只允许提交一次，进程中断后默认标记为 `uncertain`，禁止静默重放。
+- **xAI 原请求恢复**：提交成功立即原子记录 `request_id`；仅显式 `--resume` 可继续轮询同一请求，不重新发起计费生成。
+- **事务化输出**：主要输出链路先建立恢复日志与旧目录备份，成功后提交；异常或死亡进程由下一次运行恢复，避免半成品覆盖成品。
+- **制品哈希谱系**：`artifact-manifest.json` 记录静图、审批、提示词、route、源视频和交付文件的 SHA-256 依赖链，可检测当前制品被替换或篡改。
+- **执行前预检**：route 报告明确选中 Provider、可能计费的 attempt、恢复能力、阻断原因以及“远端配额/健康仍未知”的边界。
+- **xAI 色键闭环**：透明输入会在本地确定性铺成精确 `#00FF00`，近透明噪声归零，并把同一逐帧色键合同追加到提示词，避免透明区域被远端压成黑底。
+- **终态审计一致**：本地 QC 拒绝会同步回写 Provider 结果；live ledger 不再在路由阶段写入清单，终态改用不可变内容寻址快照。
+- **跨目录制品消歧**：Artifact ID 同时绑定内容与绝对路径，试产和全量目录中的同名同内容文件不会再误报碰撞。
+
 ## v0.2.1 更新
 
 - **任务级视频源**：`prepare_workflow.py --provider xai-direct` 可把 xAI 设为当前任务首选，不再要求修改全局默认配置；`--fallback-provider` 可重复声明有序兜底链。
 - **参数单一来源**：每个 Provider 的 model 来自 `video-providers.json`，时长与分辨率来自任务快照；环境变量只保留凭证或带敏感信息的 ZDR 传输参数。
 - **路由闭环**：route 同时绑定静图、layout、prompt、审批状态和生产配置哈希；任一依赖发生变化，都必须重新路由。
 - **媒体实检**：外部适配器返回后统一用 FFmpeg 解码并检测真实 Alpha，不再相信扩展名或适配器自报字段；opaque 结果才进入色键质检。
-- **xAI 色键闭环**：透明输入会在本地确定性铺成任务指定的 `#00FF00`，近透明噪声归零，并把同一色键硬约束追加到 xAI 提示词，避免透明区域被远端压成黑底。
-- **QC 状态一致**：Provider 虽返回成功、但本地背景或网格 QC 拒绝时，`video-result.json` 会同步写成 `rejected`，不再留下互相矛盾的成功状态。
 - **防误删与布局一致性**：所有主要输出链路拒绝与输入重叠，`--overwrite` 不再可能删除源素材；非 3×3 布局不再混入“九宫格/九格”提示。
 
 ## v0.2.0 更新
@@ -36,14 +45,14 @@ $motion-sticker-pack
 
 > 下面是仓库内的真实输出预览。GIF 会自动循环播放；点击图片可打开原文件。每组展示 3 个精选动作，完整案例目录同时保留 GIF、WebP 和 PNG 三种格式。
 
-<p align="center"><strong>🐈‍⬛ 黑猫 · xAI Direct 真实付费链路（2026-09-01）</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
+<p align="center"><strong>🐈‍⬛ 黑猫 · xAI Direct 最新完整验证案例（2026-09-01）</strong> · <a href="examples/black-cat/">查看完整 9 格案例 →</a></p>
 <p align="center"><a href="examples/black-cat/preview.png"><img src="examples/black-cat/preview.png" width="720" loading="lazy" alt="最新黑猫动态表情包完整预览"></a></p>
 <p align="center">
   <a href="examples/black-cat/01.gif"><img src="examples/black-cat/01.gif" height="150" loading="lazy" alt="黑猫动态贴纸：开心"></a>
   <a href="examples/black-cat/02.gif"><img src="examples/black-cat/02.gif" height="150" loading="lazy" alt="黑猫动态贴纸：爱心"></a>
   <a href="examples/black-cat/03.gif"><img src="examples/black-cat/03.gif" height="150" loading="lazy" alt="黑猫动态贴纸：哭泣"></a>
 </p>
-<p align="center"><sub>3.04 秒、960×960 源视频；73 个原生帧通过色键 QC；9/9 单元导出为透明 PNG、Animated WebP 与 GIF。</sub></p>
+<p align="center"><sub>完整案例来自同日 9/9 通过的 xAI 实测；v0.3 对抗性复测另有 7/9 通过，04、07 因 Alpha 覆盖闪烁被安全 withheld。</sub></p>
 
 <p align="center"><strong>👶 宝宝 · 萌系角色</strong> · <a href="examples/child/">查看完整案例 →</a></p>
 <p align="center">
@@ -466,6 +475,8 @@ Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `
 - [`assets/video-task.example.json`](assets/video-task.example.json)
 - [`references/video-providers.schema.json`](references/video-providers.schema.json)
 - [`references/video-task.schema.json`](references/video-task.schema.json)
+- [`references/attempt-ledger.schema.json`](references/attempt-ledger.schema.json)
+- [`references/artifact-manifest.schema.json`](references/artifact-manifest.schema.json)
 - [`references/runtime-routing.md`](references/runtime-routing.md)
 
 自定义中转站请写 `command` Adapter，接收 `--task` / `--output` 两个绝对路径，并归一化结果 JSON。Skill 不会假装只改一个 `baseURL` 就能兼容所有中转站。
@@ -475,8 +486,8 @@ Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `
 ## 隐私、费用与凭证
 
 - 要求完全本地时，在请求里写明「不要调用外部 API」
-- 外部视频模型会上传参考图和提示词，可能计费；失败重试也可能计费
-- 默认限制尝试次数，不会无限重试
+- 外部视频模型会上传参考图和提示词，可能计费；改走下一条 route attempt 也可能再次计费
+- 同一计费 attempt 不自动重放；状态不明时必须显式恢复原请求或改用下一条 route
 - 配置文件只保存环境变量名；子进程只继承基础运行变量和当前 Provider 声明的凭证变量
 - 密钥不得进入提示词、报告、命令行或 Git
 - Grok `/privacy` Opt in 与团队 ZDR 是账户级策略，见上一节
@@ -485,6 +496,8 @@ Gateway 会把声明的凭证显式传给 SDK，因此 Alibaba 官方常用的 `
 
 ```text
 works/<character-slug>/
+├── attempt-ledger.json          # 付费尝试状态与不可变迁移历史
+├── artifact-manifest.json       # 制品哈希与依赖谱系
 ├── raw-video/
 │   └── <provider>.mp4           # 唯一被接受的规范源视频
 └── delivered/
@@ -496,6 +509,8 @@ works/<character-slug>/
     ├── job-state.json           # 发生静态审批时
     ├── prompts.json             # 发生生成时
     ├── route.json               # 发生路由时
+    ├── attempt-ledger.json
+    ├── artifact-manifest.json
     ├── processing.json
     └── sticker-pack.zip
 ```
@@ -505,6 +520,7 @@ works/<character-slug>/
 - `.png`：第一帧透明 PNG
 - `layout.json`：实际检测布局
 - `job-state.json` / `prompts.json` / `route.json`：审批、提示词与路由审计；由 `assemble_delivery.py` 拷入最终目录和 ZIP
+- `attempt-ledger.json` / `artifact-manifest.json`：计费尝试状态与 SHA-256 制品谱系
 - `processing.json`：尺寸、帧率、Alpha、越界、静止段位移和循环质量
 
 `output/` 只作为编码中间目录。`assemble_delivery.py --cleanup-media-dir` 在最终 ZIP 成功后删除它，因此正常交付只留下 `delivered/`。被接受的 Grok attempt 会直接提升为规范文件名，不再复制出一份字节相同的视频；失败 attempt 仍可保留用于排错。
