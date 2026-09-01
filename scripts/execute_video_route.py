@@ -19,6 +19,7 @@ from config_contract import (
     validate_video_task,
 )
 from manage_job_state import read_state, verify_state
+from video_adapter_common import write_result
 from video_background_qc import probe_video_alpha, validate_video_background, validate_video_grid_safety
 
 
@@ -70,6 +71,14 @@ def provider_by_id(config: dict, provider_id: str) -> dict:
     if len(matches) != 1:
         raise ContractError(f"provider {provider_id!r} does not exist exactly once")
     return matches[0]
+
+
+def write_rejected_result(output: Path, result: dict, error: Exception) -> None:
+    result["status"] = "rejected"
+    result["executor_status"] = "rejected"
+    result["qc_status"] = "rejected"
+    result["error"] = str(error)
+    write_result(output, result)
 
 
 def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Path, attempt: int) -> None:
@@ -162,36 +171,46 @@ def execute_attempt(config_path: Path, task_path: Path, route: dict, output: Pat
     if not output.is_file():
         detail = diagnostic_tail(completed.stderr) or diagnostic_tail(completed.stdout) or "no diagnostic output"
         raise ContractError(f"video adapter exited without writing its result file: {detail}")
-    result = read_json_object(output)
-    if result.get("status") != "succeeded" or not isinstance(result.get("output"), str):
-        raise ContractError("adapter result must report status=succeeded and an output path")
-    generated = Path(result["output"])
-    if not generated.is_absolute() or not generated.is_file():
-        raise ContractError("adapter output must be an existing absolute file")
-    if result.get("provider") not in (None, provider["id"]):
-        raise ContractError("adapter result provider does not match the selected route")
+    result: dict | None = None
     try:
-        alpha_qc = probe_video_alpha(generated)
-    except ContractError as exc:
-        raise ContractError(f"generated video was rejected before post-processing: {exc}") from exc
-    result["alpha_qc"] = alpha_qc
-    result["has_alpha"] = alpha_qc["has_meaningful_alpha"]
-    if task.get("require_alpha") and not result["has_alpha"] and not task.get("allow_key_background"):
-        raise ContractError("generated video is opaque but the task requires alpha and disallows key matting")
-    if task.get("allow_key_background") and not result["has_alpha"]:
-        key_color = str(task.get("key_color") or "#00FF00").upper()
+        result = read_json_object(output)
+        if result.get("status") != "succeeded" or not isinstance(result.get("output"), str):
+            raise ContractError("adapter result must report status=succeeded and an output path")
+        generated = Path(result["output"])
+        if not generated.is_absolute() or not generated.is_file():
+            raise ContractError("adapter output must be an existing absolute file")
+        if result.get("provider") not in (None, provider["id"]):
+            raise ContractError("adapter result provider does not match the selected route")
         try:
-            background_qc = validate_video_background(generated, key_color)
-            grid_safety_qc = validate_video_grid_safety(
-                generated, key_color, layout, fail_on_crossing=False
-            )
+            alpha_qc = probe_video_alpha(generated)
         except ContractError as exc:
             raise ContractError(
                 f"generated video was rejected before post-processing: {exc}"
             ) from exc
-        result["background_qc"] = background_qc
-        result["grid_safety_qc"] = grid_safety_qc
-    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        result["alpha_qc"] = alpha_qc
+        result["has_alpha"] = alpha_qc["has_meaningful_alpha"]
+        if task.get("require_alpha") and not result["has_alpha"] and not task.get("allow_key_background"):
+            raise ContractError("generated video is opaque but the task requires alpha and disallows key matting")
+        if task.get("allow_key_background") and not result["has_alpha"]:
+            key_color = str(task.get("key_color") or "#00FF00").upper()
+            try:
+                background_qc = validate_video_background(generated, key_color)
+                grid_safety_qc = validate_video_grid_safety(
+                    generated, key_color, layout, fail_on_crossing=False
+                )
+            except ContractError as exc:
+                raise ContractError(
+                    f"generated video was rejected before post-processing: {exc}"
+                ) from exc
+            result["background_qc"] = background_qc
+            result["grid_safety_qc"] = grid_safety_qc
+        result["executor_status"] = "accepted"
+        result["qc_status"] = "passed"
+        write_result(output, result)
+    except Exception as exc:
+        if result is not None:
+            write_rejected_result(output, result, exc)
+        raise
 
 
 def main() -> int:
