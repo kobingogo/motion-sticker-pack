@@ -80,3 +80,11 @@ keyposes/
 ```
 
 Then run `scripts/render_keypose_pack.py`. This gives actual pose changes but deterministic stepped timing. Optical-flow or model-based interpolation is an optional enhancement and must not be described as present when it was not run.
+
+For the validated local preparation path, first compile per-cell prompts with
+`scripts/compile_keypose_plan.py`, then run
+`scripts/prepare_keyposes.py --source-cells <cells> --pose-sheets <sheets> --output-dir <keyposes>`.
+The preparer uses the approved static cell as the exact START frame and rejects
+ambiguous backgrounds, weak 2×2 gutters, empty cells, and an action peak that
+does not materially differ from the source. See
+[references/keypose-workflow.md](keypose-workflow.md).

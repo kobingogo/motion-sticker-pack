@@ -139,7 +139,7 @@ class PromptAndRouterTests(unittest.TestCase):
         )
         result = route(provider_config, report, video_task)
         self.assertEqual(result["selected"]["id"], "native")
-        self.assertEqual(result["fallback"]["id"], "transform-local")
+        self.assertEqual(result["fallback"]["id"], "light-motion-local")
 
     def test_task_provider_chain_is_an_ordered_allow_list(self) -> None:
         provider_config = config()

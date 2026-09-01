@@ -20,6 +20,7 @@ from PIL import Image
 from animation_export import choose_gif_alpha_threshold, encode_gif_images, encode_webp_images
 from artifact_manifest import record_artifact
 from output_safety import begin_output_transaction, validate_archive_name
+from output_profile import DEFAULT_OUTPUT_FPS, DEFAULT_OUTPUT_SIZE
 from sticker_production_config import load_production_settings, match_duration_profile
 from video_background_qc import validate_frame_background
 
@@ -1200,7 +1201,7 @@ def main() -> int:
     parser.add_argument("--settings", type=Path, help="sticker-production settings JSON")
     parser.add_argument("--manifest", type=Path, help="artifact manifest to extend after output commit")
     parser.add_argument("--trial", action="store_true", help="encode only the configured trial cell")
-    parser.add_argument("--fps", type=int, default=6)
+    parser.add_argument("--fps", type=int, default=DEFAULT_OUTPUT_FPS)
     parser.add_argument("--loop-min-seconds", type=float, default=1.5)
     parser.add_argument("--loop-max-seconds", type=float, default=2.5)
     parser.add_argument(
@@ -1452,7 +1453,7 @@ def main() -> int:
                         int(duration_profile["output"]["height"]),
                     )
                     if duration_profile
-                    else (x1 - x0, y1 - y0)
+                    else (DEFAULT_OUTPUT_SIZE, DEFAULT_OUTPUT_SIZE)
                 )
                 images, canvas_report = normalize_stable_canvas(
                     selected_arrays,

@@ -4,7 +4,7 @@
   "routing": {
     "policy": "local-first",
     "max_attempts": 2,
-    "fallback": "transform-local"
+    "fallback": "light-motion-local"
   },
   "providers": [
     {

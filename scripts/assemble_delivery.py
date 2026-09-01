@@ -30,6 +30,8 @@ AUDIT_REPORTS = (
     "static-generation.json",
     "static-alpha.json",
     "video-result.json",
+    "keypose-plan.json",
+    "keypose-preparation.json",
 )
 
 

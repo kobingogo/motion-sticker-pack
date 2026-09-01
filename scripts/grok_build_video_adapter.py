@@ -20,6 +20,7 @@ from video_adapter_common import (
     copy_video,
     download_video,
     duration_for_provider,
+    key_color_for_provider,
     load_task_and_prompt,
     resolution_for_provider,
     write_result,
@@ -264,7 +265,7 @@ def main() -> int:
             task, PROVIDER_ID, default=configured_generation["resolution"]
         )
         output_dir = Path(task["output_directory"]).resolve()
-        key_color = str(task.get("key_color") or DEFAULT_KEY_COLOR).upper()
+        key_color = key_color_for_provider(task, PROVIDER_ID, default=DEFAULT_KEY_COLOR)
         if key_color != DEFAULT_KEY_COLOR:
             raise ContractError("Grok image-to-video requires the exact #00FF00 key color")
         validate_grok_input(Path(task["input_image"]), key_color)

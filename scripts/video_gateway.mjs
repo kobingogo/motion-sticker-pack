@@ -323,6 +323,15 @@ export async function execute({ configFile, taskFile, providerId, resultFile }) 
     fail('prompt_file is missing grid_video_prompt');
   }
   if (prompts.grid_video_prompt.length > 20000) fail('grid_video_prompt exceeds 20000 characters');
+  const providerInputValue = task.provider_input_images?.[providerId] ?? task.input_image;
+  const providerInput = await requireAbsoluteFile(providerInputValue, `provider_input_images.${providerId}`);
+  const keyColor = task.provider_key_colors?.[providerId] ?? task.key_color ?? '#00FF00';
+  if (typeof keyColor !== 'string' || !/^#[0-9A-Fa-f]{6}$/.test(keyColor)) {
+    fail(`provider key color for ${providerId} must use #RRGGBB`);
+  }
+  const screenPrompt = task.allow_key_background
+    ? `${prompts.grid_video_prompt}\nHard screen contract: keep every empty pixel, canvas corner, and grid gutter exactly ${keyColor.toUpperCase()} in every frame. No gradient, texture, checkerboard, shadow backdrop, or color shift.`
+    : prompts.grid_video_prompt;
   const outputDirectory = task.output_directory;
   if (typeof outputDirectory !== 'string' || !path.isAbsolute(outputDirectory) || path.parse(outputDirectory).root === outputDirectory) {
     fail('output_directory must be an absolute non-root directory');
@@ -352,7 +361,7 @@ export async function execute({ configFile, taskFile, providerId, resultFile }) 
   const providerOptionValues = { ...(providerConfig.provider_options ?? {}) };
   const options = {
     model: provider.video(providerConfig.model),
-    prompt: { image: new Uint8Array(await readFile(image)), text: prompts.grid_video_prompt },
+    prompt: { image: new Uint8Array(await readFile(providerInput)), text: screenPrompt },
     duration,
     n: 1,
     maxRetries,

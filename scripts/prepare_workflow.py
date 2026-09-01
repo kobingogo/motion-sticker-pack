@@ -16,6 +16,7 @@ from PIL import Image
 from artifact_manifest import record_artifact
 from character_workspace import character_workspace, write_character_manifest
 from config_contract import is_python_interpreter, validate_provider_config, validate_video_task
+from screen_selector import choose_screen, materialize_screen
 from sticker_production_config import default_settings_path, load_production_settings, match_duration_profile
 
 
@@ -197,12 +198,37 @@ def main() -> int:
                 f"provider {provider_id!r} duration {execution['duration_seconds']}s has no output profile"
             ) from exc
     aspect_ratio = source_aspect_ratio(args.image.expanduser().resolve())
+    automatic_screen = choose_screen(args.image.expanduser().resolve())
+    automatic_color = str(automatic_screen["selected"]["color"]).upper()
+    provider_key_colors = {
+        provider_id: (
+            "#00FF00"
+            if provider_id == "grok-build-local"
+            else (args.key_color or automatic_color).upper()
+        )
+        for provider_id in provider_chain
+    }
+    screen_selection = {
+        **automatic_screen,
+        "policy": "grok-fixed-green/non-grok-explicit-or-foreground-conflict",
+        "explicit_override": args.key_color.upper() if args.key_color else None,
+        "provider_key_colors": provider_key_colors,
+    }
+    color_targets = {
+        color: work / f"input-screen-{color[1:].lower()}.png"
+        for color in sorted(set(provider_key_colors.values()))
+    }
+    provider_input_images = {
+        provider_id: str(color_targets[color].resolve())
+        for provider_id, color in provider_key_colors.items()
+    }
     settings_snapshot = work / "sticker-production.json"
     planned_targets = [
         work / "video-providers.json",
         work / "tile-plan.json",
         settings_snapshot,
         work / "video-task.json",
+        *color_targets.values(),
     ]
     existing_targets = [path for path in planned_targets if path.exists()]
     if existing_targets and not args.overwrite:
@@ -213,13 +239,14 @@ def main() -> int:
     if not runtime_manifest.exists() or args.overwrite:
         copy_file(manifest_template.expanduser().resolve(), runtime_manifest, overwrite=args.overwrite)
     copy_file(args.tile_plan.expanduser().resolve(), work / "tile-plan.json", overwrite=args.overwrite)
+    for color, target in color_targets.items():
+        materialize_screen(args.image.expanduser().resolve(), target, color)
     effective_settings = {key: value for key, value in settings.items() if key != "_meta"}
     effective_settings["generation"] = dict(effective_settings["generation"])
     effective_settings["generation"]["provider"] = provider
     effective_settings["generation"]["provider_duration_seconds"] = provider_durations
     effective_settings["generation"]["resolution"] = provider_execution[provider]["resolution"]
-    if args.key_color:
-        effective_settings["generation"]["key_color"] = args.key_color
+    effective_settings["generation"]["key_color"] = provider_key_colors[provider]
     write_json(settings_snapshot, effective_settings, overwrite=args.overwrite)
     load_production_settings(settings_snapshot)
 
@@ -241,7 +268,10 @@ def main() -> int:
             "provider_duration_seconds": provider_durations,
             "provider_execution": provider_execution,
             "aspect_ratio": aspect_ratio,
-            "key_color": args.key_color or settings["generation"]["key_color"],
+            "key_color": provider_key_colors[provider],
+            "provider_key_colors": provider_key_colors,
+            "provider_input_images": provider_input_images,
+            "screen_selection": screen_selection,
             "production_settings_file": str(settings_snapshot.resolve()),
             "attempt_ledger_file": str((work / "attempt-ledger.json").resolve()),
             "artifact_manifest_file": str((work / "artifact-manifest.json").resolve()),
@@ -265,6 +295,16 @@ def main() -> int:
             (args.state, "approval-state"),
         )
     ]
+    screen_ids = [
+        record_artifact(
+            artifact_manifest,
+            target,
+            kind="provider-screen-input",
+            stage="prepared-input",
+            dependencies=[source_ids[0]],
+        )
+        for target in color_targets.values()
+    ]
     config_id = record_artifact(
         artifact_manifest, work / "video-providers.json", kind="provider-config", stage="prepared"
     )
@@ -279,7 +319,7 @@ def main() -> int:
         task_path,
         kind="video-task",
         stage="prepared",
-        dependencies=[*source_ids, config_id, settings_id, tile_id],
+        dependencies=[*source_ids, *screen_ids, config_id, settings_id, tile_id],
     )
     result = {
         "work_dir": str(work),
@@ -290,6 +330,8 @@ def main() -> int:
         "task": str((work / "video-task.json").resolve()),
         "attempt_ledger": str((work / "attempt-ledger.json").resolve()),
         "artifact_manifest": str(artifact_manifest.resolve()),
+        "screen_selection": screen_selection,
+        "provider_input_images": provider_input_images,
         "task_artifact_id": task_id,
     }
     manifest = work / "character.json"

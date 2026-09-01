@@ -25,6 +25,8 @@ from video_adapter_common import (
     copy_video,
     download_video,
     duration_for_provider,
+    input_image_for_provider,
+    key_color_for_provider,
     load_task_and_prompt,
     resolution_for_provider,
     write_result,
@@ -184,7 +186,7 @@ def main() -> int:
         provider_config = matches[0]
         if provider_config.get("driver") != "command" or not provider_config.get("enabled"):
             raise ContractError(f"provider {args.provider_id!r} is not an enabled command provider")
-        image = Path(task["input_image"]).resolve()
+        image = input_image_for_provider(task, args.provider_id)
         duration = duration_for_provider(task, args.provider_id, default=3)
         model = provider_config.get("model")
         if not isinstance(model, str) or not model.strip():
@@ -192,7 +194,7 @@ def main() -> int:
         settings_path = Path(task.get("production_settings_file") or default_settings_path())
         configured_resolution = load_production_settings(settings_path)["generation"]["resolution"]
         resolution = resolution_for_provider(task, args.provider_id, default=configured_resolution)
-        key_color = str(task.get("key_color") or "#00FF00").upper() if task.get("allow_key_background") else None
+        key_color = key_color_for_provider(task, args.provider_id) if task.get("allow_key_background") else None
         if key_color is not None:
             image_url, input_background_materialized = keyed_image_data_url(image, key_color)
         else:

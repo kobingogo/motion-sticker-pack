@@ -29,7 +29,7 @@ It also includes two command adapters for Grok Imagine:
 - `scripts/grok_build_video_adapter.py` launches the logged-in local Grok Build CLI and instructs its internal `image_to_video` tool exactly once. Current Grok CLI flags are `--always-approve` and `--permission-mode bypassPermissions`; `--yolo` is not portable across releases. The adapter pins `--leader-socket` under `GROK_HOME` so a parent Grok/Codex session cannot reuse another leader's config. By default it removes `XAI_API_KEY` so an ambient key cannot silently replace the grok.com login. Set `GROK_USE_XAI_API_KEY=1` only when that behavior is intentional. Optional `GROK_DEBUG_FILE` / `GROK_LOG_FILE` capture CLI diagnostics without putting secrets in the result JSON.
 - `scripts/xai_rest_video_adapter.py` calls the xAI Videos REST API directly, polls boundedly, and downloads or copies the resulting MP4. Its model comes from the selected provider config; duration and resolution come from the task snapshot. For key-background tasks it deterministically composites transparent input pixels onto the task's exact key color before upload and appends the same immutable color contract to the prompt, preventing a provider from silently flattening transparency to black. `XAI_VIDEO_REQUEST_ID` resumes polling an existing request without submitting or charging for another generation.
 
-For a general setup, assign priorities so the order is `grok-build-local` → `xai-direct` → `transform-local`. For a Grok-mandated job, use the shipped task defaults (`provider: grok-build-local`, `allow_fallback: false`) so a failed Grok generation cannot be replaced by a local animation.
+For a general setup, assign priorities so the order is `grok-build-local` → `xai-direct` → `light-motion-local`. For a Grok-mandated job, use the shipped task defaults (`provider: grok-build-local`, `allow_fallback: false`) so a failed Grok generation cannot be replaced by a local animation. The former `transform-local` and `keyframe-local` values remain accepted as compatibility aliases but routing emits the canonical `light-motion-local` id.
 
 ## xAI Zero Data Retention
 
@@ -51,7 +51,7 @@ The router filters on all hard requirements, then orders:
 1. available native tools;
 2. available configured external routes by descending `priority`;
 3. `keypose-local` when image generation plus Pillow and NumPy are available;
-4. `transform-local` when only Pillow and NumPy are available.
+4. `light-motion-local` when only Pillow and NumPy are available. This is explicitly a zero-generation-cost affine effect, not synthesized character motion.
 
 Missing `alpha-output` is not fatal when local post-processing is available and the task permits a key-color background. Camera lock and independent-cell behavior are prompt/QC requirements, not reliable provider capability claims.
 

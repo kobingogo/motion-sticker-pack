@@ -15,7 +15,7 @@
       "properties": {
         "policy": {"const": "local-first"},
         "max_attempts": {"type": "integer", "minimum": 1, "maximum": 10},
-        "fallback": {"enum": ["keypose-local", "transform-local", "keyframe-local", "prompt-only", "none"]}
+        "fallback": {"enum": ["keypose-local", "light-motion-local", "transform-local", "keyframe-local", "prompt-only", "none"]}
       }
     },
     "providers": {

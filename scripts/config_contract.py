@@ -11,7 +11,14 @@ from typing import Any
 
 
 DRIVERS = {"native-tool", "ai-sdk", "command", "http-job"}
-FALLBACKS = {"keypose-local", "transform-local", "keyframe-local", "prompt-only", "none"}
+FALLBACKS = {
+    "keypose-local",
+    "light-motion-local",
+    "transform-local",  # deprecated v0.3 compatibility alias
+    "keyframe-local",   # deprecated pre-v0.3 compatibility alias
+    "prompt-only",
+    "none",
+}
 KNOWN_AI_SDK_PACKAGES = {
     "xai": "@ai-sdk/xai",
     "klingai": "@ai-sdk/klingai",
@@ -279,7 +286,8 @@ def validate_provider_config(config: dict[str, Any]) -> dict[str, Any]:
 def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool = False) -> dict[str, Any]:
     allowed_fields = {
         "$schema", "version", "operation", "required_capabilities", "prefer_capabilities", "require_alpha",
-        "allow_key_background", "key_color", "allow_fallback", "provider", "input_image", "layout_file", "prompt_file",
+        "allow_key_background", "key_color", "provider_key_colors", "provider_input_images", "screen_selection",
+        "allow_fallback", "provider", "input_image", "layout_file", "prompt_file",
         "provider_chain", "provider_execution", "provider_selection_source",
         "approval_file", "output_directory", "duration_seconds", "provider_duration_seconds", "timeout_seconds", "max_output_bytes",
         "max_input_image_bytes", "aspect_ratio", "resolution", "fps", "poll_interval_ms", "max_retries",
@@ -353,6 +361,19 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
         not isinstance(task["key_color"], str) or not HEX_COLOR_RE.fullmatch(task["key_color"])
     ):
         raise ContractError("key_color must use #RRGGBB notation")
+    for field in ("provider_key_colors", "provider_input_images"):
+        values = task.get(field)
+        if values is None:
+            continue
+        if not isinstance(values, dict) or set(values) != set(provider_chain or [provider]):
+            raise ContractError(f"{field} must contain exactly one entry per provider_chain provider")
+        for provider_id, value in values.items():
+            if not ID_RE.fullmatch(provider_id) or not isinstance(value, str) or not value:
+                raise ContractError(f"{field} contains an invalid provider entry")
+            if field == "provider_key_colors" and not HEX_COLOR_RE.fullmatch(value):
+                raise ContractError("provider_key_colors values must use #RRGGBB notation")
+    if "screen_selection" in task and not isinstance(task["screen_selection"], dict):
+        raise ContractError("screen_selection must be an object")
     if "safe_grid_scale" in task:
         scale = task["safe_grid_scale"]
         if isinstance(scale, bool) or not isinstance(scale, (int, float)) or not 0.75 <= scale <= 0.95:
@@ -390,6 +411,10 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
             if not state_file.is_absolute():
                 raise ContractError(f"{field} must be an absolute path")
             resolved_paths[field] = state_file.resolve(strict=False)
+        for provider_id, value in task.get("provider_input_images", {}).items():
+            provider_input = Path(value).expanduser()
+            if not provider_input.is_absolute() or not provider_input.is_file():
+                raise ContractError(f"provider_input_images[{provider_id!r}] must be an existing absolute file")
         protected_state = [
             field for field in ("attempt_ledger_file", "artifact_manifest_file") if field in resolved_paths
         ]

@@ -15,6 +15,7 @@ from PIL import Image
 from PIL import ImageOps
 
 from animation_export import encode_gif_images, encode_webp_images
+from output_profile import DEFAULT_OUTPUT_FPS, DEFAULT_OUTPUT_SIZE, MAX_OUTPUT_SIZE
 from process_emoji_grid import load_layout, median_background, remove_edge_background, tile_bounds
 from output_safety import begin_output_transaction
 from manage_job_state import read_state, verify_state
@@ -76,19 +77,30 @@ def add_motion_margin(base: Image.Image, fraction: float = 0.90) -> Image.Image:
     return canvas
 
 
+def fixed_canvas(base: Image.Image, size: int) -> Image.Image:
+    contained = ImageOps.contain(base, (size, size), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGBA", (size, size))
+    canvas.alpha_composite(contained, ((size - contained.width) // 2, (size - contained.height) // 2))
+    contained.close()
+    return canvas
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("image", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--layout", type=Path, required=True)
     parser.add_argument("--state", type=Path, required=True, help="hash-bound approved job state")
-    parser.add_argument("--fps", type=int, default=6)
+    parser.add_argument("--fps", type=int, default=DEFAULT_OUTPUT_FPS)
+    parser.add_argument("--size", type=int, default=DEFAULT_OUTPUT_SIZE)
     parser.add_argument("--duration", type=float, default=2.0)
     parser.add_argument("--allow-low-confidence", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if not 1 <= args.fps <= 60 or not 0.25 <= args.duration <= 30:
         raise ValueError("fps must be 1-60 and duration must be 0.25-30 seconds")
+    if not 64 <= args.size <= MAX_OUTPUT_SIZE:
+        raise ValueError(f"size must be between 64 and {MAX_OUTPUT_SIZE}")
 
     verify_state(read_state(args.state), args.image, args.layout)
     layout = load_layout(args.layout, args.allow_low_confidence)
@@ -116,8 +128,10 @@ def main() -> int:
             x0, x1 = tile_bounds(width, column, columns)
             y0, y1 = tile_bounds(height, row, rows)
             raw_base = transparent_tile(rgba[y0:y1, x0:x1])
-            base = add_motion_margin(raw_base)
+            normalized_base = fixed_canvas(raw_base, args.size)
             raw_base.close()
+            base = add_motion_margin(normalized_base)
+            normalized_base.close()
             recipe = RECIPES[tile % len(RECIPES)]
             frames = [
                 transformed(base, recipe, 2.0 * math.pi * index / frame_count)
@@ -147,13 +161,14 @@ def main() -> int:
     )
     report = {
         "version": 1,
-        "mode": "keyframe-local",
+        "mode": "light-motion-local",
         "source": str(args.image.resolve()),
         "output_fps": args.fps,
+        "output_size": [args.size, args.size],
         "duration_seconds": args.duration,
         "cells": cell_reports,
         "warnings": [
-            "local fallback animates each whole sticker with small affine keyframes; it does not synthesize new limb poses"
+            "zero-generation-cost light motion animates each whole sticker with small affine keyframes; it does not synthesize new limb poses"
         ],
         "outputs": outputs + ["layout.json", "processing.json", "sticker-pack.zip"],
     }

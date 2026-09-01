@@ -10,9 +10,11 @@ from pathlib import Path
 
 from PIL import Image
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = sys.executable
+SCRIPTS = ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+from screen_selector import choose_screen  # noqa: E402
 
 
 class WorkflowToolTests(unittest.TestCase):
@@ -41,6 +43,8 @@ class WorkflowToolTests(unittest.TestCase):
             self.assertEqual(task["aspect_ratio"], "1:1")
             self.assertEqual(task["duration_seconds"], 6)
             self.assertEqual(task["provider_chain"], ["grok-build-local"])
+            self.assertEqual(task["provider_key_colors"], {"grok-build-local": "#00FF00"})
+            self.assertTrue(Path(task["provider_input_images"]["grok-build-local"]).is_file())
             self.assertEqual(
                 task["provider_execution"],
                 {"grok-build-local": {"duration_seconds": 6, "resolution": "720p"}},
@@ -131,6 +135,17 @@ class WorkflowToolTests(unittest.TestCase):
             self.assertEqual(task["provider_execution"]["grok-build-local"], {"duration_seconds": 6, "resolution": "720p"})
             self.assertTrue(task["allow_fallback"])
             self.assertEqual(settings["generation"]["provider"], "xai-direct")
+
+    def test_non_grok_screen_selector_avoids_green_foreground(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "green-subject.png"
+            image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+            for x in range(12, 52):
+                for y in range(12, 52):
+                    image.putpixel((x, y), (0, 255, 0, 255))
+            image.save(source)
+            report = choose_screen(source)
+            self.assertNotEqual(report["selected"]["color"], "#00FF00")
 
     def test_independent_stickers_produce_numbered_media_and_zip(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

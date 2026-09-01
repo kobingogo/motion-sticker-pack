@@ -42,6 +42,28 @@ def resolution_for_provider(task: dict[str, Any], provider_id: str, *, default: 
     return resolution
 
 
+def key_color_for_provider(task: dict[str, Any], provider_id: str, *, default: str = "#00FF00") -> str:
+    colors = task.get("provider_key_colors")
+    value = colors.get(provider_id) if isinstance(colors, dict) else None
+    color = str(value or task.get("key_color") or default).upper()
+    if len(color) != 7 or not color.startswith("#"):
+        raise ContractError(f"{provider_id} key color must use #RRGGBB notation")
+    try:
+        int(color[1:], 16)
+    except ValueError as exc:
+        raise ContractError(f"{provider_id} key color must use #RRGGBB notation") from exc
+    return color
+
+
+def input_image_for_provider(task: dict[str, Any], provider_id: str) -> Path:
+    images = task.get("provider_input_images")
+    value = images.get(provider_id) if isinstance(images, dict) else None
+    path = Path(str(value or task["input_image"])).expanduser().resolve()
+    if not path.is_file():
+        raise ContractError(f"{provider_id} input image does not exist: {path}")
+    return path
+
+
 def load_task_and_prompt(task_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     task = validate_video_task(read_json_object(task_path), require_execution_fields=True)
     prompt = read_json_object(Path(task["prompt_file"]))

@@ -21,7 +21,7 @@ from config_contract import (
     validate_video_task,
 )
 from manage_job_state import read_state, verify_state
-from video_adapter_common import write_result
+from video_adapter_common import key_color_for_provider, write_result
 from video_background_qc import probe_video_alpha, validate_video_background, validate_video_grid_safety
 
 
@@ -329,7 +329,7 @@ def execute_attempt(
         if task.get("require_alpha") and not result["has_alpha"] and not task.get("allow_key_background"):
             raise ContractError("generated video is opaque but the task requires alpha and disallows key matting")
         if task.get("allow_key_background") and not result["has_alpha"]:
-            key_color = str(task.get("key_color") or "#00FF00").upper()
+            key_color = key_color_for_provider(task, provider["id"])
             background_qc = validate_video_background(generated, key_color)
             grid_safety_qc = validate_video_grid_safety(
                 generated, key_color, layout, fail_on_crossing=False

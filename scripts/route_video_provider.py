@@ -148,19 +148,21 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
     fallback = None
     local = capabilities.get("local_processing", {})
     fallback_policy = config.get("routing", {}).get("fallback", "none")
-    if allow_fallback and fallback_policy in {"keypose-local", "transform-local", "keyframe-local"} and local.get("keypose_local"):
+    local_fallbacks = {"keypose-local", "light-motion-local", "transform-local", "keyframe-local"}
+    if allow_fallback and fallback_policy in local_fallbacks and local.get("keypose_local"):
         fallback = {
             "id": "keypose-local",
             "driver": "local-processing",
             "reason": "use callable image generation for key poses, then assemble locally",
         }
-    elif allow_fallback and fallback_policy in {"keypose-local", "transform-local", "keyframe-local"} and (
+    elif allow_fallback and fallback_policy in local_fallbacks and (
         local.get("transform_local") or local.get("keyframe_local")
     ):
         fallback = {
-            "id": "transform-local",
+            "id": "light-motion-local",
             "driver": "local-processing",
-            "reason": "last-resort whole-sticker affine keyframes",
+            "reason": "zero-generation-cost whole-sticker light motion; no new articulated poses",
+            "compatibility_aliases": ["transform-local", "keyframe-local"],
         }
     elif allow_fallback and (fallback_policy == "prompt-only" or not local.get("transform_local")):
         fallback = {"id": "prompt-only", "driver": "none"}
