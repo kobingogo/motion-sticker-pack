@@ -18,10 +18,11 @@ Generated static sheets stop at a human review gate. `job-state.json` binds the 
 
 `attempt-ledger.json` is the live idempotency record:
 
-- an attempt is claimed once;
+- a first execution is claimed once; a new execution after failure requires explicit retry approval;
 - submission success records the remote request id immediately;
 - an interrupted submission becomes `uncertain`;
 - an uncertain attempt cannot be replayed implicitly;
+- `manage_job_state.py approve-video-retry` creates a retry approval bound to the exact approved image, layout, route, provider, and attempt; the executor requires it for a new billable retry;
 - explicit resume continues the same provider request when supported;
 - local QC rejection overwrites any optimistic provider success state.
 

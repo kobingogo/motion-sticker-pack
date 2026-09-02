@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "case_status": "legacy-evidence-partial",
+  "style_id": "caricature-3d",
+  "gallery_id": "caricature-3d",
+  "source_case": "musk-3d",
+  "input_type": "legacy-gallery-case",
+  "route": "grok-build-local",
+  "route_id": "grok-build-local",
+  "model": "image_to_video",
+  "approval_sha256": null,
+  "native_frame_count": 36,
+  "successful_cells": 9,
+  "withheld_cells": [],
+  "output_size_bytes": 1083917,
+  "input": {
+    "type": "legacy-gallery-case",
+    "source_case": "musk-3d"
+  },
+  "route_details": {
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
+    "task_sha256": "ece3f25c41e83e1666208e2e1869358ddfbc292660e697f02d891b75ed87fb41"
+  },
+  "approval": {
+    "sha256": null,
+    "status": "not-preserved",
+    "reason": "This legacy public case predates hash-bound static approval records; do not treat route/task hashes as approval proof."
+  },
+  "native": {
+    "source_size": {
+      "width": 544,
+      "height": 544
+    },
+    "fps": 6,
+    "frames_per_animation": 36
+  },
+  "cells": {
+    "requested": 9,
+    "successful": 9,
+    "withheld": [],
+    "quality_warnings": [
+      "01:foreground-touches-cell-boundary",
+      "01:loop-end-differs-from-start",
+      "02:foreground-touches-cell-boundary",
+      "02:alpha-coverage-varies-across-frames",
+      "02:loop-end-differs-from-start",
+      "03:foreground-touches-cell-boundary",
+      "03:alpha-coverage-varies-across-frames",
+      "03:loop-end-differs-from-start",
+      "04:foreground-touches-cell-boundary",
+      "04:loop-end-differs-from-start",
+      "05:foreground-touches-cell-boundary",
+      "05:alpha-coverage-varies-across-frames",
+      "05:loop-end-differs-from-start",
+      "06:foreground-touches-cell-boundary",
+      "06:alpha-coverage-varies-across-frames",
+      "06:loop-end-differs-from-start",
+      "07:foreground-touches-cell-boundary",
+      "08:foreground-touches-cell-boundary",
+      "08:loop-end-differs-from-start",
+      "09:foreground-touches-cell-boundary",
+      "09:alpha-coverage-varies-across-frames",
+      "09:loop-end-differs-from-start"
+    ]
+  },
+  "outputs": {
+    "media_bytes": 1083917,
+    "files": [
+      {
+        "path": "static.png",
+        "sha256": "be85c19de78a1c85b2852132e175a63ebe664940e393f50b603fd461d316655b",
+        "bytes": 51782
+      },
+      {
+        "path": "motion.webp",
+        "sha256": "3fd15809560f7df3a988ecec3ec8954df675bd7ffa41705e3b7cbe7e87bf8c59",
+        "bytes": 472744
+      },
+      {
+        "path": "motion.gif",
+        "sha256": "d011dd0a58de99429b08d8de9e28f12e24c8136e8fe9dc46651d223573142e55",
+        "bytes": 559391
+      }
+    ]
+  },
+  "artifact_manifest": {
+    "status": "not-preserved",
+    "path": null
+  },
+  "missing_historical_fields": [
+    "approval_hash",
+    "artifact_manifest"
+  ]
+}

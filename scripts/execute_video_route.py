@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute exactly one selected external route without automatic paid retries."""
+"""Execute or register exactly one selected route without automatic paid retries."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from config_contract import (
     validate_video_task,
 )
 from manage_job_state import read_state, verify_state
+from route_video_provider import dependency_hashes
 from video_adapter_common import key_color_for_provider, write_result
 from video_background_qc import probe_video_alpha, validate_video_background, validate_video_grid_safety
 
@@ -68,11 +69,50 @@ def diagnostic_tail(raw: bytes, limit: int = 4000) -> str:
     return text.strip()
 
 
-def provider_by_id(config: dict, provider_id: str) -> dict:
+def provider_by_id(config: dict, provider_id: str, route_provider: dict | None = None) -> dict:
     matches = [item for item in config["providers"] if item["id"] == provider_id]
-    if len(matches) != 1:
-        raise ContractError(f"provider {provider_id!r} does not exist exactly once")
-    return matches[0]
+    if len(matches) == 1:
+        return matches[0]
+    if (
+        not matches
+        and isinstance(route_provider, dict)
+        and route_provider.get("id") == provider_id
+        and route_provider.get("driver") == "native-tool"
+        and isinstance(route_provider.get("tool"), str)
+    ):
+        # Runtime-discovered native tools are intentionally not duplicated in
+        # the provider template. The route is their signed capability record.
+        return route_provider
+    raise ContractError(f"provider {provider_id!r} does not exist exactly once")
+
+
+def validate_retry_approval(
+    approval_path: Path,
+    route: dict,
+    task: dict,
+    selected_provider: str,
+    attempt: int,
+) -> str:
+    """Verify a user-confirmed retry is bound to the exact current execution inputs."""
+
+    approval = read_json_object(approval_path)
+    if approval.get("version") != 1 or approval.get("kind") != "explicit-user-video-retry-approval":
+        raise ContractError("retry approval has an unsupported format")
+    if approval.get("confirmed_by_user") is not True:
+        raise ContractError("retry approval is not confirmed by the user")
+    if approval.get("provider") != selected_provider or approval.get("attempt") != attempt:
+        raise ContractError("retry approval does not match the selected provider attempt")
+    if approval.get("route_sha256") != object_sha256(route):
+        raise ContractError("retry approval does not match the current route")
+    image_path = Path(task["input_image"]).expanduser().resolve(strict=True)
+    layout_path = Path(task["layout_file"]).expanduser().resolve(strict=True)
+    image_hash = hashlib.sha256(image_path.read_bytes()).hexdigest()
+    layout_hash = hashlib.sha256(layout_path.read_bytes()).hexdigest()
+    if approval.get("static_sha256") != image_hash:
+        raise ContractError("retry approval does not match the approved static image")
+    if approval.get("layout_sha256") != layout_hash:
+        raise ContractError("retry approval does not match the approved layout")
+    return hashlib.sha256(approval_path.expanduser().resolve(strict=True).read_bytes()).hexdigest()
 
 
 def write_rejected_result(output: Path, result: dict, error: Exception) -> None:
@@ -92,6 +132,7 @@ def record_execution_artifacts(
     generated: Path | None,
     *,
     stage: str,
+    retry_approval: Path | None = None,
 ) -> None:
     manifest_value = task.get("artifact_manifest_file")
     if not isinstance(manifest_value, str):
@@ -100,6 +141,15 @@ def record_execution_artifacts(
     config_id = record_artifact(manifest_path, config_path, kind="provider-config", stage=stage)
     task_id = record_artifact(manifest_path, task_path, kind="video-task", stage=stage)
     dependencies = [config_id, task_id]
+    if retry_approval is not None and retry_approval.is_file():
+        retry_id = record_artifact(
+            manifest_path,
+            retry_approval,
+            kind="video-retry-approval",
+            stage=stage,
+            dependencies=dependencies,
+        )
+        dependencies = [retry_id]
     if generated is not None and generated.is_file():
         generated_id = record_artifact(
             manifest_path,
@@ -145,6 +195,8 @@ def execute_attempt(
     *,
     ledger_path: Path | None = None,
     resume: bool = False,
+    retry_approval_path: Path | None = None,
+    native_video_path: Path | None = None,
 ) -> dict:
     attempts = route.get("attempts", [])
     if not isinstance(attempts, list) or not 1 <= attempt <= len(attempts):
@@ -161,16 +213,14 @@ def execute_attempt(
     dependencies = route.get("dependency_sha256")
     if not isinstance(dependencies, dict):
         raise ContractError("route is missing dependency_sha256; regenerate the route")
-    for field in ("input_image", "layout_file", "prompt_file", "approval_file", "production_settings_file"):
-        value = task.get(field)
-        if not isinstance(value, str):
-            continue
-        path = Path(value)
-        if not path.is_file():
-            raise ContractError(f"task dependency no longer exists: {field}")
-        actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
-        if dependencies.get(field) != actual_hash:
-            raise ContractError(f"task dependency changed after routing: {field}")
+    try:
+        current_dependencies = dependency_hashes(task)
+    except (OSError, ValueError) as exc:
+        raise ContractError(f"task dependency is no longer usable: {exc}") from exc
+    if dependencies != current_dependencies:
+        changed = sorted(set(dependencies) | set(current_dependencies))
+        changed = [field for field in changed if dependencies.get(field) != current_dependencies.get(field)]
+        raise ContractError(f"task dependency changed after routing: {changed}")
     verify_state(
         read_state(Path(task["approval_file"])),
         Path(task["input_image"]),
@@ -190,19 +240,38 @@ def execute_attempt(
         raise ContractError("prompt layout differs from the approved detected layout")
     if not isinstance(prompt_data.get("grid_video_prompt"), str) or not prompt_data["grid_video_prompt"].strip():
         raise ContractError("prompt file is missing grid_video_prompt")
-    provider = provider_by_id(config, selected["id"])
+    provider = provider_by_id(config, selected["id"], selected)
+    if provider["driver"] == "native-tool" and native_video_path is None:
+        raise ContractError(
+            "native-tool routes require the host-generated video via --native-video; "
+            "the executor only registers and QC-checks host output"
+        )
+    native_generated = None
     if provider["driver"] == "native-tool":
-        raise ContractError("native-tool routes must be invoked by the host Agent, not this subprocess executor")
+        native_generated = native_video_path.expanduser().resolve(strict=True)
+        if not native_generated.is_file():
+            raise ContractError(f"native video is not a file: {native_generated}")
     ledger = (
         ledger_path
         or Path(task.get("attempt_ledger_file") or task_path.resolve().parent / "attempt-ledger.json")
     ).expanduser().resolve()
+    retry_approval_sha256 = None
+    if retry_approval_path is not None:
+        retry_approval_sha256 = validate_retry_approval(
+            retry_approval_path.expanduser().resolve(),
+            route,
+            task,
+            selected["id"],
+            attempt,
+        )
     result_path = output.expanduser().resolve()
     protected_results = {
         config_path.expanduser().resolve(),
         task_path.expanduser().resolve(),
         ledger,
     }
+    if retry_approval_path is not None:
+        protected_results.add(retry_approval_path.expanduser().resolve())
     for field in (
         "input_image",
         "layout_file",
@@ -216,12 +285,42 @@ def execute_attempt(
             protected_results.add(Path(value).expanduser().resolve())
     if result_path in protected_results:
         raise ContractError("result output must not overwrite task inputs, ledger, or artifact manifest")
+    if native_generated is not None and native_generated == result_path:
+        raise ContractError("native video and result output must be different files")
+    execution_context = selected.get("execution_context")
+    if not isinstance(execution_context, dict):
+        raise ContractError("route attempt is missing execution_context; regenerate the route")
+    if execution_context.get("provider_id") != provider["id"]:
+        raise ContractError("route execution_context provider does not match the selected route")
+    expected_input = execution_context.get("input_image")
+    expected_input_hash = execution_context.get("input_image_sha256")
+    if not isinstance(expected_input, str) or not isinstance(expected_input_hash, str):
+        raise ContractError("route execution_context is missing the input image binding")
+    actual_input = str(
+        task.get("provider_input_images", {}).get(provider["id"])
+        if isinstance(task.get("provider_input_images"), dict)
+        else task.get("input_image")
+    )
+    actual_input_path = Path(actual_input).expanduser().resolve()
+    if str(actual_input_path) != str(Path(expected_input).expanduser().resolve()):
+        raise ContractError("route execution_context input image does not match the task")
+    if hashlib.sha256(actual_input_path.read_bytes()).hexdigest() != expected_input_hash:
+        raise ContractError("route execution_context input image hash does not match the current file")
     output = result_path
-    claim = claim_attempt(ledger, route, attempt, output, resume=resume)
+    claim = claim_attempt(
+        ledger,
+        route,
+        attempt,
+        output,
+        resume=resume,
+        retry_approval_sha256=retry_approval_sha256,
+    )
     if claim["idempotent"]:
         return {"idempotent": True, "ledger": str(ledger), "attempt": attempt}
     progress_path = progress_path_for(ledger, attempt)
-    if provider["driver"] == "ai-sdk":
+    if provider["driver"] == "native-tool":
+        pass
+    elif provider["driver"] == "ai-sdk":
         command = [
             "node", str(GATEWAY), "--config", str(config_path.resolve()), "--task", str(task_path.resolve()),
             "--provider-id", provider["id"], "--output", str(output.resolve()),
@@ -250,25 +349,63 @@ def execute_attempt(
             ledger, route, attempt, "uncertain",
             error=f"result path already existed before adapter execution: {output}",
         )
+        record_execution_artifacts(
+            task, config_path, task_path, ledger, output, None, stage="uncertain",
+            retry_approval=retry_approval_path,
+        )
         raise FileExistsError(f"result file already exists: {output}")
     child_env = child_environment(provider)
     timeout = float(task.get("timeout_seconds", 900)) + 30
-    try:
-        completed = subprocess.run(
-            command,
-            env=child_env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-            timeout=timeout,
-        )
-    except subprocess.TimeoutExpired as exc:
-        finish_attempt(
-            ledger, route, attempt, "uncertain",
-            error=f"video adapter exceeded its {timeout:g}-second execution limit",
-        )
-        raise ContractError(f"video adapter exceeded its {timeout:g}-second execution limit") from exc
-    if completed.returncode:
+    if provider["driver"] == "native-tool":
+        try:
+            write_result(
+                output,
+                {
+                    "status": "succeeded",
+                    "provider": provider["id"],
+                    "tool": provider["tool"],
+                    "output": str(native_generated),
+                },
+            )
+        except OSError as exc:
+            finish_attempt(ledger, route, attempt, "uncertain", error=f"cannot register native video: {exc}")
+            record_execution_artifacts(
+                task, config_path, task_path, ledger, output, None, stage="uncertain",
+                retry_approval=retry_approval_path,
+            )
+            raise ContractError(f"cannot register native video: {exc}") from exc
+        completed = None
+    else:
+        try:
+            completed = subprocess.run(
+                command,
+                env=child_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            finish_attempt(
+                ledger, route, attempt, "uncertain",
+                error=f"video adapter exceeded its {timeout:g}-second execution limit",
+            )
+            record_execution_artifacts(
+                task, config_path, task_path, ledger, output, None, stage="uncertain",
+                retry_approval=retry_approval_path,
+            )
+            raise ContractError(f"video adapter exceeded its {timeout:g}-second execution limit") from exc
+        except OSError as exc:
+            finish_attempt(
+                ledger, route, attempt, "uncertain",
+                error=f"cannot launch video adapter: {exc}",
+            )
+            record_execution_artifacts(
+                task, config_path, task_path, ledger, output, None, stage="uncertain",
+                retry_approval=retry_approval_path,
+            )
+            raise ContractError(f"cannot launch video adapter: {exc}") from exc
+    if completed is not None and completed.returncode:
         detail = ""
         if output.is_file():
             try:
@@ -302,12 +439,23 @@ def execute_attempt(
         )
         if attempt_status == "failed":
             record_execution_artifacts(
-                task, config_path, task_path, ledger, output, None, stage="failed"
+                task,
+                config_path,
+                task_path,
+                ledger,
+                output,
+                None,
+                stage="failed",
+                retry_approval=retry_approval_path,
             )
         raise ContractError(f"video adapter failed with exit code {completed.returncode}: {detail}")
     if not output.is_file():
         detail = diagnostic_tail(completed.stderr) or diagnostic_tail(completed.stdout) or "no diagnostic output"
         finish_attempt(ledger, route, attempt, "uncertain", error=detail)
+        record_execution_artifacts(
+            task, config_path, task_path, ledger, output, None, stage="uncertain",
+            retry_approval=retry_approval_path,
+        )
         raise ContractError(f"video adapter exited without writing its result file: {detail}")
     generated: Path | None = None
     result: dict | None = None
@@ -338,6 +486,13 @@ def execute_attempt(
             result["grid_safety_qc"] = grid_safety_qc
         result["executor_status"] = "accepted"
         result["qc_status"] = "passed"
+        result["execution_context"] = {
+            **execution_context,
+            "provider_id": provider["id"],
+            "output": str(generated.resolve()),
+            "output_sha256": hashlib.sha256(generated.read_bytes()).hexdigest(),
+            "route_sha256": object_sha256(route),
+        }
         write_result(output, result)
     except Exception as exc:
         if result is not None:
@@ -352,7 +507,14 @@ def execute_attempt(
             error=str(exc),
         )
         record_execution_artifacts(
-            task, config_path, task_path, ledger, output, generated, stage="rejected"
+            task,
+            config_path,
+            task_path,
+            ledger,
+            output,
+            generated,
+            stage="rejected",
+            retry_approval=retry_approval_path,
         )
         raise
     finish_attempt(
@@ -365,7 +527,14 @@ def execute_attempt(
         request_id=result.get("request_id") if isinstance(result.get("request_id"), str) else None,
     )
     record_execution_artifacts(
-        task, config_path, task_path, ledger, output, generated, stage="executed"
+        task,
+        config_path,
+        task_path,
+        ledger,
+        output,
+        generated,
+        stage="executed",
+        retry_approval=retry_approval_path,
     )
     return {"idempotent": False, "ledger": str(ledger), "attempt": attempt}
 
@@ -378,6 +547,16 @@ def main() -> int:
     parser.add_argument("--attempt", type=int, default=1)
     parser.add_argument("--ledger", type=Path)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--retry-approval",
+        type=Path,
+        help="hash-bound approval created after the user explicitly requested a new billable retry",
+    )
+    parser.add_argument(
+        "--native-video",
+        type=Path,
+        help="host-generated video for a native-tool route; executor registers and QC-checks it",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     execution = execute_attempt(
@@ -388,6 +567,8 @@ def main() -> int:
         args.attempt,
         ledger_path=args.ledger,
         resume=args.resume,
+        retry_approval_path=args.retry_approval,
+        native_video_path=args.native_video,
     )
     print(json.dumps({"result": str(args.output.resolve()), **execution}, ensure_ascii=False))
     return 0

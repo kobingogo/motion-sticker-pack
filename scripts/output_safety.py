@@ -25,6 +25,7 @@ KNOWN_REPORTS = {
     "job-state.json",
     "preview.png",
     "sticker-production.json",
+    "static-cells.json",
 }
 
 

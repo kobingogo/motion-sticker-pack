@@ -116,11 +116,12 @@ class VideoBackgroundQCTests(unittest.TestCase):
             with Image.open(destination) as green:
                 self.assertEqual(green.getpixel((59, 59)), (0, 255, 0))
                 self.assertTrue(report["safe_grid"])
+                self.assertEqual(report["max_foreground_bbox_fraction"], 0.75)
                 self.assertGreater(report["guard_band"]["x"], 0)
                 self.assertGreaterEqual(report["min_guard_fraction"], 0.10)
                 self.assertTrue(all(tile.get("scale", 1.0) <= 1.0 for tile in report["tiles"]))
                 self.assertTrue(
-                    all(tile["output_foreground_size"]["width"] <= 48 for tile in report["tiles"])
+                    all(tile["output_foreground_size"]["width"] <= 45 for tile in report["tiles"])
                 )
 
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg is required")

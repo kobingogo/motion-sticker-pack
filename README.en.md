@@ -44,9 +44,9 @@ When no video or local image processing is callable, `prompt-only` delivers prom
 
 ## 13 evidence-backed styles
 
-The selector exposes only styles backed by a real nine-cell processed run. Every style includes a 240×240 static PNG, a real animated GIF, layout, source route, and processing report.
+The selector exposes only styles backed by a real nine-cell processed run. Every style includes a 240×240 static PNG, a real animated GIF, a lossless Animated WebP, layout, source route, processing report, and compact provenance. Legacy cases explicitly declare missing approval/manifest history instead of treating a route hash as user approval proof. The table image is one representative cell from that case, proving the route completed; cases use different characters and reactions, so they are not strict same-character A/B style comparisons and should not be used to rank style quality.
 
-| ID | Style | Expression example |
+| ID | Style | Representative cell |
 |---|---|---|
 | `3d` | Coherent 3D, with explicit animation/realistic sub-style support | <img src="gallery/styles/plush-toy/static.png" width="96" alt="3D plush expression example"> |
 | `realistic` | Cinematic realistic | <img src="gallery/styles/cinematic-realistic/static.png" width="96" alt="Cinematic realistic expression example"> |
@@ -54,7 +54,7 @@ The selector exposes only styles backed by a real nine-cell processed run. Every
 | `chibi` | Iridescent chibi | <img src="gallery/styles/iridescent-chibi/static.png" width="96" alt="Iridescent chibi expression example"> |
 | `manga` | Manga/cel | <img src="gallery/styles/manga-cel/static.png" width="96" alt="Manga expression example"> |
 | `pixel-art` | Refined pixel art | <img src="gallery/styles/pixel-art/static.png" width="96" alt="Pixel-art expression example"> |
-| `cute` | Soft plush | <img src="gallery/styles/soft-plush/static.png" width="96" alt="Soft plush expression example"> |
+| `cute` (alias `soft-plush`) | Soft plush | <img src="gallery/styles/soft-plush/static.png" width="96" alt="Soft plush representative cell"> |
 | `caricature-3d` | Exaggerated 3D portrait | <img src="gallery/styles/caricature-3d/static.png" width="96" alt="Caricature 3D expression example"> |
 | `fashion-realistic` | Fashion realistic | <img src="gallery/styles/fashion-realistic/static.png" width="96" alt="Fashion realistic expression example"> |
 | `mascot-toy` | Product mascot toy | <img src="gallery/styles/mascot-toy/static.png" width="96" alt="Mascot toy expression example"> |
@@ -64,15 +64,26 @@ The selector exposes only styles backed by a real nine-cell processed run. Every
 
 ```bash
 python3 scripts/style_selector.py --format markdown
+python3 scripts/style_selector.py --format core
 python3 scripts/style_selector.py --style clay-cute
+python3 scripts/style_selector.py --style soft-plush
 python3 scripts/style_selector.py --verify-only
+```
+
+`cute` remains the canonical ID for compatibility; `soft-plush` is the recommended readable alias. Both resolve to the same verified evidence.
+
+The v0.3.1 core catalog targets 16 directions. `--format core` shows both verified and pending-controlled-evidence entries, while the regular `--format markdown` output remains verified-only. Use `custom` for cultural media, print, retro UI, or hybrid long-tail styles instead of hard-coding unverified presets.
+
+```text
+$motion-sticker-pack
+Custom style: ink-wash negative space with dry/wet brush variation; preserve the character identity and do not add a full-cell background.
 ```
 
 See [gallery/](gallery/README.md) for compact evidence. The complete legacy packs moved to a [GitHub Release asset](https://github.com/kobingogo/motion-sticker-pack/releases/download/v0.2.0/motion-sticker-pack-legacy-gallery-2026-09.zip).
 
 ## Static sheets and transparency
 
-Prefer an image tool such as GPT-image-2 that can return real Alpha. Every static request tries a transparent RGBA PNG first. The single-color fallback is eligible only after local pixel validation rejects the transparent attempt.
+Prefer an image tool such as GPT-image-2 that can return real Alpha. Static generation selects its first background by input mode: reference-image routes start with an opaque uniform `#00FF00` source, while text-defined routes try transparent RGBA PNG first. Both routes require local pixel validation and at most one bounded retry.
 
 - A checkerboard is a visible background, not transparency.
 - The requested grid is not trusted as returned truth; the image is detected again.
@@ -118,7 +129,7 @@ The normative package and QC rules are in the [output contract](references/outpu
 ## Safety and audit
 
 - Static approval is SHA-256-bound.
-- A billable attempt can be submitted once; interrupted state is never silently replayed.
+- A billable attempt is submitted once on its first execution; a user-requested retry requires a hash-bound retry approval and is never silently replayed.
 - xAI request ids can resume the same remote job.
 - Output directories use recoverable transactions and reject input/output overlap.
 - `artifact-manifest.json` records lineage across sheets, prompts, poses, routes, video, and delivery.
@@ -128,6 +139,36 @@ Read [Routing and audit](docs/advanced/routing-and-audit.md) for details.
 
 ## Install
 
+### Install from a Codex conversation (recommended)
+
+Send this message in Codex:
+
+```text
+$skill-installer
+Install the `motion-sticker-pack` Skill from the GitHub repository `kobingogo/motion-sticker-pack`.
+The Skill is at the repository root (path `.`); use `motion-sticker-pack` as the install name.
+```
+
+After the installer finishes, send `$motion-sticker-pack` in the next Codex message to verify it. For example:
+
+```text
+$motion-sticker-pack
+Confirm that this Skill is loaded and tell me its available entry point and current version.
+```
+
+If `$skill-installer` is reported as unavailable, send this fallback request (the current Codex session must have terminal access):
+
+```text
+Do not call `$skill-installer`. Fetch https://github.com/kobingogo/motion-sticker-pack.git
+directly, then install the repository root containing `SKILL.md` to
+`$CODEX_HOME/skills/motion-sticker-pack`; if `$CODEX_HOME` is unset, use `~/.codex/skills/motion-sticker-pack`.
+Report the actual install path and load the Skill in the next message.
+```
+
+### Local script setup (optional)
+
+The conversation install above is enough for Codex use. Run the following only when you need local scripts or development:
+
 ```bash
 git clone https://github.com/kobingogo/motion-sticker-pack.git
 cd motion-sticker-pack
@@ -135,7 +176,7 @@ python3 -m pip install -r requirements.txt
 npm ci --ignore-scripts
 ```
 
-Install the directory as a Codex Skill or reference it using your Codex environment's Skill installation flow. The agent-facing contract is [SKILL.md](SKILL.md).
+The agent-facing contract is [SKILL.md](SKILL.md).
 
 ## Advanced documentation
 
@@ -143,6 +184,7 @@ Install the directory as a Codex Skill or reference it using your Codex environm
 - [Routing, ledger, and artifact manifest](docs/advanced/routing-and-audit.md)
 - [Complete CLI reference](docs/advanced/cli-reference.md)
 - [Media policy, release gate, and history-slimming evaluation](docs/advanced/repository-maintenance.md)
+- [Style-library strategy and v0.4 candidates](docs/advanced/style-library.md)
 - [Prompt contract](references/prompt-contract.md)
 - [Keypose workflow](references/keypose-workflow.md)
 - [Adversarial audit](docs/adversarial-audit.md)

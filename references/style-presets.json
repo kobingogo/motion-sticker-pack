@@ -3,101 +3,148 @@
   "presets": {
     "3d": {
       "label": "3D",
-      "aliases": ["3D", "3d-cartoon", "3d cartoon", "3d toy", "3d-toy", "toy", "玩具", "立体", "3D 卡通", "3D卡通", "3D 卡通风", "3D 动画", "3D动画", "3D 动画风", "3d-realistic", "3d realistic", "3D 写实", "3D写实", "3D 写实风", "3D 真实人物", "3D真实人物", "3D 真人", "3D真人", "3D 真人风", "写实 3D", "3D 写实还原", "3D 真人写实"],
-      "prompt": "Use one coherent 3D rendering treatment. If the user only specifies 3D and does not name a sub-style, freely choose either a stylized 3D animation treatment or a realistic 3D human-render treatment, but do not mix them across cells. Preserve the character identity, proportions, clothing, materials, lighting cues, and recognizable features consistently.",
+      "aliases": ["3D", "plush-doll-3d", "3d-cartoon", "3d cartoon", "3d toy", "3d-toy", "toy", "玩具", "立体", "3D 卡通", "3D卡通", "3D 卡通风", "3D 动画", "3D动画", "3D 动画风", "3d-realistic", "3d realistic", "3D 写实", "3D写实", "3D 写实风", "3D 真实人物", "3D真实人物", "3D 真人", "3D真人", "3D 真人风", "写实 3D", "3D 写实还原", "3D 真人写实"],
+      "prompt": "Use one coherent 3D rendering treatment. If the user only specifies 3D and does not name a sub-style, freely choose either a stylized 3D animation treatment or a realistic 3D human-render treatment, but do not mix them across cells. Preserve stable identity and proportions, consistent materials, clothing, lighting cues, and recognizable features throughout the sheet. Avoid switching renderers between cells or adding a generic scene around the character.",
       "verified": true,
       "gallery": "plush-toy"
     },
     "realistic": {
       "label": "电影感写实",
-      "aliases": ["realistic", "写实", "写实还原", "还原", "cinematic-realistic"],
-      "prompt": "Preserve facial structure, body proportions, clothing, materials, lighting cues, and recognizable identity with cinematic semi-realistic rendering and restrained expression exaggeration.",
+      "aliases": ["realistic", "realistic-photo", "写实", "写实还原", "还原", "cinematic-realistic"],
+      "prompt": "Use cinematic semi-realistic character rendering with natural anatomy, skin or fur and fabric detail, photographic lighting, and restrained expression exaggeration. Preserve facial structure, body proportions, clothing, materials, and recognizable identity. Avoid big-head chibi proportions, glossy vinyl surfaces, and flat cartoon linework.",
       "verified": true,
       "gallery": "cinematic-realistic"
     },
     "hand-drawn": {
       "label": "暖色手绘",
-      "aliases": ["handdrawn", "hand-drawn", "手绘", "手绘风", "插画"],
-      "prompt": "Use warm hand-drawn illustration, confident expressive linework, softly textured color, visible brush character, and readable silhouettes while preserving the reference IP.",
+      "aliases": ["handdrawn", "hand-drawn", "hand-doodle", "手绘", "手绘风", "插画"],
+      "prompt": "Use warm hand-drawn doodle illustration with wobbly notebook lines, naive anatomy, spontaneous roughness, softly textured color, and readable silhouettes while preserving the reference IP. Avoid polished 3D rendering, perfect vector geometry, and photorealistic materials.",
       "verified": true,
       "gallery": "hand-drawn"
     },
     "chibi": {
       "label": "虹彩 Q 版",
-      "aliases": ["chibi", "q", "Q版", "q版", "萌系", "iridescent-chibi"],
-      "prompt": "Use an expressive iridescent chibi style with an oversized head, compact body, luminous pastel materials, clear facial reactions, rounded shapes, and stable simplified details.",
+      "aliases": ["chibi", "big-head-chibi", "q", "Q版", "q版", "萌系", "iridescent-chibi"],
+      "prompt": "Use a clean big-head chibi character design with the head at 50–65 percent of total height, a tiny torso, very short arms and feet, rounded shapes, clear facial reactions, and stable simplified details. Use luminous pastel materials only as a finishing accent; keep the proportion change as the primary style cue. Avoid natural adult anatomy and realistic body scale.",
       "verified": true,
       "gallery": "iridescent-chibi"
     },
     "manga": {
       "label": "国潮漫画",
-      "aliases": ["manga", "漫画", "漫画风", "comic", "comics", "manga-cel"],
-      "prompt": "Use energetic manga and cel-illustration language with expressive eyes, confident ink contours, selective shading, dynamic accents, and a clear high-contrast silhouette.",
+      "aliases": ["manga", "anime-reaction", "漫画", "漫画风", "comic", "comics", "manga-cel"],
+      "prompt": "Use extreme anime reaction language with shock marks, speed lines, stress veins, waterfall tears, expressive eyes, decisive ink contours, selective cel shading, and exaggerated facial distortion. Keep every reaction instantly readable. Avoid generic polished 3D and decorative accents without a changed facial or pose reaction.",
       "verified": true,
       "gallery": "manga-cel"
     },
     "pixel-art": {
       "label": "精细像素",
       "aliases": ["pixel", "pixel-art", "像素", "像素艺术", "像素画"],
-      "prompt": "Use carefully designed pixel art with a consistent limited palette, readable silhouettes, deliberate pixel clusters, expressive animation-ready poses, and crisp edges.",
+      "prompt": "Use crisp 8/16-bit pixel-art clusters with a consistent limited palette, a readable game-sprite silhouette, deliberate blocky edges, and expressive animation-ready poses. Stage reactions like game abilities or power-ups without smoothing the pixels. Avoid painterly gradients, anti-aliased 3D edges, and photographic texture.",
       "verified": true,
       "gallery": "pixel-art"
     },
     "cute": {
       "label": "软萌毛绒",
       "aliases": ["cute", "可爱", "可爱风", "kawaii", "soft-plush"],
-      "prompt": "Use a soft plush character treatment with rounded anatomy, gentle warm colors, appealing expressions, tactile fur, charming gesture language, and clean sticker readability.",
+      "prompt": "Use a soft plush character treatment with soft short fur, a gentle warm palette, rounded stuffed silhouette, appealing expressions, tactile but simplified fibers, charming gesture language, and clean sticker readability. Avoid molded plastic shine, clay fingerprints, and detailed cinematic fur rendering.",
       "verified": true,
       "gallery": "soft-plush"
     },
     "caricature-3d": {
       "label": "夸张 3D 肖像",
       "aliases": ["caricature", "caricature-3d", "3D 肖像", "夸张肖像"],
-      "prompt": "Use a polished 3D caricature portrait with recognizable facial structure, intentionally enlarged head and expressive features, compact body proportions, studio lighting, and restrained clean accents.",
+      "prompt": "Use a polished 3D caricature portrait with recognizable facial structure, an intentionally enlarged head, compact body proportions, expressive features, studio lighting, and restrained clean accents. Make the facial likeness and scale contrast carry the style. Avoid blind-box surface simplification and ordinary full-body 3D realism.",
       "verified": true,
       "gallery": "caricature-3d"
     },
     "fashion-realistic": {
       "label": "时尚写实",
       "aliases": ["fashion", "fashion-realistic", "时尚写实", "写真"],
-      "prompt": "Use glossy fashion-oriented semi-realistic rendering with faithful facial identity, refined hair and fabric, soft beauty lighting, elegant posing, and minimal decorative accents.",
+      "prompt": "Use glossy fashion-oriented semi-realistic rendering with faithful facial identity, refined hair and fabric, beauty lighting, editorial posing, and minimal decorative accents. Keep the styling deliberate and studio-like while preserving the character's original clothing identity. Avoid chibi proportions, toy molding, and chaotic reaction graphics.",
       "verified": true,
       "gallery": "fashion-realistic"
     },
     "mascot-toy": {
       "label": "品牌玩具吉祥物",
-      "aliases": ["mascot", "mascot-toy", "吉祥物", "品牌玩具"],
-      "prompt": "Use a bold product-mascot toy style with simple geometric construction, glossy materials, short limbs, high color contrast, readable expressions, and energetic brand-safe accents.",
+      "aliases": ["mascot", "mascot-toy", "vinyl-toy", "吉祥物", "品牌玩具"],
+      "prompt": "Use a designer vinyl-toy and blind-box figure aesthetic with smooth molded surfaces, bold color blocking, simplified geometric construction, compact collectible proportions, short limbs, and readable expressions. Keep accents local and product-like. Avoid fibrous fur, clay fingerprints, painterly brushwork, and realistic anatomy.",
       "verified": true,
       "gallery": "mascot-toy"
     },
     "clay-cute": {
       "label": "软陶萌宠",
-      "aliases": ["clay", "clay-cute", "软陶", "黏土", "软陶萌宠"],
-      "prompt": "Use a soft clay-like cute animal treatment with rounded sculpted forms, creamy materials, warm pastel patches, gentle studio light, and highly readable facial reactions.",
+      "aliases": ["clay", "clay-cute", "soft-clay", "软陶", "黏土", "软陶萌宠"],
+      "prompt": "Use a hand-sculpted soft-clay character with sculpted rounded volumes, matte clay reflection, subtle fingerprint texture, creamy materials, warm pastel patches, gentle studio light, and highly readable facial reactions. Preserve the character identity through color, face, clothing, and silhouette. Avoid glossy vinyl surfaces and individual fur-strand rendering.",
       "verified": true,
       "gallery": "clay-cute"
     },
     "fantasy-plush": {
       "label": "奇幻毛绒",
       "aliases": ["fantasy", "fantasy-plush", "奇幻", "披风萌宠"],
-      "prompt": "Use a fantasy plush character style with tactile fur, a compact heroic costume, whimsical accessories, soft cinematic lighting, and playful but coherent magical accents.",
+      "prompt": "Use a fantasy plush character style with tactile fur, a compact heroic costume, localized magical accents, whimsical accessories, soft cinematic lighting, and playful but coherent material details. Keep the magical evidence attached to the character and inside its cell. Avoid an unrelated fantasy scene or replacing the original identity.",
       "verified": true,
       "gallery": "fantasy-plush"
     },
     "kawaii-anime": {
       "label": "日系萌系",
       "aliases": ["anime", "kawaii-anime", "日系", "萌系动漫", "二次元萌系"],
-      "prompt": "Use a polished kawaii anime character treatment with large expressive eyes, clean soft linework, pastel clothing, glossy hair, compact proportions, and restrained reaction accents.",
+      "prompt": "Use polished kawaii anime linework with large expressive eyes, clean soft linework, glossy hair highlights, pastel color accents, compact proportions, and restrained reaction accents. Keep the eyes and line quality as the primary style cues. Avoid 3D fur, realistic lighting, thick comic ink, and oversized emoji anatomy.",
       "verified": true,
       "gallery": "kawaii-anime"
     },
     "retro": {
       "label": "复古风（兼容）",
       "aliases": ["retro", "复古", "复古风", "vintage"],
-      "prompt": "Use a retro-inspired illustration treatment with period-evocative color separation, tactile print texture, bold simplified shapes, and nostalgic finishing.",
+      "prompt": "Use a retro-inspired illustration treatment with period-evocative color separation, tactile print texture, bold simplified shapes, and nostalgic finishing. Keep the print treatment inside the character artwork and preserve the original identity. Avoid modern glossy 3D rendering and full-cell background plates.",
       "verified": false,
       "compatibility_only": true
+    },
+    "retro-halftone": {
+      "label": "复古漫画网点风",
+      "aliases": ["retro-halftone", "retro-halftone-comic", "复古漫画网点", "漫画网点", "Ben-Day"],
+      "prompt": "Use retro pop-comic rendering with Ben-Day dots, slight internal CMYK misregistration, restricted graphic colors, bold ink shapes, and forceful reaction language. Keep all halftone and registration texture inside the character artwork. Avoid smooth 3D shading, photographic texture, and a separate comic-panel background.",
+      "verified": false
+    },
+    "ink-wash-meme": {
+      "label": "水墨 Meme 风",
+      "aliases": ["ink-wash-meme", "水墨", "水墨表情包", "ink wash"],
+      "prompt": "Use a Chinese ink-wash character with dry/wet ink variation, expressive brush economy, restrained brush lines, ample transparent negative space, and understated modern humor. Keep the ink variation contained within the figure while preserving the character's identity. Avoid full opaque paper backgrounds, glossy 3D rendering, and dense decorative scenery.",
+      "verified": false
+    },
+    "emoji-hybrid": {
+      "label": "Emoji 混合风",
+      "aliases": ["emoji-hybrid", "emoji-3d-hybrid", "Emoji 3D 混合风", "Emoji混合风", "Emoji 混合风", "表情符号混合"],
+      "prompt": "Transform the approved character into an Emoji-character hybrid, not a standard 3D character with Emoji decorations. Use a recognizable character face combined with glossy three-dimensional Emoji body language, smooth rounded body volumes, simplified color blocks, oversized readable eyes, brows, mouth and paws or hands, and immediate chat readability. Let the enlarged facial features and whole-body gesture carry each reaction; keep compact Emoji-like accents secondary. Preserve the character's identity markers such as face pattern, ears, fur or hair colors, clothing colors, and signature accessories, while reducing strand-level texture only where it blocks Emoji clarity. Avoid ordinary full-body 3D cartoon rendering, cinematic realism, detailed fabric texture, literal Unicode glyphs as the main subject, and scene props.",
+      "verified": false
     }
+  },
+  "core_catalog": {
+    "version": "v0.3.1",
+    "target_count": 16,
+    "selector_policy": "verified-only",
+    "custom": {
+      "enabled": true,
+      "selector_exposed": false,
+      "max_prompt_chars": 500,
+      "note": "Use custom for long-tail cultural, print, UI, or hybrid styles; it still goes through static approval and the output contract."
+    },
+    "styles": [
+      {"id": "3d", "display_id": "3d", "family": "identity-rendering", "status": "route-verified", "distinguishing_cues": ["coherent 3D rendering treatment", "consistent materials and lighting", "stable identity and proportions"]},
+      {"id": "realistic", "display_id": "realistic-photo", "family": "identity-rendering", "status": "route-verified", "distinguishing_cues": ["natural anatomy", "skin and fabric detail", "photographic lighting"]},
+      {"id": "cute", "display_id": "soft-plush", "family": "material-form", "status": "route-verified", "distinguishing_cues": ["soft short fur", "gentle warm palette", "soft stuffed silhouette"]},
+      {"id": "clay-cute", "display_id": "soft-clay", "family": "material-form", "status": "route-verified", "distinguishing_cues": ["sculpted rounded volumes", "matte clay reflection", "fingerprint texture"]},
+      {"id": "mascot-toy", "display_id": "vinyl-toy", "family": "material-form", "status": "route-verified", "distinguishing_cues": ["smooth molded surface", "bold color blocking", "blind-box proportions"]},
+      {"id": "chibi", "display_id": "big-head-chibi", "family": "proportion", "status": "route-verified", "distinguishing_cues": ["head 50-65 percent of height", "tiny torso", "very short limbs"]},
+      {"id": "manga", "display_id": "anime-reaction", "family": "reaction-grammar", "status": "route-verified", "distinguishing_cues": ["shock marks", "speed lines", "exaggerated facial distortion"]},
+      {"id": "hand-drawn", "display_id": "hand-doodle", "family": "linework", "status": "route-verified", "distinguishing_cues": ["wobbly notebook lines", "naive anatomy", "spontaneous roughness"]},
+      {"id": "kawaii-anime", "display_id": "kawaii-anime", "family": "linework", "status": "route-verified", "distinguishing_cues": ["large expressive eyes", "clean soft linework", "glossy hair highlights"]},
+      {"id": "pixel-art", "display_id": "pixel-art", "family": "digital-retro", "status": "route-verified", "distinguishing_cues": ["8/16-bit clusters", "limited palette", "game-sprite silhouette"]},
+      {"id": "caricature-3d", "display_id": "caricature-3d", "family": "identity-composition", "status": "route-verified", "distinguishing_cues": ["recognizable facial structure", "intentionally enlarged head", "compact body"]},
+      {"id": "fashion-realistic", "display_id": "fashion-realistic", "family": "identity-rendering", "status": "route-verified", "distinguishing_cues": ["beauty lighting", "refined hair and fabric", "editorial pose"]},
+      {"id": "fantasy-plush", "display_id": "fantasy-plush", "family": "material-form", "status": "route-verified", "distinguishing_cues": ["tactile fur", "heroic costume", "localized magical accents"]},
+      {"id": "retro-halftone", "display_id": "retro-halftone", "family": "print", "status": "pending-controlled-evidence", "distinguishing_cues": ["Ben-Day dots", "internal CMYK misregistration", "graphic comic contrast"]},
+      {"id": "ink-wash-meme", "display_id": "ink-wash-meme", "family": "cultural-medium", "status": "pending-controlled-evidence", "distinguishing_cues": ["dry/wet ink variation", "transparent negative space", "restrained brush economy"]},
+      {"id": "emoji-hybrid", "display_id": "emoji-hybrid", "family": "reaction-grammar", "status": "pending-controlled-evidence", "distinguishing_cues": ["recognizable character face", "glossy Emoji body language", "immediate chat readability"]}
+    ]
   }
 }

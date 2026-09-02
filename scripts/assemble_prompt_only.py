@@ -32,6 +32,17 @@ def main() -> int:
     for source in sources.values():
         if not source.expanduser().is_file():
             raise FileNotFoundError(source)
+    route = json.loads(args.route.expanduser().read_text(encoding="utf-8"))
+    if not isinstance(route, dict):
+        raise ValueError("route must be a JSON object")
+    selected = route.get("selected")
+    attempts = route.get("attempts")
+    preflight = route.get("preflight")
+    selected_id = selected.get("id") if isinstance(selected, dict) else None
+    if selected_id != "prompt-only" or attempts not in ([], None):
+        raise ValueError("prompt-only delivery requires a route that selected prompt-only with no executable attempts")
+    if isinstance(preflight, dict) and preflight.get("selected_provider") not in {None, "prompt-only"}:
+        raise ValueError("prompt-only delivery does not match route preflight")
     output_transaction = begin_output_transaction(
         args.output,
         overwrite=args.overwrite,

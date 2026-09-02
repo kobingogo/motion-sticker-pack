@@ -35,11 +35,14 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
       - run: npm ci --ignore-scripts
-      - run: test "$(git branch --show-current)" = "main"
+      - run: test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
       - run: python -m unittest discover -s tests -v
       - run: npm test
       - run: npm audit --audit-level=high
       - run: python scripts/check_repository_policy.py
+      - run: python scripts/style_selector.py --verify-only
+      - run: python scripts/build_gallery_provenance.py --verify-only
+      - run: python scripts/check_benchmark.py
       - name: Validate version
         env:
           RELEASE_VERSION: ${{ inputs.version }}
@@ -49,6 +52,13 @@ jobs:
           value = os.environ["RELEASE_VERSION"]
           if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", value):
               raise SystemExit("version must be SemVer without a v prefix")
+          import json
+          package_version = json.load(open("package.json", encoding="utf-8"))["version"]
+          if package_version != value:
+              raise SystemExit(f"package.json version {package_version!r} does not match release input {value!r}")
+          notes = open("RELEASE_NOTES.md", encoding="utf-8").read()
+          if not re.search(rf"^# Motion Sticker Pack v{re.escape(value)}$", notes, re.MULTILINE):
+              raise SystemExit("RELEASE_NOTES.md has no matching top-level release heading")
           PY
 
   publish:

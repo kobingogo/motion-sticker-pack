@@ -13,10 +13,16 @@ works/<character-slug>/
 ├── static-sheet.png
 ├── static-prompt.json
 ├── static-generation.json
+├── static-generation-attempts.json
 ├── static-alpha.json
 ├── layout.json
 ├── job-state.json
 ├── tile-plan.json
+├── keypose-plan/             # keypose-local only
+│   └── keypose-plan.json
+├── keypose-sheets/           # externally generated 2×2 sheets
+├── keyposes/                 # validated four-pose frames
+│   └── keypose-preparation.json
 ├── prompts.json
 ├── video-task.json
 ├── route.json
@@ -26,6 +32,12 @@ works/<character-slug>/
 │   └── <provider>.mp4           # one accepted canonical source video
 └── delivered/                   # numbered stickers + reports + one ZIP
 ```
+
+Public Gallery cases additionally carry `provenance.json`. It is a compact,
+machine-checkable summary of input type, route/model, native frame evidence,
+successful/withheld cells, output hashes and sizes. A legacy record must list
+missing approval or manifest history explicitly; it may not infer user approval
+from a route or task hash.
 
 ## Required generic package
 
@@ -40,6 +52,7 @@ works/<character-slug>/delivered/
 ├── prompts.json                 when generation occurred
 ├── route.json                   when routing occurred
 ├── attempt-ledger.json          paid-attempt status and transition history
+├── video-retry-approval.json    only when a user-approved retry occurred
 ├── artifact-manifest.json       SHA-256 artifact lineage snapshot
 ├── processing.json
 ├── 3s/                          Grok only: 24-frame derivative + reports
@@ -59,17 +72,18 @@ For independent static stickers, `layout.json` may declare a synthetic single-ro
 - Preserve aspect ratio inside each detected cell. Do not stretch a crop to square unless a target platform profile explicitly requires a square canvas with padding.
 - Prefer a real source alpha channel. Otherwise estimate the uniform background from corners and borders, then remove only background-like regions connected to the crop edge.
 - A video declared as green-screen must pass strict QC before matting: every native frame's corners and border must match the declared `#00FF00` key. A gray/white checkerboard is not transparency and must be rejected, not color-inferred or globally deleted.
-- For grid videos, repack each cell from its actual Alpha bounding box so every side has at least a 10% green safety corridor. Decode and inspect every native frame. Internal-seam crossings are evidence for instance assignment and safe-window selection, not automatic whole-video failure; small accents do not count as independent subjects when a full-size component is fused across a seam. A short balanced merge run (up to 0.2 seconds) may be repaired from temporally adjacent safe frames and must be recorded; longer or identity-ambiguous merges remain bad frames.
+- For grid videos, repack each cell from its actual Alpha bounding box, targeting roughly 70%–75% foreground-bbox occupancy and never exceeding 75%, so every side has at least a 10% green safety corridor. Decode and inspect every native frame. Internal-seam crossings are evidence for instance assignment and safe-window selection, not automatic whole-video failure; small accents do not count as independent subjects when a full-size component is fused across a seam. A short balanced merge run (up to 0.2 seconds) may be repaired from temporally adjacent safe frames and must be recorded; longer or identity-ambiguous merges remain bad frames.
 - Avoid global color deletion: a face, garment, or prop similar to the key color must remain opaque when not connected to the outer background.
 - Near-black and near-white plates use a tight key automatically. Default chroma radii eat dark fur or light clothing, and GIF binary transparency turns those pixels into holes on a light chat or README background.
 - Retain a clean first-frame transparent PNG for each animation.
 - Also export a looping GIF per cell for platforms that do not accept Animated WebP. GIF transparency is binary (palette), not a full alpha channel; choose from bounded alpha-threshold candidates using edge erosion, residual spill, and temporal coverage, and treat Animated WebP as the quality-preferred format.
+- For `keypose-local`, require the approved image/layout/state on plan compilation and preparation, require exactly `01-start.png`, `02-anticipation.png`, `03-peak.png`, and `04-recovery.png` per sticker, and decode both final formats for encoded-output QC before packaging.
 - Package only delivery artifacts and reports; omit temporary raw-frame directories. When this Skill generated the static sheet, include `static-prompt.json`, `static-generation.json`, and `static-alpha.json` so parameter fallback and alpha repair remain auditable.
-- For static generation, `static-generation.json` must preserve the transparent-first call, the bounded `opaque_fallback_call`, the schema fields that were omitted, and the selected attempt. It must record that schema omission does not select the fallback and that reference-image presence does not change the background policy. Only local pixel-validation failure may select the fallback. The fallback prompt is standalone (same identity/style/reactions and reference, but no transparent-first instructions) and requests the exact `#00FF00` plate. A checkerboard/two-tone result is a failed attempt and must never be recorded as an accepted normalized source.
+- For static generation, `static-generation.json` must preserve the input mode, resolved background policy, bounded opaque retry, schema fields that were omitted, single-call execution protocol, and selected attempt. `static-generation-attempts.json` must record every claimed/invoked/accepted/rejected attempt. Reference-image generation is opaque-green-first because native Alpha is not reliable on the current reference-conditioned image_gen path; text-defined generation is transparent-first but still requires pixel validation. A checkerboard/two-tone result is a failed attempt and must never be recorded as an accepted normalized source. A missing `content` array is not enough to start another attempt when a top-level `image_url`, `output_hint`, data URL, bytes, or saved artifact exists.
 - Use `scripts/assemble_delivery.py --cleanup-media-dir` to collect media and audit artifacts into the canonical `delivered/` directory and remove the intermediate media directory after the ZIP succeeds. The ZIP must include `job-state.json`, `prompts.json`, and `route.json` whenever those stages occurred. Do not copy variant ZIPs into the final directory or nest one ZIP inside another.
 - Refuse to mix new output with prior numbered files by default. Reuse an output directory only with an explicit `--overwrite`. Primary output scripts now start a recoverable directory transaction: the prior directory is moved to a same-parent backup, unrelated files are copied into the fresh output, and the backup is removed only on explicit commit. Exceptions roll back automatically; a dead process is recovered from its journal on the next invocation. An active process owns the journal and cannot be taken over.
 - Treat `artifact-manifest.json` as the hash-lineage authority. `prepare_workflow.py` records approved inputs and task dependencies, routing adds config/capability/route records, execution adds the accepted video/result/ledger revision, and `process_emoji_grid.py --manifest` adds processed artifacts. `scripts/artifact_manifest.py verify --manifest <path>` must fail if a current artifact is missing or has a different SHA-256.
-- Run the configured trial cell before full-pack encoding. The default is cell `01`, so the rule works for any non-empty layout, with a 1 MiB GIF target. For Grok, test both the full 6-second file and the 3-second derivative. A trial budget or encoded-frame failure must produce a report and stop; a pass authorizes processing the remaining cells from the same already-generated grid video, not another provider call. In the full-pack run, later GIF budget overages are warnings and do not block delivery; encoded-frame failures remain blocking.
+- Run the configured trial cell before full-pack encoding. The default is cell `01`, so the rule works for any non-empty layout, with a 1 MiB GIF target. For Grok, test both the full 6-second file and the 3-second derivative. A trial budget or encoded-frame failure must produce a report and stop; a pass authorizes processing the remaining cells from the same already-generated grid video, not another provider call. The full-pack command must present that exact successful `processing.json` via `--trial-report`; input, layout, settings, cell, and variant hashes are checked before encoding. In the full-pack run, later GIF budget overages are warnings and do not block delivery; encoded-frame failures remain blocking.
 
 ## QC report
 

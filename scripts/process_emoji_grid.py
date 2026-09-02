@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -151,6 +152,74 @@ def parse_key_color(value: str) -> np.ndarray:
     if not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
         raise ValueError("key color must use #RRGGBB notation")
     return np.array([int(value[index:index + 2], 16) for index in (1, 3, 5)], dtype=np.float32)
+
+
+def load_execution_receipt(path: Path, video: Path) -> dict:
+    if not video.expanduser().is_file():
+        raise ValueError(f"supplied video does not exist: {video}")
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read execution receipt: {path}") from exc
+    if not isinstance(receipt, dict) or receipt.get("status") != "succeeded":
+        raise ValueError("execution receipt must report status=succeeded")
+    output = receipt.get("output")
+    context = receipt.get("execution_context")
+    if not isinstance(output, str) or not Path(output).is_absolute():
+        raise ValueError("execution receipt output must be an absolute path")
+    if Path(output).resolve() != video.expanduser().resolve():
+        raise ValueError("execution receipt does not describe the supplied video")
+    if not isinstance(context, dict):
+        raise ValueError("execution receipt is missing execution_context")
+    expected_hash = context.get("output_sha256")
+    if not isinstance(expected_hash, str) or hashlib.sha256(video.read_bytes()).hexdigest() != expected_hash:
+        raise ValueError("execution receipt video hash does not match the supplied video")
+    return context
+
+
+def validate_trial_report(
+    path: Path,
+    video: Path,
+    layout_path: Path,
+    settings: dict,
+    detected_layout: dict,
+) -> dict:
+    """Require a successful trial from the exact inputs used for the full pack."""
+    try:
+        report = json.loads(path.expanduser().resolve(strict=True).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read trial report: {path}") from exc
+    if not isinstance(report, dict) or report.get("version") != 2:
+        raise ValueError("trial report must be a version 2 processing report")
+    if report.get("trial_mode") is not True or report.get("status") != "succeeded":
+        raise ValueError("trial report must be a successful trial run")
+    if report.get("source") != str(video.expanduser().resolve()):
+        raise ValueError("trial report does not describe the supplied video")
+    if report.get("source_sha256") != hashlib.sha256(video.read_bytes()).hexdigest():
+        raise ValueError("trial report video hash does not match the supplied video")
+    if report.get("layout_sha256") != hashlib.sha256(layout_path.expanduser().resolve().read_bytes()).hexdigest():
+        raise ValueError("trial report layout hash does not match the supplied layout")
+    settings_meta = settings.get("_meta", {})
+    if report.get("settings_sha256") != settings_meta.get("sha256"):
+        raise ValueError("trial report settings hash does not match the supplied settings")
+    if report.get("detected_layout") != {
+        "columns": detected_layout["columns"],
+        "rows": detected_layout["rows"],
+        "count": detected_layout["count"],
+        "confidence": detected_layout.get("confidence"),
+    }:
+        raise ValueError("trial report layout does not match the supplied layout")
+    expected_cell = str(settings["trial"]["cell_id"])
+    if report.get("selected_cells") != [expected_cell]:
+        raise ValueError(f"trial report must contain only configured trial cell {expected_cell}")
+    if report.get("successful_cells") != 1 or report.get("failed_cells") != 0:
+        raise ValueError("trial report must contain one successful cell and no failures")
+    if report.get("budget_failures"):
+        raise ValueError("trial report contains GIF budget failures")
+    for variant, variant_report in (report.get("delivery_variants") or {}).items():
+        if variant_report.get("status") != "succeeded" or variant_report.get("budget_failures"):
+            raise ValueError(f"trial report delivery variant {variant!r} did not pass")
+    return report
 
 
 def is_neutral_plate(background: np.ndarray, chroma_limit: float = 40.0) -> bool:
@@ -1200,6 +1269,16 @@ def main() -> int:
     parser.add_argument("--layout", type=Path, required=True)
     parser.add_argument("--settings", type=Path, help="sticker-production settings JSON")
     parser.add_argument("--manifest", type=Path, help="artifact manifest to extend after output commit")
+    parser.add_argument(
+        "--execution-receipt",
+        type=Path,
+        help="successful video-result.json; binds effective provider, key color, and video hash",
+    )
+    parser.add_argument(
+        "--trial-report",
+        type=Path,
+        help="successful processing.json from the exact configured trial run; required for a configured full pack",
+    )
     parser.add_argument("--trial", action="store_true", help="encode only the configured trial cell")
     parser.add_argument("--fps", type=int, default=DEFAULT_OUTPUT_FPS)
     parser.add_argument("--loop-min-seconds", type=float, default=1.5)
@@ -1247,8 +1326,13 @@ def main() -> int:
         raise ValueError("supersample must be between 1 and 4")
     if args.max_frames < 2:
         raise ValueError("max-frames must be at least 2")
+    execution_context = load_execution_receipt(args.execution_receipt, args.video) if args.execution_receipt else None
     configured_key_color = settings["generation"]["key_color"] if settings else None
-    effective_key_color = args.key_color or configured_key_color
+    effective_key_color = (
+        args.key_color
+        or (execution_context or {}).get("key_color")
+        or configured_key_color
+    )
     key_color = parse_key_color(effective_key_color) if effective_key_color else None
     if args.max_input_bytes < 1 or args.video.stat().st_size > args.max_input_bytes:
         raise ValueError("input video exceeds max-input-bytes")
@@ -1274,6 +1358,14 @@ def main() -> int:
         raise ValueError("--trial requires --settings")
     if args.trial and not settings["trial"]["enabled"]:
         raise ValueError("trial mode is disabled in the production settings")
+    if args.trial_report is not None and not settings:
+        raise ValueError("--trial-report requires --settings")
+    if not args.trial and settings and args.trial_report is None:
+        raise ValueError("configured full-pack processing requires --trial-report from the same video and settings")
+    if args.trial and args.trial_report is not None:
+        raise ValueError("--trial-report is only used when authorizing a full-pack run")
+    if args.trial_report is not None:
+        validate_trial_report(args.trial_report, args.video, args.layout, settings, layout)
     if not 1 <= output_fps <= 60:
         raise ValueError("effective output fps must be between 1 and 60")
     if width * height > args.max_pixels:
@@ -1287,6 +1379,7 @@ def main() -> int:
             args.layout,
             *([args.settings] if args.settings else []),
             *([args.manifest] if args.manifest else []),
+            *([args.trial_report] if args.trial_report else []),
         ],
     )
     args.output = output_transaction.output
@@ -1294,7 +1387,7 @@ def main() -> int:
     delivery_variant_name = None
     delivery_variant_root = None
     if settings and measured_duration is not None:
-        provider = settings["generation"]["provider"]
+        provider = (execution_context or {}).get("provider_id") or settings["generation"]["provider"]
         configured_variant = settings.get("delivery_variants", {}).get(provider)
         if configured_variant and float(measured_duration) > float(configured_variant["short_duration_seconds"]) + 0.25:
             delivery_variant = configured_variant
@@ -1687,6 +1780,11 @@ def main() -> int:
                 else "partial" if succeeded else "failed"
             ),
             "source": str(args.video.resolve()),
+            "source_sha256": hashlib.sha256(args.video.resolve().read_bytes()).hexdigest(),
+            "layout_sha256": hashlib.sha256(args.layout.resolve().read_bytes()).hexdigest(),
+            "settings_sha256": settings["_meta"]["sha256"] if settings else None,
+            "trial_report": str(args.trial_report.expanduser().resolve()) if args.trial_report else None,
+            "execution_context": execution_context,
             "source_size": {"width": width, "height": height},
             "source_fps": round(source_fps, 6),
             "source_frames_analyzed": frame_count,
@@ -1775,6 +1873,24 @@ def main() -> int:
                 record_artifact(manifest_path, args.video, kind="generated-video", stage="processed"),
                 record_artifact(manifest_path, args.layout, kind="layout", stage="processed"),
             ]
+            if args.trial_report:
+                trial_id = record_artifact(
+                    manifest_path,
+                    args.trial_report,
+                    kind="trial-report",
+                    stage="processed",
+                    dependencies=dependency_ids,
+                )
+                dependency_ids.append(trial_id)
+            if args.execution_receipt:
+                receipt_id = record_artifact(
+                    manifest_path,
+                    args.execution_receipt,
+                    kind="provider-result",
+                    stage="processed",
+                    dependencies=[dependency_ids[0]],
+                )
+                dependency_ids.append(receipt_id)
             if args.settings:
                 dependency_ids.append(
                     record_artifact(

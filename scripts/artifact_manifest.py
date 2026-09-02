@@ -123,6 +123,30 @@ def verify_manifest(path: Path) -> dict[str, Any]:
     return {"valid": True, "artifacts": len(known), "manifest": str(path.resolve())}
 
 
+def retire_artifacts_under(path: Path, root: Path) -> int:
+    """Mark cleaned intermediate artifacts below root as historical, never delete them."""
+
+    root = root.expanduser().resolve()
+    with ledger_lock(path):
+        manifest = read_manifest(path)
+        changed = 0
+        for item in manifest["artifacts"]:
+            if not item.get("current", True):
+                continue
+            artifact = Path(str(item.get("path", "")))
+            try:
+                artifact.relative_to(root)
+            except ValueError:
+                continue
+            item["current"] = False
+            item["retired_at"] = utc_now()
+            changed += 1
+        if changed:
+            manifest["updated_at"] = utc_now()
+            atomic_write_json(path, manifest)
+    return changed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -134,6 +158,9 @@ def main() -> int:
     record.add_argument("--dependency", action="append", default=[])
     verify = subparsers.add_parser("verify")
     verify.add_argument("--manifest", type=Path, required=True)
+    retire = subparsers.add_parser("retire-under")
+    retire.add_argument("--manifest", type=Path, required=True)
+    retire.add_argument("--root", type=Path, required=True)
     show = subparsers.add_parser("show")
     show.add_argument("--manifest", type=Path, required=True)
     args = parser.parse_args()
@@ -149,6 +176,12 @@ def main() -> int:
         }
     elif args.command == "verify":
         result = verify_manifest(args.manifest)
+    elif args.command == "retire-under":
+        result = {
+            "manifest": str(args.manifest.resolve()),
+            "root": str(args.root.expanduser().resolve()),
+            "retired": retire_artifacts_under(args.manifest, args.root),
+        }
     else:
         result = read_manifest(args.manifest)
     print(json.dumps(result, ensure_ascii=False, indent=2))

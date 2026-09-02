@@ -51,8 +51,25 @@ def character_workspace(skill_root: Path, name: str) -> Path:
 
 def write_character_manifest(work: Path, name: str) -> dict:
     work.mkdir(parents=True, exist_ok=True)
+    path = work / "character.json"
+    if path.is_file():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError(f"existing character manifest is invalid: {path}") from exc
+        if not isinstance(existing, dict):
+            raise ValueError(f"existing character manifest must be a JSON object: {path}")
+        expected_slug = character_slug(name)
+        existing_slug = existing.get("slug")
+        if existing_slug is not None and existing_slug != expected_slug:
+            raise ValueError(
+                f"existing character manifest belongs to slug {existing_slug!r}, not {expected_slug!r}"
+            )
+        # Personal-IP handoffs carry identity, anchor, style, and reaction data
+        # here.  Re-initializing a workflow must never erase that source of truth.
+        return existing
     record = {"name": unicodedata.normalize("NFC", name).strip(), "slug": character_slug(name)}
-    (work / "character.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return record
 
 

@@ -33,12 +33,32 @@ class DocumentationTests(unittest.TestCase):
         styles = gallery["styles"]
         for document in (ROOT / "README.md", ROOT / "README.en.md"):
             text = document.read_text(encoding="utf-8")
+            if document.name == "README.md":
+                exploration = json.loads(
+                    (ROOT / "docs" / "assets" / "style-exploration" / "fox" / "manifest.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                image_refs = re.findall(
+                    r'<img src="(docs/assets/style-exploration/fox/[^\"]+\.png)"', text
+                )
+                self.assertEqual(len(image_refs), len(exploration["styles"]))
+                for entry in exploration["styles"]:
+                    with self.subTest(document=document.name, style=entry["id"]):
+                        row = rf'^\| `{re.escape(entry["id"])}`(?:[^|]*)\|'
+                        self.assertRegex(text, re.compile(row, re.MULTILINE))
+                        self.assertIn(
+                            f'<img src="docs/assets/style-exploration/fox/{entry["file"]}"',
+                            text,
+                        )
+                continue
             image_refs = re.findall(r'<img src="(gallery/styles/[^\"]+/static\.png)"', text)
             self.assertEqual(len(image_refs), len(styles), f"{document.name} must show every style image in the table")
             for entry in styles:
                 expected = f'gallery/styles/{entry["gallery"]}/static.png'
                 with self.subTest(document=document.name, style=entry["id"]):
-                    self.assertIn(f'| `{entry["id"]}` |', text)
+                    row = rf'^\| `{re.escape(entry["id"])}`(?:[^|]*)\|'
+                    self.assertRegex(text, re.compile(row, re.MULTILINE))
                     self.assertIn(f'<img src="{expected}"', text)
 
 

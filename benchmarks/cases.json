@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "purpose": "reproducible motion-sticker-pack failure-mode benchmark",
+  "cases": [
+    {"id": "hair", "input_class": "fine-hair", "route": "keypose-local", "status": "real-run-required", "acceptance": ["no halo", "no empty encoded frame"]},
+    {"id": "green-garment", "input_class": "green-garment", "route": "non-grok-key-color", "status": "fixture-covered", "acceptance": ["selected key color contrasts with foreground", "foreground preserved"]},
+    {"id": "white-garment", "input_class": "white-garment", "route": "keypose-local", "status": "real-run-required", "acceptance": ["no white plate", "alpha remains usable"]},
+    {"id": "transparent-decor", "input_class": "semi-transparent-prop", "route": "keypose-local", "status": "real-run-required", "acceptance": ["interior alpha retained", "no fringe"]},
+    {"id": "cross-cell", "input_class": "merged-grid-component", "route": "external-video", "status": "fixture-covered", "acceptance": ["bounded recovery only", "long identity ambiguity withheld"]},
+    {"id": "12-cell-layout", "input_class": "4x3-grid", "route": "all-grid-routes", "status": "fixture-covered", "acceptance": ["row-major 12 outputs", "layout count equals 12"]},
+    {"id": "independent-stickers", "input_class": "separate-static-inputs", "route": "independent-stickers", "status": "fixture-covered", "acceptance": ["no invented grid", "manifest records each source"]},
+    {"id": "long-bad-frame", "input_class": "long-empty-run", "route": "external-video", "status": "real-run-required", "acceptance": ["not silently frozen", "failed cell reported"]},
+    {"id": "provider-interruption", "input_class": "provider-timeout", "route": "external-video", "status": "fixture-covered", "acceptance": ["ledger becomes uncertain", "resume never resubmits"]}
+  ]
+}

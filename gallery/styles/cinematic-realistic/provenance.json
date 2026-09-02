@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "case_status": "legacy-evidence-partial",
+  "style_id": "realistic",
+  "gallery_id": "cinematic-realistic",
+  "source_case": "孙宇晨景甜故事/realistic",
+  "input_type": "legacy-gallery-case",
+  "route": "grok-build-local",
+  "route_id": "grok-build-local",
+  "model": "image_to_video",
+  "approval_sha256": null,
+  "native_frame_count": 24,
+  "successful_cells": 9,
+  "withheld_cells": [],
+  "output_size_bytes": 752299,
+  "input": {
+    "type": "legacy-gallery-case",
+    "source_case": "孙宇晨景甜故事/realistic"
+  },
+  "route_details": {
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
+    "task_sha256": "d91e0cb8e381a9ae0c65853fcc858be6d1f419e50d3902d106232e1288a504a4"
+  },
+  "approval": {
+    "sha256": null,
+    "status": "not-preserved",
+    "reason": "This legacy public case predates hash-bound static approval records; do not treat route/task hashes as approval proof."
+  },
+  "native": {
+    "source_size": null,
+    "fps": 8.0,
+    "frames_per_animation": 24
+  },
+  "cells": {
+    "requested": 9,
+    "successful": 9,
+    "withheld": [],
+    "quality_warnings": []
+  },
+  "outputs": {
+    "media_bytes": 752299,
+    "files": [
+      {
+        "path": "static.png",
+        "sha256": "b5b161a3f7b9d013a5bbef1261c0e15e9b3e22cbba1c7b5371f4879239c2757e",
+        "bytes": 47226
+      },
+      {
+        "path": "motion.webp",
+        "sha256": "18d8db314067821dafdd58f01c28891f5bc60386efec38001fd530cea77801df",
+        "bytes": 312582
+      },
+      {
+        "path": "motion.gif",
+        "sha256": "34c8cab2d9a9cbdf82938a90fee88fea2b480dbe5306b24004f313070290dbbe",
+        "bytes": 392491
+      }
+    ]
+  },
+  "artifact_manifest": {
+    "status": "not-preserved",
+    "path": null
+  },
+  "missing_historical_fields": [
+    "approval_hash",
+    "artifact_manifest"
+  ]
+}

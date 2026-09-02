@@ -143,9 +143,9 @@ def materialize_green_input(
     key_color: str,
     *,
     layout: dict | None = None,
-    safe_scale: float = 0.80,
+    safe_scale: float = 0.75,
     min_guard_fraction: float = 0.10,
-    max_foreground_bbox_fraction: float = 0.80,
+    max_foreground_bbox_fraction: float = 0.75,
 ) -> dict:
     """Flatten source alpha onto green so Grok never has to infer transparency.
 
@@ -186,8 +186,8 @@ def _safe_grid_source(
         raise BackgroundQCError("safe grid scale must be between 0.75 and 0.95")
     if not 0.05 <= min_guard_fraction <= 0.20:
         raise BackgroundQCError("minimum guard fraction must be between 0.05 and 0.20")
-    if not 0.60 <= max_foreground_bbox_fraction <= 0.90:
-        raise BackgroundQCError("maximum foreground bbox fraction must be between 0.60 and 0.90")
+    if not 0.60 <= max_foreground_bbox_fraction <= 0.75:
+        raise BackgroundQCError("maximum foreground bbox fraction must be between 0.60 and 0.75")
     if max_foreground_bbox_fraction > 1.0 - 2.0 * min_guard_fraction + 1e-6:
         raise BackgroundQCError("foreground bbox fraction exceeds the requested two-sided guard")
     columns, rows, count = _grid_dimensions(layout)
@@ -252,9 +252,9 @@ def _materialize_green_input(
     key_color: str,
     *,
     layout: dict | None = None,
-    safe_scale: float = 0.80,
+    safe_scale: float = 0.75,
     min_guard_fraction: float = 0.10,
-    max_foreground_bbox_fraction: float = 0.80,
+    max_foreground_bbox_fraction: float = 0.75,
 ) -> dict:
     """Materialize an optional safe grid and flatten it onto the exact key."""
     expected = parse_key_color(key_color)

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "source": "reference.png",
+  "mode": "one-independent-image-per-style",
+  "composition": "square 1:1, centered full-body character, clean simple background, no text",
+  "styles": [
+    {"id": "3d", "label": "3D", "status": "complete", "file": "01-3d.png"},
+    {"id": "realistic", "label": "电影感写实", "status": "complete", "file": "02-realistic.png"},
+    {"id": "hand-drawn", "label": "暖色手绘", "status": "complete", "file": "03-hand-drawn.png"},
+    {"id": "chibi", "label": "虹彩 Q 版", "status": "complete", "file": "04-chibi.png"},
+    {"id": "manga", "label": "国潮漫画", "status": "complete", "file": "05-manga.png"},
+    {"id": "pixel-art", "label": "精细像素", "status": "complete", "file": "06-pixel-art.png"},
+    {"id": "cute", "label": "软萌毛绒", "status": "complete", "file": "07-cute.png"},
+    {"id": "caricature-3d", "label": "夸张 3D 肖像", "status": "complete", "file": "08-caricature-3d.png"},
+    {"id": "fashion-realistic", "label": "时尚写实", "status": "complete", "file": "09-fashion-realistic.png"},
+    {"id": "mascot-toy", "label": "品牌玩具吉祥物", "status": "complete", "file": "10-mascot-toy.png"},
+    {"id": "clay-cute", "label": "软陶萌宠", "status": "complete", "file": "11-clay-cute.png"},
+    {"id": "fantasy-plush", "label": "奇幻毛绒", "status": "complete", "file": "12-fantasy-plush.png"},
+    {"id": "kawaii-anime", "label": "日系萌系", "status": "complete", "file": "13-kawaii-anime.png"},
+    {"id": "retro-halftone", "label": "复古漫画网点风", "status": "complete", "file": "14-retro-halftone.png"},
+    {"id": "ink-wash-meme", "label": "水墨 Meme 风", "status": "complete", "file": "15-ink-wash-meme.png"},
+    {"id": "emoji-hybrid", "label": "Emoji 混合风", "status": "complete", "file": "16-emoji-hybrid.png"}
+  ]
+}

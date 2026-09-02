@@ -184,7 +184,7 @@ Settings: duration={duration}s, resolution_name={resolution}.
 Motion: {compact_motion_prompt(prompt, timeline)}
 Hard rules: keep the full grid and every cell's identity, outfit, props, pose and placement. Fixed camera/canvas. Keep each action subtle, independent and inside its cell; {_motion_schedule(timeline)}. After that loop-ready cycle, keep holding the start pose through {duration}s; do not repeat the action. No crop, reorder, merge, cross-cell motion, new character/content, backdrop, shadow or camera move; preserve approved text or symbols in place.
 This is green screen, not transparency: render every empty/background pixel as exactly one flat RGB color: {key_color}. Never draw a checkerboard. Keep {key_color} uniform in every frame, including corners and grid gutters; keep foreground away from seams.
-Do not call another generation tool; do not retry; this task permits exactly one image_to_video generation. Save a successful MP4 to exactly {target}. Finish with one JSON object only: status=ok plus an existing absolute local MP4 path (or url); on failure use status=failed plus a concise message.
+Do not call another generation tool; do not retry within this execution; this task permits exactly one image_to_video generation. A separate retry execution requires an explicit user-approved retry authorization from the outer workflow. Save a successful MP4 to exactly {target}. Finish with one JSON object only: status=ok plus an existing absolute local MP4 path (or url); on failure use status=failed plus a concise message.
 """
     if len(instruction.encode("utf-8")) > MAX_GROK_INSTRUCTION_BYTES:
         raise ContractError(
@@ -276,9 +276,9 @@ def main() -> int:
             green_input,
             key_color,
             layout=layout_data,
-            safe_scale=float(task.get("safe_grid_scale", 0.80)),
+            safe_scale=float(task.get("safe_grid_scale", 0.75)),
             min_guard_fraction=float(task.get("min_guard_fraction", 0.10)),
-            max_foreground_bbox_fraction=float(task.get("max_foreground_bbox_fraction", 0.80)),
+            max_foreground_bbox_fraction=float(task.get("max_foreground_bbox_fraction", 0.75)),
         )
         target = output_dir / "grok-build-local.mp4"
         if target.exists():

@@ -418,7 +418,10 @@ export async function execute({ configFile, taskFile, providerId, resultFile }) 
   if (video.uint8Array.byteLength > maxBytes) {
     fail(`generated video exceeds max_output_bytes (${video.uint8Array.byteLength} bytes)`);
   }
-  const output = path.join(outputDirectory, `generated-video${extensionFor(video.mediaType)}`);
+  // Bind the downloaded artifact to the result file. Provider-only filenames
+  // collide when a later route attempt shares the same output directory.
+  const resultStem = path.basename(resultFile, path.extname(resultFile)).replace(/[^a-zA-Z0-9._-]/g, '-');
+  const output = path.join(outputDirectory, `generated-video-${resultStem}${extensionFor(video.mediaType)}`);
   await writeFile(output, video.uint8Array, { flag: 'wx' });
   const report = {
     version: 1,

@@ -3,7 +3,7 @@
   "policy": {
     "minimum_verified_styles": 12,
     "maximum_verified_styles": 16,
-    "required_files": ["static.png", "motion.gif", "layout.json", "route.json", "processing.json"],
+    "required_files": ["static.png", "motion.gif", "motion.webp", "layout.json", "route.json", "processing.json", "provenance.json"],
     "verification": "real-nine-cell-output"
   },
   "styles": [

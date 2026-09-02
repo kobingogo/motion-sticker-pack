@@ -105,7 +105,7 @@ def compile_prompts(
 逐格动作（按从左到右、从上到下编号）：
 {motions}
 
-每格只完成一个原地微动作。动作必须在视频开始后的前 2 秒内完成并回到初始姿势；余下时间保持近乎静止，仅允许极轻微呼吸。角色身体中心和脚底基线固定，不得持续漂移。不要使用大幅甩动、长距离位移或跨边界运动。
+每格只完成一个原地微动作。动作必须在视频开始后的前 2 秒内完成并回到初始姿势；余下时间保持近乎静止，仅允许极轻微呼吸。角色身体中心和脚底基线固定，不得持续漂移。不要使用大幅甩动、长距离位移或跨边界运动。所有格子的前景包围盒目标约占所在格 70%–75%，四周至少保留约 10% 安全走廊。
 
 每格动作自然、简洁、适合聊天，结束时回到初始姿势或按指定循环策略闭合。任何主体和已有道具都不能触碰或越过格子边界。{background} 从第一帧到最后一帧都必须保持同一纯色底板；不要用棋盘格模拟透明，不要产生白边、黑边、残留背景或半透明脏边。"""
     negative_prompt = (
@@ -117,6 +117,7 @@ def compile_prompts(
     return {
         "version": 1,
         "detected_layout": layout,
+        "background_contract": "provider-bound" if key_color is None else "explicit",
         "static_sheet_prompt_template": (
             f"基于所附角色图像创建一套 3D 角色表情插画卡片{sheet_name}。无白边、无厚描边；"
             f"每格加入轻微、局部的情绪背景点缀，{cells_name}保持统一色调，并优先使用宽而完全透明的间隔；"
@@ -140,7 +141,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--layout", type=Path, required=True)
     parser.add_argument("--tile-plan", type=Path)
-    parser.add_argument("--key-color", type=str, default=DEFAULT_KEY_COLOR)
+    # The concrete screen belongs to the selected execution attempt, not to
+    # the provider-neutral motion prompt.  Keep the flag for explicit legacy
+    # callers, but do not silently compile green into every route.
+    parser.add_argument("--key-color", type=str)
     parser.add_argument(
         "--static-prompt",
         type=Path,

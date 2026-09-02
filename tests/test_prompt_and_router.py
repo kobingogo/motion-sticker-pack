@@ -60,7 +60,7 @@ class PromptAndRouterTests(unittest.TestCase):
         self.assertIn("production_settings_file", task)
         self.assertEqual(task["max_retries"], 0)
         self.assertEqual(task["min_guard_fraction"], 0.10)
-        self.assertEqual(task["max_foreground_bbox_fraction"], 0.80)
+        self.assertEqual(task["max_foreground_bbox_fraction"], 0.75)
 
     def test_command_adapter_requires_absolute_entrypoint_to_exist(self) -> None:
         self.assertFalse(command_available(["node", "/definitely/missing/video-adapter.mjs"]))
@@ -140,6 +140,24 @@ class PromptAndRouterTests(unittest.TestCase):
         result = route(provider_config, report, video_task)
         self.assertEqual(result["selected"]["id"], "native")
         self.assertEqual(result["fallback"]["id"], "light-motion-local")
+
+    def test_runtime_native_route_keeps_tool_binding_for_execution(self) -> None:
+        result = route(
+            config("none"),
+            capabilities(
+                [{
+                    "id": "host-native-video",
+                    "driver": "native-tool",
+                    "available": True,
+                    "capabilities": ["image-to-video"],
+                    "tool": "host-native-video",
+                }],
+                {},
+            ),
+            task(required_capabilities=["image-to-video"], allow_fallback=False),
+        )
+        self.assertEqual(result["selected"]["id"], "host-native-video")
+        self.assertEqual(result["selected"]["tool"], "host-native-video")
 
     def test_task_provider_chain_is_an_ordered_allow_list(self) -> None:
         provider_config = config()
@@ -233,6 +251,23 @@ class PromptAndRouterTests(unittest.TestCase):
             task(allow_fallback=True),
         )
         self.assertEqual(result["selected"]["id"], "keypose-local")
+
+    def test_explicit_light_motion_fallback_is_not_upgraded_to_keypose(self) -> None:
+        result = route(
+            config("light-motion-local"),
+            capabilities([], {"keypose_local": True, "transform_local": True}),
+            task(allow_fallback=True),
+        )
+        self.assertEqual(result["selected"]["id"], "light-motion-local")
+
+    def test_fallback_is_disabled_when_task_omits_allow_fallback(self) -> None:
+        result = route(
+            config("prompt-only"),
+            capabilities([], {"transform_local": True}),
+            task(),
+        )
+        self.assertIsNone(result["selected"])
+        self.assertFalse(result["preflight"]["ready"])
 
     def test_prompt_only_is_selected_when_no_video_or_local_processing_exists(self) -> None:
         result = route(

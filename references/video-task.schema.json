@@ -41,7 +41,7 @@
     "screen_selection": {"type": "object"},
     "safe_grid_scale": {"type": "number", "minimum": 0.75, "maximum": 0.95},
     "min_guard_fraction": {"type": "number", "minimum": 0.05, "maximum": 0.20},
-    "max_foreground_bbox_fraction": {"type": "number", "minimum": 0.60, "maximum": 0.90},
+    "max_foreground_bbox_fraction": {"type": "number", "minimum": 0.60, "maximum": 0.75},
     "motion_active_seconds": {"type": "number", "minimum": 0.5, "maximum": 4.0},
     "loop_min_seconds": {"type": "number", "minimum": 0.5, "maximum": 5.0},
     "loop_max_seconds": {"type": "number", "minimum": 0.5, "maximum": 6.0},

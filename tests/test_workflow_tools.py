@@ -8,13 +8,14 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = sys.executable
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 from screen_selector import choose_screen  # noqa: E402
+from artifact_manifest import record_artifact, verify_manifest  # noqa: E402
 
 
 class WorkflowToolTests(unittest.TestCase):
@@ -60,6 +61,7 @@ class WorkflowToolTests(unittest.TestCase):
             self.assertGreaterEqual(len(manifest["artifacts"]), 8)
             self.assertEqual(task["max_retries"], 0)
             self.assertEqual(task["min_guard_fraction"], 0.10)
+            self.assertEqual(task["max_foreground_bbox_fraction"], 0.75)
             self.assertTrue((work / "video-providers.json").is_file())
             self.assertTrue((work / "runtime-tools.json").is_file())
             providers = json.loads((work / "video-providers.json").read_text())["providers"]
@@ -153,7 +155,9 @@ class WorkflowToolTests(unittest.TestCase):
             inputs = root / "stickers"
             inputs.mkdir()
             for name, color in (("b.png", (0, 255, 0, 255)), ("a.png", (255, 0, 0, 255))):
-                Image.new("RGBA", (32, 32), color).save(inputs / name)
+                image = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+                ImageDraw.Draw(image).ellipse((8, 8, 24, 24), fill=color)
+                image.save(inputs / name)
             output = root / "output"
             subprocess.run([
                 PYTHON, str(ROOT / "scripts" / "process_independent_stickers.py"),
@@ -161,9 +165,35 @@ class WorkflowToolTests(unittest.TestCase):
             ], check=True, stdout=subprocess.DEVNULL)
             self.assertTrue((output / "01.webp").is_file())
             self.assertTrue((output / "02.gif").is_file())
+            self.assertTrue((output / "preview.png").is_file())
             with zipfile.ZipFile(output / "sticker-pack.zip") as bundle:
                 self.assertIn("01.png", bundle.namelist())
+                self.assertIn("preview.png", bundle.namelist())
                 self.assertIn("processing.json", bundle.namelist())
+
+    def test_independent_opaque_checkerboard_is_rejected_before_matting(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            inputs = root / "stickers"
+            inputs.mkdir()
+            image = Image.new("RGB", (32, 32), (255, 255, 255))
+            draw = ImageDraw.Draw(image)
+            for row in range(4):
+                for column in range(4):
+                    if (row + column) % 2:
+                        draw.rectangle((column * 8, row * 8, column * 8 + 7, row * 8 + 7), fill=(239, 239, 239))
+            draw.ellipse((9, 9, 23, 23), fill=(240, 60, 80))
+            image.save(inputs / "01.png")
+            result = subprocess.run(
+                [
+                    PYTHON, str(ROOT / "scripts" / "process_independent_stickers.py"),
+                    str(inputs), str(root / "output"), "--fps", "2", "--duration", "0.25",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("uniform edge background", result.stderr + result.stdout)
 
     def test_local_fallback_rejects_unapproved_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -213,6 +243,10 @@ class WorkflowToolTests(unittest.TestCase):
                 "attempt-ledger.json",
             ):
                 (audit / name).write_text("{}")
+            keypose_audit = audit / "keyposes"
+            keypose_audit.mkdir()
+            (keypose_audit / "keypose-plan.json").write_text("{\"mode\": \"keypose-local\"}")
+            (keypose_audit / "keypose-preparation.json").write_text("{\"mode\": \"keypose-local-preparation\"}")
             output = root / "delivered"
             subprocess.run([
                 PYTHON, str(ROOT / "scripts" / "assemble_delivery.py"),
@@ -230,6 +264,8 @@ class WorkflowToolTests(unittest.TestCase):
                         "static-alpha.json",
                         "artifact-manifest.json",
                         "attempt-ledger.json",
+                        "keypose-plan.json",
+                        "keypose-preparation.json",
                         "3s/01.gif",
                         "3s/processing.json",
                     }.issubset(bundle.namelist())
@@ -248,6 +284,8 @@ class WorkflowToolTests(unittest.TestCase):
                 (media / f"01.{suffix}").write_bytes(b"media")
             (media / "layout.json").write_text("{}")
             (media / "processing.json").write_text("{}")
+            manifest = audit / "artifact-manifest.json"
+            record_artifact(manifest, media / "01.webp", kind="sticker-output", stage="processed")
             output = root / "delivered"
             subprocess.run([
                 PYTHON, str(ROOT / "scripts" / "assemble_delivery.py"),
@@ -256,20 +294,27 @@ class WorkflowToolTests(unittest.TestCase):
             ], check=True, stdout=subprocess.DEVNULL)
             self.assertFalse(media.exists())
             self.assertTrue((output / "sticker-pack.zip").is_file())
+            self.assertTrue(verify_manifest(output / "artifact-manifest.json")["valid"])
 
     def test_prompt_only_delivery_is_explicitly_non_video(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             inputs = []
-            for name in ("static-prompt.json", "tile-plan.json", "prompts.json", "route.json"):
+            for name in ("static-prompt.json", "tile-plan.json", "prompts.json"):
                 path = root / name
                 path.write_text("{}")
                 inputs.append(path)
+            route = root / "route.json"
+            route.write_text(json.dumps({
+                "selected": {"id": "prompt-only", "driver": "none"},
+                "attempts": [],
+                "preflight": {"selected_provider": "prompt-only"},
+            }))
             output = root / "prompt-only"
             subprocess.run([
                 PYTHON, str(ROOT / "scripts" / "assemble_prompt_only.py"),
                 "--static-prompt", str(inputs[0]), "--tile-plan", str(inputs[1]),
-                "--prompts", str(inputs[2]), "--route", str(inputs[3]), "--output", str(output),
+                "--prompts", str(inputs[2]), "--route", str(route), "--output", str(output),
             ], check=True, stdout=subprocess.DEVNULL)
             report = json.loads((output / "prompt-only.json").read_text())
             self.assertFalse(report["generated_video"])

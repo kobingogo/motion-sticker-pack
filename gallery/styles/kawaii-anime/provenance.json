@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "case_status": "legacy-evidence-partial",
+  "style_id": "kawaii-anime",
+  "gallery_id": "kawaii-anime",
+  "source_case": "甜美女孩",
+  "input_type": "legacy-gallery-case",
+  "route": "grok-build-local",
+  "route_id": "grok-build-local",
+  "model": "image_to_video",
+  "approval_sha256": null,
+  "native_frame_count": 13,
+  "successful_cells": 9,
+  "withheld_cells": [],
+  "output_size_bytes": 477647,
+  "input": {
+    "type": "legacy-gallery-case",
+    "source_case": "甜美女孩"
+  },
+  "route_details": {
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
+    "task_sha256": "1bc0bc26ee777d2a7e53b446689ae82f18b271ebab4fab7ca2ae39985dcc7934"
+  },
+  "approval": {
+    "sha256": null,
+    "status": "not-preserved",
+    "reason": "This legacy public case predates hash-bound static approval records; do not treat route/task hashes as approval proof."
+  },
+  "native": {
+    "source_size": {
+      "width": 960,
+      "height": 960
+    },
+    "fps": 6,
+    "frames_per_animation": 13
+  },
+  "cells": {
+    "requested": 9,
+    "successful": 9,
+    "withheld": [],
+    "quality_warnings": []
+  },
+  "outputs": {
+    "media_bytes": 477647,
+    "files": [
+      {
+        "path": "static.png",
+        "sha256": "b48c670df48c0e8be3e1960f5852762144b38807ac6668641f2d0caf14892f59",
+        "bytes": 55179
+      },
+      {
+        "path": "motion.webp",
+        "sha256": "a8ecf8d6b593734c25b93561e038c5e7e066585bcd788e64f8dccff20ae5a68a",
+        "bytes": 192842
+      },
+      {
+        "path": "motion.gif",
+        "sha256": "8d868c8acfe0dd4f5f9cae9966f2c739dc2df952452e7dca8d2d677d70f814a7",
+        "bytes": 229626
+      }
+    ]
+  },
+  "artifact_manifest": {
+    "status": "not-preserved",
+    "path": null
+  },
+  "missing_historical_fields": [
+    "approval_hash",
+    "artifact_manifest"
+  ]
+}
