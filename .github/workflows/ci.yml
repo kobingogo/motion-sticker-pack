@@ -8,7 +8,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # Push and pull-request events for the same source branch share one run.
+  # This prevents a stale duplicate check from blocking a protected branch.
+  group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
