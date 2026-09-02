@@ -1,8 +1,12 @@
 name: ci
 
 on:
-  push:
+  # Protected-branch validation runs once per PR.  Keeping the required
+  # check on the PR event avoids duplicate push/PR check-runs for the same
+  # commit, where a canceled duplicate can block an otherwise green merge.
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
