@@ -60,8 +60,12 @@ class UploadHandler(BaseHTTPRequestHandler):
             total += size
             if total > max_bytes:
                 raise ValueError("upload too large")
-            writer.write(self.rfile.read(size))  # type: ignore[attr-defined]
-            self.rfile.read(2)
+            payload = self.rfile.read(size)  # type: ignore[attr-defined]
+            if len(payload) != size:
+                raise ValueError("incomplete chunk payload")
+            writer.write(payload)  # type: ignore[attr-defined]
+            if self.rfile.read(2) != b"\r\n":
+                raise ValueError("invalid chunk terminator")
 
     def _receive(self) -> None:
         if not self._allowed():

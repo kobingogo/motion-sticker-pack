@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import base64
+import hashlib
 import io
 import json
 import os
@@ -26,7 +27,7 @@ from config_contract import (  # noqa: E402
     validate_provider_config,
     validate_video_task,
 )
-from artifact_manifest import record_artifact, verify_manifest  # noqa: E402
+from artifact_manifest import record_artifact, retire_artifacts_under, verify_manifest  # noqa: E402
 from attempt_ledger import (  # noqa: E402
     archive_ledger,
     atomic_write_json,
@@ -40,6 +41,7 @@ from execute_video_route import (  # noqa: E402
     diagnostic_tail,
     execute_attempt,
     record_execution_artifacts,
+    validate_retry_approval,
     write_rejected_result,
 )
 from grok_build_video_adapter import (  # noqa: E402
@@ -53,7 +55,12 @@ from grok_build_video_adapter import (  # noqa: E402
     promote_accepted_video,
     resolve_grok_home,
 )
-from manage_job_state import atomic_write, create_state, verify_state  # noqa: E402
+from manage_job_state import (  # noqa: E402
+    atomic_write,
+    create_state,
+    create_video_retry_approval,
+    verify_state,
+)
 from output_safety import (  # noqa: E402
     begin_output_transaction,
     prepare_output,
@@ -62,7 +69,7 @@ from output_safety import (  # noqa: E402
 )
 from prompt_compiler import load_tile_plan  # noqa: E402
 from render_keypose_pack import natural_key  # noqa: E402
-from route_video_provider import route  # noqa: E402
+from route_video_provider import dependency_hashes, route  # noqa: E402
 from xai_rest_video_adapter import keyed_image_data_url, xai_prompt  # noqa: E402
 
 
@@ -208,7 +215,10 @@ class AdversarialContractTests(unittest.TestCase):
                 ],
             }
             claim_attempt(ledger, route_value, 1, result)
-            with self.assertRaisesRegex(ContractError, "already uncertain"):
+            ledger_value = json.loads(ledger.read_text(encoding="utf-8"))
+            ledger_value["attempts"][0]["owner_pid"] = -1
+            atomic_write_json(ledger, ledger_value)
+            with self.assertRaisesRegex(ContractError, "explicit user approval"):
                 claim_attempt(ledger, route_value, 1, result)
             atomic_write_json(
                 progress_path_for(ledger, 1),
@@ -224,6 +234,132 @@ class AdversarialContractTests(unittest.TestCase):
                 [event["status"] for event in history],
                 ["planned", "running", "uncertain", "running", "succeeded"],
             )
+
+    def test_attempt_ledger_blocks_concurrency_and_enforces_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            ledger = root / "attempt-ledger.json"
+            result_one = root / "result-1.json"
+            result_two = root / "result-2.json"
+            route_value = {
+                "version": 1,
+                "task_sha256": "task",
+                "config_sha256": "config",
+                "attempts": [
+                    {"attempt": 1, "id": "first", "driver": "command"},
+                    {"attempt": 2, "id": "second", "driver": "command"},
+                ],
+            }
+            claim_attempt(ledger, route_value, 1, result_one)
+            with self.assertRaisesRegex(ContractError, "actively owned"):
+                claim_attempt(ledger, route_value, 1, result_one)
+            current = json.loads(ledger.read_text(encoding="utf-8"))
+            self.assertEqual(current["attempts"][0]["status"], "running")
+            with self.assertRaisesRegex(ContractError, "cannot start before"):
+                claim_attempt(ledger, route_value, 2, result_two)
+            finish_attempt(ledger, route_value, 1, "failed", error="provider unavailable")
+            claim_attempt(ledger, route_value, 2, result_two)
+
+    def test_provider_specific_input_hash_is_part_of_route_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            files = {
+                "input_image": root / "sheet.png",
+                "provider_image": root / "provider-screen.png",
+                "layout_file": root / "layout.json",
+                "prompt_file": root / "prompts.json",
+                "approval_file": root / "state.json",
+                "production_settings_file": root / "settings.json",
+            }
+            for key, path in files.items():
+                path.write_text(key, encoding="utf-8")
+            task = {
+                **{key: str(path) for key, path in files.items() if key != "provider_image"},
+                "provider_input_images": {"xai-direct": str(files["provider_image"])},
+            }
+            before = dependency_hashes(task)
+            files["provider_image"].write_text("provider-screen-v2", encoding="utf-8")
+            after = dependency_hashes(task)
+            self.assertNotEqual(
+                before["provider_input_images.xai-direct"],
+                after["provider_input_images.xai-direct"],
+            )
+
+    def test_video_retry_requires_explicit_approval_and_records_retry(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            ledger = root / "attempt-ledger.json"
+            result = root / "result.json"
+            route_value = {
+                "version": 1,
+                "task_sha256": "task",
+                "config_sha256": "config",
+                "attempts": [
+                    {"attempt": 1, "id": "grok-build-local", "driver": "command", "execution": {}}
+                ],
+            }
+            claim_attempt(ledger, route_value, 1, result)
+            finish_attempt(ledger, route_value, 1, "failed", error="provider unavailable")
+            with self.assertRaisesRegex(ContractError, "explicit user approval"):
+                claim_attempt(ledger, route_value, 1, result)
+            claimed = claim_attempt(
+                ledger,
+                route_value,
+                1,
+                result,
+                retry_approval_sha256="a" * 64,
+            )
+            self.assertFalse(claimed["idempotent"])
+            entry = json.loads(ledger.read_text(encoding="utf-8"))["attempts"][0]
+            self.assertEqual(entry["retry_count"], 1)
+            retry_event = entry["events"][-1]
+            self.assertTrue(retry_event["retry"])
+            self.assertTrue(retry_event["confirmed_by_user"])
+            self.assertEqual(retry_event["retry_approval_sha256"], "a" * 64)
+            finish_attempt(ledger, route_value, 1, "failed", error="retry failed")
+            with self.assertRaisesRegex(ContractError, "already been consumed"):
+                claim_attempt(
+                    ledger,
+                    route_value,
+                    1,
+                    result,
+                    retry_approval_sha256="a" * 64,
+                )
+
+    def test_video_retry_approval_is_bound_to_current_inputs_and_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / "sheet.png"
+            layout = root / "layout.json"
+            state_path = root / "job-state.json"
+            route_path = root / "route.json"
+            image.write_bytes(b"approved-image")
+            layout.write_text(
+                json.dumps({"columns": 1, "rows": 1, "count": 1, "confidence": 0.9}),
+                encoding="utf-8",
+            )
+            atomic_write(state_path, create_state(image, layout, None, "user-supplied"))
+            route_value = {
+                "version": 1,
+                "attempts": [{"attempt": 1, "id": "grok-build-local"}],
+            }
+            route_path.write_text(json.dumps(route_value), encoding="utf-8")
+            approval = create_video_retry_approval(
+                state_path, image, layout, route_path, "grok-build-local", 1
+            )
+            approval_path = root / "video-retry-approval.json"
+            approval_path.write_text(json.dumps(approval), encoding="utf-8")
+            task = {"input_image": str(image), "layout_file": str(layout)}
+            route_value = json.loads(route_path.read_text(encoding="utf-8"))
+            digest = validate_retry_approval(
+                approval_path, route_value, task, "grok-build-local", 1
+            )
+            self.assertEqual(len(digest), 64)
+            tampered = dict(approval)
+            tampered["provider"] = "xai-direct"
+            approval_path.write_text(json.dumps(tampered), encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "does not match the selected provider"):
+                validate_retry_approval(approval_path, route_value, task, "grok-build-local", 1)
 
     def test_superseded_attempt_ledger_is_archived_without_deletion(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -276,6 +412,22 @@ class AdversarialContractTests(unittest.TestCase):
             result.write_bytes(b"tampered")
             with self.assertRaisesRegex(ContractError, "hash mismatch"):
                 verify_manifest(manifest)
+
+    def test_artifact_manifest_can_retire_cleaned_intermediates_without_deleting_history(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            intermediate = root / "output"
+            intermediate.mkdir()
+            artifact = intermediate / "01.webp"
+            artifact.write_bytes(b"media")
+            manifest = root / "artifact-manifest.json"
+            record_artifact(manifest, artifact, kind="sticker-output", stage="processed")
+            artifact.unlink()
+            self.assertEqual(retire_artifacts_under(manifest, intermediate), 1)
+            self.assertTrue(verify_manifest(manifest)["valid"])
+            entry = json.loads(manifest.read_text(encoding="utf-8"))["artifacts"][0]
+            self.assertFalse(entry["current"])
+            self.assertIn("retired_at", entry)
 
     def test_artifact_manifest_disambiguates_identical_named_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -671,6 +823,67 @@ class AdversarialContractTests(unittest.TestCase):
             self.assertIn("VIDEO_RELAY_API_KEY", result["seen_env"])
             self.assertNotIn("AWS_SECRET_ACCESS_KEY", result["seen_env"])
 
+    def test_native_route_registers_host_video_through_the_same_qc_and_ledger(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / "sheet.png"
+            layout = root / "layout.json"
+            static_prompt = root / "static-prompt.json"
+            prompts = root / "prompts.json"
+            state_path = root / "job-state.json"
+            raw = root / "raw"
+            raw.mkdir()
+            image.write_bytes(b"approved image")
+            layout_value = {"detected_layout": {"columns": 1, "rows": 1, "count": 1, "confidence": 0.99}}
+            layout.write_text(json.dumps(layout_value), encoding="utf-8")
+            static_prompt.write_text(json.dumps({"static_sheet_prompt": "static"}), encoding="utf-8")
+            prompts.write_text(json.dumps({**layout_value, "grid_video_prompt": "small motion"}), encoding="utf-8")
+            state = create_state(image, layout, static_prompt, "generated")
+            state["phase"] = "static-approved"
+            state["approval"] = {"kind": "explicit-user-confirmation", "static_sha256": state["static_image"]["sha256"]}
+            atomic_write(state_path, state)
+            native_video = root / "native.mp4"
+            native_video.write_bytes(b"host video")
+            config = base_config()
+            config["providers"] = [{
+                "id": "native", "driver": "native-tool", "enabled": True, "priority": 100,
+                "tool": "host.video", "capabilities": ["image-to-video"],
+            }]
+            task = {
+                "version": 1, "operation": "image-to-video", "required_capabilities": ["image-to-video"],
+                "provider": "native", "allow_fallback": False, "input_image": str(image.resolve()),
+                "layout_file": str(layout.resolve()), "prompt_file": str(prompts.resolve()),
+                "approval_file": str(state_path.resolve()), "output_directory": str(raw.resolve()),
+            }
+            capabilities = {
+                "version": 1, "config_sha256": object_sha256(config),
+                "providers": [{"id": "native", "driver": "native-tool", "available": True,
+                               "priority": 100, "capabilities": ["image-to-video"]}],
+                "local_processing": {},
+            }
+            route_report = route(config, capabilities, task)
+            config_path = root / "providers.json"
+            task_path = root / "task.json"
+            result_path = root / "video-result.json"
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            task_path.write_text(json.dumps(task), encoding="utf-8")
+            with patch(
+                "execute_video_route.probe_video_alpha",
+                return_value={"valid": True, "has_meaningful_alpha": True, "classification": "real-alpha"},
+            ):
+                execute_attempt(
+                    config_path, task_path, route_report, result_path, 1,
+                    native_video_path=native_video,
+                )
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+            ledger = json.loads((root / "attempt-ledger.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["tool"], "host.video")
+            self.assertEqual(
+                result["execution_context"]["output_sha256"],
+                hashlib.sha256(native_video.read_bytes()).hexdigest(),
+            )
+            self.assertEqual(ledger["attempts"][0]["status"], "succeeded")
+
     def test_interpreter_adapter_requires_absolute_entrypoint(self) -> None:
         config = base_config()
         config["providers"] = [
@@ -780,7 +993,7 @@ class AdversarialContractTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaisesRegex(ContractError, message):
                 validate_video_task(invalid, require_execution_fields=True)
 
-        invalid = {**task, "min_guard_fraction": 0.10, "max_foreground_bbox_fraction": 0.85}
+        invalid = {**task, "min_guard_fraction": 0.13, "max_foreground_bbox_fraction": 0.75}
         with self.assertRaisesRegex(ContractError, "two-sided guard"):
             validate_video_task(invalid, require_execution_fields=True)
 

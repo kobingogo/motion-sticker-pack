@@ -16,6 +16,43 @@ from prepare_image_gen_call import prepare_call  # noqa: E402
 
 
 class StaticPromptTests(unittest.TestCase):
+    def test_core_catalog_entries_have_compilable_presets(self) -> None:
+        document = json.loads(PRESETS.read_text(encoding="utf-8"))
+        presets = load_presets(PRESETS)
+        catalog = document["core_catalog"]
+        self.assertEqual(catalog["target_count"], len(catalog["styles"]))
+        self.assertTrue({entry["id"] for entry in catalog["styles"]}.issubset(presets))
+        self.assertIn("retro-halftone", presets)
+        self.assertIn("ink-wash-meme", presets)
+        self.assertIn("emoji-hybrid", presets)
+
+    def test_emoji_hybrid_is_explicit_pending_core_preset(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "Emoji 混合风", None)
+        result = compile_prompt(
+            "所附图像",
+            style_id,
+            label,
+            style_prompt,
+            ["开心"],
+            1,
+            1,
+            style_input="Emoji 混合风",
+            style_verified=presets[style_id]["verified"],
+        )
+        prompt = result["static_sheet_prompt"]
+        self.assertEqual(style_id, "emoji-hybrid")
+        self.assertEqual(result["style"]["label"], "Emoji 混合风")
+        self.assertEqual(result["style"]["verified"], False)
+        self.assertEqual(result["style_policy"]["catalog_tier"], "core")
+        self.assertEqual(result["style_policy"]["verified"], False)
+        self.assertEqual(result["style_policy"]["mode"], "fixed")
+        self.assertIn("not a standard 3D character with Emoji decorations", prompt)
+        self.assertIn("glossy three-dimensional Emoji body language", prompt)
+        self.assertIn("enlarged facial features and whole-body gesture", prompt)
+        self.assertIn("Avoid ordinary full-body 3D cartoon rendering", prompt)
+        self.assertNotEqual(style_id, "custom")
+
     def test_compiles_mobile_style_input_into_static_sheet_prompt(self) -> None:
         presets = load_presets(PRESETS)
         style_id, label, style_prompt = resolve_style(presets, "3D", None)
@@ -45,6 +82,11 @@ class StaticPromptTests(unittest.TestCase):
         self.assertIn("alpha 必须为 0", prompt)
         self.assertIn("严禁绘制棋盘格", prompt)
         self.assertIn("不要将图像扁平化成 RGB/JPEG", prompt)
+        self.assertIn("70%–75%", prompt)
+        self.assertEqual(
+            result["layout_safety"]["target_foreground_bbox_fraction"],
+            {"minimum": 0.70, "maximum": 0.75},
+        )
         self.assertEqual(
             result["image_generation_request"]["arguments"],
             {"background": "transparent", "output_format": "png"},
@@ -276,7 +318,7 @@ class StaticPromptTests(unittest.TestCase):
         self.assertEqual(result["opaque_fallback_call"]["call_arguments"]["background"], "opaque")
         self.assertEqual(result["opaque_fallback_call"]["call_arguments"]["output_format"], "png")
 
-    def test_reference_image_does_not_change_transparent_first_policy(self) -> None:
+    def test_reference_image_uses_opaque_green_first_policy(self) -> None:
         presets = load_presets(PRESETS)
         style_id, label, style_prompt = resolve_style(presets, "3D", None)
         contract = compile_prompt(
@@ -289,14 +331,60 @@ class StaticPromptTests(unittest.TestCase):
             1,
             str(PRESETS),
         )
+        self.assertEqual(contract["background_policy"]["mode"], "opaque-green-first")
+        self.assertEqual(
+            contract["image_generation_request"]["arguments"],
+            {"background": "opaque", "output_format": "png"},
+        )
         result = prepare_call(contract, {"prompt", "referenced_image_paths"})
         self.assertEqual(
             result["call_arguments"]["referenced_image_paths"],
             [str(PRESETS.resolve())],
         )
-        self.assertIn("真实 alpha 通道", result["call_arguments"]["prompt"])
-        self.assertNotIn("#00FF00", result["call_arguments"]["prompt"])
-        self.assertEqual(result["generation_policy"]["mode"], "transparent-first")
+        self.assertIn("#00FF00", result["call_arguments"]["prompt"])
+        self.assertNotIn("真实 alpha 通道", result["call_arguments"]["prompt"])
+        self.assertEqual(result["generation_policy"]["mode"], "opaque-green-first")
+        self.assertTrue(result["generation_policy"]["reference_image_changes_background_policy"])
+
+    def test_reference_image_cannot_opt_into_unreliable_transparent_default(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        with self.assertRaisesRegex(ValueError, "reference-image generation uses an opaque"):
+            compile_prompt(
+                "所附图像", style_id, label, style_prompt, ["开心"], 1, 1,
+                str(PRESETS), background="transparent",
+            )
+
+    def test_image_generation_contract_requires_result_resolution_before_retry(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        contract = compile_prompt(
+            "所附图像", style_id, label, style_prompt, ["开心"], 1, 1, str(PRESETS)
+        )
+        result = prepare_call(contract, {"prompt", "referenced_image_paths"})
+        policy = result["generation_policy"]
+        self.assertTrue(policy["single_call_per_attempt"])
+        self.assertEqual(policy["attempt_ledger"], "static-generation-attempts.json")
+        self.assertEqual(policy["result_resolution_order"][0], "top-level image_url or output_hint")
+        self.assertIn("content array is absent", policy["retry_forbidden_when"][0])
+        self.assertTrue(any("explicit provider failure" in item for item in policy["retry_requires"]))
+
+    def test_text_defined_generation_keeps_transparent_first_policy(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "3D", None)
+        contract = compile_prompt(
+            "文字角色", style_id, label, style_prompt, ["开心"], 1, 1,
+            character_description="橘色狐狸，蓝色外套",
+        )
+        self.assertEqual(contract["source_mode"], "text-defined-character")
+        self.assertEqual(contract["background_policy"]["mode"], "transparent-first")
+        self.assertEqual(
+            contract["image_generation_request"]["arguments"]["background"],
+            "transparent",
+        )
+        prepared = prepare_call(contract, {"prompt", "background", "output_format"})
+        self.assertEqual(prepared["generation_policy"]["mode"], "transparent-first")
+        self.assertTrue(prepared["generation_policy"]["schema_omission_implies_no_transparency"] is False)
 
     def test_accepts_short_text_reactions(self) -> None:
         presets = load_presets(PRESETS)
@@ -358,9 +446,18 @@ class StaticPromptTests(unittest.TestCase):
             {
                 "realistic", "3d", "hand-drawn", "chibi", "manga", "pixel-art", "cute", "retro",
                 "caricature-3d", "fashion-realistic", "mascot-toy", "clay-cute",
-                "fantasy-plush", "kawaii-anime",
+                "fantasy-plush", "kawaii-anime", "retro-halftone", "ink-wash-meme", "emoji-hybrid",
             },
         )
+
+    def test_custom_style_is_marked_as_long_tail(self) -> None:
+        presets = load_presets(PRESETS)
+        style_id, label, style_prompt = resolve_style(presets, "custom", "ink wash with dry brush")
+        result = compile_prompt("角色", style_id, label, style_prompt, ["开心"], 1, 1)
+        self.assertEqual(result["style"]["id"], "custom")
+        self.assertEqual(result["style_policy"]["mode"], "custom")
+        self.assertEqual(result["style_policy"]["catalog_tier"], "long-tail")
+        self.assertFalse(result["style_policy"]["verified"])
 
 
 if __name__ == "__main__":

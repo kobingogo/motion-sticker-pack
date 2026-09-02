@@ -70,11 +70,34 @@ def prepare_call(contract: dict, supported_arguments: set[str]) -> dict:
     requested = request.get("arguments")
     if not isinstance(requested, dict) or set(requested) != OPTIONAL_PROVIDER_ARGUMENTS:
         raise ValueError("image_generation_request must declare background and output_format")
+    source_mode = contract.get("source_mode")
+    if source_mode not in {"reference-image", "text-defined-character"}:
+        raise ValueError("static prompt must declare source_mode")
+    background_policy = contract.get("background_policy")
+    if not isinstance(background_policy, dict) or background_policy.get("resolved") != requested.get("background"):
+        raise ValueError("background_policy must bind the resolved generation background")
+    if source_mode == "reference-image" and requested.get("background") != "opaque":
+        raise ValueError("reference-image generation must use the opaque background policy")
+    if source_mode == "text-defined-character" and requested.get("background") == "opaque":
+        # Explicit opaque remains supported for a caller that needs a keyed
+        # source, but it must be declared as an intentional override.
+        if background_policy.get("requested") != "opaque":
+            raise ValueError("text-defined opaque generation requires an explicit background=opaque override")
     prompt = contract.get("static_sheet_prompt")
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("static prompt is missing static_sheet_prompt")
     if "prompt" not in supported_arguments:
         raise ValueError("the callable image_gen schema must expose prompt")
+    layout_safety = contract.get("layout_safety")
+    if not isinstance(layout_safety, dict):
+        raise ValueError("static prompt is missing layout_safety")
+    target = layout_safety.get("target_foreground_bbox_fraction")
+    if (
+        not isinstance(target, dict)
+        or target.get("minimum") != 0.70
+        or target.get("maximum") != 0.75
+    ):
+        raise ValueError("layout_safety must target a 70%-75% foreground bbox")
 
     initial = _call_record(
         contract,
@@ -129,19 +152,36 @@ def prepare_call(contract: dict, supported_arguments: set[str]) -> dict:
         "supported_arguments": sorted(supported_arguments),
         "call_arguments": initial["call_arguments"],
         "generation_policy": {
-            "mode": "transparent-first",
-            "first_attempt": "prompt-real-alpha-plus-supported-native-arguments",
-            "on_omitted_transparency_arguments": "continue-transparent-first-via-prompt",
+            "mode": "opaque-green-first" if source_mode == "reference-image" else "transparent-first",
+            "source_mode": source_mode,
+            "first_attempt": "prompt-uniform-green-plus-supported-native-arguments" if source_mode == "reference-image" else "prompt-real-alpha-plus-supported-native-arguments",
+            "on_omitted_transparency_arguments": "continue-opaque-green-first-via-prompt" if source_mode == "reference-image" else "continue-transparent-first-via-prompt",
             "schema_omission_implies_no_transparency": False,
-            "reference_image_changes_background_policy": False,
+            "reference_image_changes_background_policy": source_mode == "reference-image",
             "inspect_result_before_acceptance": True,
-            "fallback_trigger": "local-alpha-normalization-failure-only",
+            "fallback_trigger": "opaque-background-validation-failure" if source_mode == "reference-image" else "local-alpha-normalization-failure-only",
             "on_missing_real_alpha_or_simulated_transparency": "use-opaque-fallback-call",
             "max_static_generation_attempts": 2,
+            "single_call_per_attempt": True,
+            "attempt_ledger": "static-generation-attempts.json",
+            "result_resolution_order": [
+                "top-level image_url or output_hint",
+                "top-level data URL or image bytes",
+                "content image block",
+            ],
+            "retry_forbidden_when": [
+                "content array is absent but a top-level image_url or output_hint exists",
+                "wrapper display is missing while a generated artifact exists",
+            ],
+            "retry_requires": [
+                "explicit provider failure with no generated artifact",
+                "static-generation-attempts.json rejection after local normalization/QC",
+            ],
         },
         "opaque_fallback_call": fallback_record,
         "requires_alpha_normalization": True,
         "verified_reference_image": verified_reference,
+        "layout_safety": layout_safety,
     }
 
 

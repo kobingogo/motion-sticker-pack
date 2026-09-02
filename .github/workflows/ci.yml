@@ -36,5 +36,7 @@ jobs:
       - run: npm audit --audit-level=high
       - run: python -m py_compile scripts/*.py
       - run: python scripts/style_selector.py --verify-only
+      - run: python scripts/build_gallery_provenance.py --verify-only
+      - run: python scripts/check_benchmark.py
       - run: python scripts/check_repository_policy.py
       - run: node --check scripts/video_gateway.mjs

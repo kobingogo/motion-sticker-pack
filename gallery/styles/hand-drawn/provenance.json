@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "case_status": "legacy-evidence-partial",
+  "style_id": "hand-drawn",
+  "gallery_id": "hand-drawn",
+  "source_case": "鳄鱼阿班",
+  "input_type": "legacy-gallery-case",
+  "route": "grok-build-local",
+  "route_id": "grok-build-local",
+  "model": "image_to_video",
+  "approval_sha256": null,
+  "native_frame_count": 24,
+  "successful_cells": 9,
+  "withheld_cells": [],
+  "output_size_bytes": 790213,
+  "input": {
+    "type": "legacy-gallery-case",
+    "source_case": "鳄鱼阿班"
+  },
+  "route_details": {
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
+    "task_sha256": "f8772c59047353ee59506067de71cb2c5e5d56db29ae859e22c3e04844bcba65"
+  },
+  "approval": {
+    "sha256": null,
+    "status": "not-preserved",
+    "reason": "This legacy public case predates hash-bound static approval records; do not treat route/task hashes as approval proof."
+  },
+  "native": {
+    "source_size": null,
+    "fps": 8.0,
+    "frames_per_animation": 24
+  },
+  "cells": {
+    "requested": 9,
+    "successful": 9,
+    "withheld": [],
+    "quality_warnings": []
+  },
+  "outputs": {
+    "media_bytes": 790213,
+    "files": [
+      {
+        "path": "static.png",
+        "sha256": "90353205e95bed7e3bc2886c7ee7997e7429eb15f449e3b3b521412bed404875",
+        "bytes": 89276
+      },
+      {
+        "path": "motion.webp",
+        "sha256": "748872f71e9008f2f40c041cf6d7950c7ce0c69db554381189dea9b7814c8059",
+        "bytes": 323090
+      },
+      {
+        "path": "motion.gif",
+        "sha256": "4a40de81c4c15da1b2a2750a963ab28c1d08ca6ce326b2208088e98d267fbafe",
+        "bytes": 377847
+      }
+    ]
+  },
+  "artifact_manifest": {
+    "status": "not-preserved",
+    "path": null
+  },
+  "missing_historical_fields": [
+    "approval_hash",
+    "artifact_manifest"
+  ]
+}

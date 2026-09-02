@@ -15,6 +15,7 @@ from output_safety import (
     begin_output_transaction,
     validate_archive_name,
 )
+from artifact_manifest import retire_artifacts_under
 
 
 MEDIA_RE = re.compile(r"^\d{2,}\.(?:png|webp|gif)$")
@@ -23,16 +24,40 @@ OPTIONAL_MEDIA_REPORTS = ("sticker-production.json",)
 AUDIT_REPORTS = (
     "artifact-manifest.json",
     "attempt-ledger.json",
+    "video-retry-approval.json",
     "job-state.json",
     "prompts.json",
     "route.json",
     "static-prompt.json",
     "static-generation.json",
+    "static-generation-attempts.json",
     "static-alpha.json",
     "video-result.json",
     "keypose-plan.json",
     "keypose-preparation.json",
+    "static-cells.json",
 )
+
+
+def locate_audit_report(audit_dir: Path, name: str) -> Path | None:
+    """Find a canonical report at the audit root or in a workflow subdirectory."""
+    direct = audit_dir / name
+    if direct.is_file():
+        return direct
+    candidates = sorted(
+        (path for path in audit_dir.rglob(name) if path.is_file()),
+        key=lambda path: (len(path.relative_to(audit_dir).parts), str(path)),
+    )
+    if not candidates:
+        return None
+    nearest_depth = len(candidates[0].relative_to(audit_dir).parts)
+    nearest = [path for path in candidates if len(path.relative_to(audit_dir).parts) == nearest_depth]
+    if len(nearest) > 1:
+        raise ValueError(
+            f"ambiguous audit report {name!r}; choose one canonical copy at the audit root: "
+            + ", ".join(str(path) for path in nearest)
+        )
+    return nearest[0]
 
 
 def main() -> int:
@@ -117,10 +142,14 @@ def main() -> int:
             shutil.copyfile(path, destination)
             names.append(str(destination.relative_to(output)))
     for name in AUDIT_REPORTS:
-        source = audit_dir / name
-        if source.is_file():
+        source = locate_audit_report(audit_dir, name)
+        if source is not None:
             shutil.copyfile(source, output / name)
             names.append(name)
+    if args.cleanup_media_dir and (output / "artifact-manifest.json").is_file():
+        # The delivery copy must remain verifiable after intermediate media is
+        # removed. Retire historical media references before it enters the ZIP.
+        retire_artifacts_under(output / "artifact-manifest.json", media_dir)
     with zipfile.ZipFile(output / archive_name, "w", zipfile.ZIP_DEFLATED) as bundle:
         for name in names:
             bundle.write(output / name, arcname=name)

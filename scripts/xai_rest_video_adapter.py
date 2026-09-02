@@ -235,7 +235,8 @@ def main() -> int:
         while status_name(state) not in {"done", "completed", "succeeded", "failed", "expired", "cancelled"}:
             if time.monotonic() >= deadline:
                 raise ContractError(f"xAI video request {request_id} timed out")
-            time.sleep(5)
+            poll_interval_ms = task.get("poll_interval_ms", 5000)
+            time.sleep(float(poll_interval_ms) / 1000.0)
             try:
                 state, poll_headers = json_request(f"{API_BASE}/videos/{request_id}", api_key)
                 consecutive_poll_errors = 0

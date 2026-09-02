@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "case_status": "legacy-evidence-partial",
+  "style_id": "3d",
+  "gallery_id": "plush-toy",
+  "source_case": "black-cat-corrected-20260826",
+  "input_type": "legacy-gallery-case",
+  "route": "grok-build-local",
+  "route_id": "grok-build-local",
+  "model": "image_to_video",
+  "approval_sha256": null,
+  "native_frame_count": 36,
+  "successful_cells": 9,
+  "withheld_cells": [],
+  "output_size_bytes": 874674,
+  "input": {
+    "type": "legacy-gallery-case",
+    "source_case": "black-cat-corrected-20260826"
+  },
+  "route_details": {
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
+    "task_sha256": "41fd8fd39ae4c5ed74591c89c4d451c922127d1e64164d63cc4ffc7ef3e06958"
+  },
+  "approval": {
+    "sha256": null,
+    "status": "not-preserved",
+    "reason": "This legacy public case predates hash-bound static approval records; do not treat route/task hashes as approval proof."
+  },
+  "native": {
+    "source_size": {
+      "width": 544,
+      "height": 544
+    },
+    "fps": 6,
+    "frames_per_animation": 36
+  },
+  "cells": {
+    "requested": 9,
+    "successful": 9,
+    "withheld": [],
+    "quality_warnings": [
+      "01:foreground-touches-cell-boundary",
+      "04:foreground-touches-cell-boundary",
+      "04:loop-end-differs-from-start",
+      "05:foreground-touches-cell-boundary",
+      "06:foreground-touches-cell-boundary",
+      "06:loop-end-differs-from-start",
+      "07:foreground-touches-cell-boundary",
+      "08:foreground-touches-cell-boundary",
+      "09:foreground-touches-cell-boundary",
+      "09:loop-end-differs-from-start"
+    ]
+  },
+  "outputs": {
+    "media_bytes": 874674,
+    "files": [
+      {
+        "path": "static.png",
+        "sha256": "814ecabec20327524e7f573a7c43bf4d0031326bc1bc1b94567cb75cfbafe15a",
+        "bytes": 59185
+      },
+      {
+        "path": "motion.webp",
+        "sha256": "5b267499d65b696110fec552685a03e854668b19aa672b9e6c27816e0545a999",
+        "bytes": 382144
+      },
+      {
+        "path": "motion.gif",
+        "sha256": "0cf7d762394b84fb426913bc6d24ae216d948d7d1cd406960622c26835e4b0bf",
+        "bytes": 433345
+      }
+    ]
+  },
+  "artifact_manifest": {
+    "status": "not-preserved",
+    "path": null
+  },
+  "missing_historical_fields": [
+    "approval_hash",
+    "artifact_manifest"
+  ]
+}

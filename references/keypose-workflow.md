@@ -14,6 +14,9 @@ inferred from the directory and may be any value from 1 to 48:
 python3 scripts/compile_keypose_plan.py \
   --input-dir works/小黑猫/cells \
   --reactions '开心,惊讶,哭泣' \
+  --image works/小黑猫/static-sheet.png \
+  --layout works/小黑猫/layout.json \
+  --state works/小黑猫/job-state.json \
   --output-dir works/小黑猫/keypose-plan \
   --manifest works/小黑猫/artifact-manifest.json \
   --workspace works/小黑猫
@@ -24,6 +27,12 @@ The command writes `keypose-plan.json` and one prompt per cell under
 review them against the source cell before sending them to an image tool. A
 reviewed JSON list can be supplied with `--motions-file`.
 
+The compiled pose-sheet prompt has a hard text policy: the generated 2×2 image
+must contain no pose labels, quadrant labels, English, numbers, or new Chinese
+text. Only text already present in the approved source cell may remain. It also
+requires a continuous pure-green center gutter of at least 10% in both axes so
+the four poses can be split without cross-quadrant contamination.
+
 ## 2. Validate generated pose sheets
 
 Ask the image tool for one opaque, uniform `#00FF00` 2×2 PNG per sticker. Put
@@ -33,6 +42,10 @@ them in a numbered directory and run:
 python3 scripts/prepare_keyposes.py \
   --source-cells works/小黑猫/cells \
   --pose-sheets works/小黑猫/keypose-sheets \
+  --plan works/小黑猫/keypose-plan/keypose-plan.json \
+  --image works/小黑猫/static-sheet.png \
+  --layout works/小黑猫/layout.json \
+  --state works/小黑猫/job-state.json \
   --output-dir works/小黑猫/keyposes \
   --size 240 \
   --manifest works/小黑猫/artifact-manifest.json \
@@ -50,11 +63,32 @@ confidence, and per-pose differences.
 
 Use the resulting `keyposes/NN/01-start.png … 04-recovery.png` folders with
 `render_keypose_pack.py --fps 8 --size 240 --manifest works/小黑猫/artifact-manifest.json`.
+The renderer defaults to local OpenCV optical-flow interpolation: three eased
+in-between frames are created between each adjacent anchor in the ping-pong
+cycle, producing 24 output frames and 3 seconds at 8 fps. The approved text
+and stable decorative layer are locked from the start frame. The four poses
+plus the approved start frame also use a shared start-anchored scale and
+centroid, preventing per-pose re-scaling and drift from making the loop look
+like a sequence of swapped stickers. `--interpolation none` remains an explicit
+diagnostic fallback only.
+
+The optical-flow renderer also applies stability guards: flow is estimated
+after masking the locked layer, forward/backward consistency rejects unreliable
+vectors, displacement is capped at 12% of the canvas short edge, and rejected
+pixels use a non-stretching fallback. If a transition has broad low-confidence
+coverage or exceeds the conservative motion threshold, the whole dynamic
+region uses the nearer keypose instead of a warped frame. These decisions are
+recorded under each cell's `interpolation.guardrails` report.
+and pass both `--plan` and `--preparation-report`. The renderer requires
+exactly these four filenames per sticker and decodes both encoded formats for
+canvas, alpha, boundary, and animation QC before publishing the report.
 It emits transparent PNG, lossless Animated WebP, GIF, and a processing report;
 the manifest records the approved source, every pose, outputs, report, and ZIP.
 Finish with `assemble_delivery.py` so audit artifacts and media share the normal
 V0.3 output contract.
 
-Both new commands use the repository output transaction and reject an output
+All three keypose commands use the approved image/layout/state hashes when the
+audited manifest path is used. All three use the repository output transaction
+and reject an output
 directory that contains or is contained by its input. Re-run with
 `--overwrite` only when replacing a complete, disposable output directory.

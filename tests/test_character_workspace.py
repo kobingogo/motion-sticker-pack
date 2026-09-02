@@ -44,6 +44,15 @@ class CharacterWorkspaceTests(unittest.TestCase):
             work = Path(created["work_dir"])
             self.assertEqual(created["slug"], "小黑猫")
             self.assertTrue((work / "character.json").is_file())
+            (work / "character.json").write_text(
+                json.dumps({
+                    "name": "小黑猫",
+                    "slug": "小黑猫",
+                    "identity_version": "v2",
+                    "anchor": "anchors/approved.png",
+                }),
+                encoding="utf-8",
+            )
             image = work / "static-sheet.png"
             Image.new("RGBA", (20, 20), (255, 0, 0, 255)).save(image)
             layout = work / "layout.json"
@@ -81,7 +90,10 @@ class CharacterWorkspaceTests(unittest.TestCase):
             )
             self.assertTrue((work / "video-task.json").is_file())
             self.assertTrue((work / "video-providers.json").is_file())
-            self.assertEqual(json.loads((work / "character.json").read_text())["name"], "小黑猫")
+            character = json.loads((work / "character.json").read_text())
+            self.assertEqual(character["name"], "小黑猫")
+            self.assertEqual(character["identity_version"], "v2")
+            self.assertEqual(character["anchor"], "anchors/approved.png")
 
 
 if __name__ == "__main__":

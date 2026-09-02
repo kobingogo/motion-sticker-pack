@@ -207,6 +207,7 @@ def main() -> int:
                 "id": tool["id"],
                 "driver": "native-tool",
                 "provider": "local-runtime",
+                "tool": tool["id"],
                 "model": tool.get("model"),
                 "priority": int(tool.get("priority", 100)),
                 "capabilities": sorted(set(tool.get("capabilities", []))),

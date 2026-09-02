@@ -34,6 +34,15 @@ def dependency_hashes(task: dict) -> dict[str, str]:
         if not path.is_file():
             raise ValueError(f"task dependency does not exist: {field}={path}")
         hashes[field] = hashlib.sha256(path.read_bytes()).hexdigest()
+    provider_inputs = task.get("provider_input_images", {})
+    if isinstance(provider_inputs, dict):
+        for provider_id, value in sorted(provider_inputs.items()):
+            if not isinstance(value, str):
+                raise ValueError(f"provider input image path is invalid: {provider_id}")
+            path = Path(value).expanduser()
+            if not path.is_file():
+                raise ValueError(f"provider input image does not exist: {provider_id}={path}")
+            hashes[f"provider_input_images.{provider_id}"] = hashlib.sha256(path.read_bytes()).hexdigest()
     return hashes
 
 
@@ -81,7 +90,7 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
     preferred = set(task.get("prefer_capabilities", []))
     explicit = task.get("provider", "auto")
     provider_chain = task.get("provider_chain")
-    allow_fallback = bool(task.get("allow_fallback", True))
+    allow_fallback = bool(task.get("allow_fallback", False))
     local_postprocess = bool(capabilities.get("local_processing", {}).get("video_postprocess"))
 
     rejected: list[dict] = untrusted_rejected + [
@@ -137,25 +146,53 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
             eligible = eligible if allow_fallback else []
 
     max_attempts = int(config.get("routing", {}).get("max_attempts", 3))
+    dependency_sha256 = dependency_hashes(task)
     attempts = []
     for index, item in enumerate(eligible[:max_attempts], start=1):
         cleaned = {key: value for key, value in item.items() if key != "_sort"}
         execution = task.get("provider_execution", {}).get(item["id"])
         if execution:
             cleaned["execution"] = execution
+        provider_inputs = task.get("provider_input_images", {})
+        input_path = (
+            provider_inputs.get(item["id"])
+            if isinstance(provider_inputs, dict)
+            else None
+        ) or task.get("input_image")
+        input_hash = dependency_sha256.get(f"provider_input_images.{item['id']}")
+        if input_hash is None:
+            input_hash = dependency_sha256.get("input_image")
+        provider_colors = task.get("provider_key_colors", {})
+        key_color = (
+            provider_colors.get(item["id"])
+            if isinstance(provider_colors, dict)
+            else None
+        ) or task.get("key_color")
+        cleaned["execution_context"] = {
+            "provider_id": item["id"],
+            "input_image": input_path,
+            "input_image_sha256": input_hash,
+            "key_color": key_color,
+            "duration_seconds": (execution or {}).get("duration_seconds"),
+            "resolution": (execution or {}).get("resolution"),
+        }
         attempts.append({"attempt": index, **cleaned})
 
     fallback = None
     local = capabilities.get("local_processing", {})
     fallback_policy = config.get("routing", {}).get("fallback", "none")
+    fallback_policy = {
+        "transform-local": "light-motion-local",
+        "keyframe-local": "light-motion-local",
+    }.get(fallback_policy, fallback_policy)
     local_fallbacks = {"keypose-local", "light-motion-local", "transform-local", "keyframe-local"}
-    if allow_fallback and fallback_policy in local_fallbacks and local.get("keypose_local"):
+    if allow_fallback and fallback_policy == "keypose-local" and local.get("keypose_local"):
         fallback = {
             "id": "keypose-local",
             "driver": "local-processing",
             "reason": "use callable image generation for key poses, then assemble locally",
         }
-    elif allow_fallback and fallback_policy in local_fallbacks and (
+    elif allow_fallback and fallback_policy == "light-motion-local" and (
         local.get("transform_local") or local.get("keyframe_local")
     ):
         fallback = {
@@ -164,7 +201,10 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
             "reason": "zero-generation-cost whole-sticker light motion; no new articulated poses",
             "compatibility_aliases": ["transform-local", "keyframe-local"],
         }
-    elif allow_fallback and (fallback_policy == "prompt-only" or not local.get("transform_local")):
+    elif allow_fallback and (
+        fallback_policy == "prompt-only"
+        or (fallback_policy in local_fallbacks and not local.get("transform_local"))
+    ):
         fallback = {"id": "prompt-only", "driver": "none"}
 
     external_attempts = [item for item in attempts if item.get("driver") != "native-tool"]
@@ -188,7 +228,7 @@ def route(config: dict, capabilities: dict, task: dict) -> dict:
         "config_sha256": object_sha256(config),
         "capabilities_sha256": object_sha256(capabilities),
         "task_sha256": object_sha256(task),
-        "dependency_sha256": dependency_hashes(task),
+        "dependency_sha256": dependency_sha256,
         "operation": task.get("operation", "image-to-video"),
         "required_capabilities": sorted(required),
         "selected": attempts[0] if attempts else fallback,

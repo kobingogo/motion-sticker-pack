@@ -380,7 +380,7 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
             raise ContractError("safe_grid_scale must be between 0.75 and 0.95")
     numeric_ranges = {
         "min_guard_fraction": (0.05, 0.20),
-        "max_foreground_bbox_fraction": (0.60, 0.90),
+        "max_foreground_bbox_fraction": (0.60, 0.75),
         "motion_active_seconds": (0.5, 4.0),
         "loop_min_seconds": (0.5, 5.0),
         "loop_max_seconds": (0.5, 6.0),
@@ -394,7 +394,7 @@ def validate_video_task(task: dict[str, Any], *, require_execution_fields: bool 
     if task.get("loop_min_seconds", 1.5) > task.get("loop_max_seconds", 2.5):
         raise ContractError("loop_min_seconds must not exceed loop_max_seconds")
     guard = float(task.get("min_guard_fraction", 0.10))
-    foreground = float(task.get("max_foreground_bbox_fraction", 0.80))
+    foreground = float(task.get("max_foreground_bbox_fraction", 0.75))
     if foreground > 1.0 - 2.0 * guard + 1e-6:
         raise ContractError("max_foreground_bbox_fraction exceeds the requested two-sided guard")
     if require_execution_fields:

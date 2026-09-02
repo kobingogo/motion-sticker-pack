@@ -70,23 +70,19 @@ class MediaIntegrationTests(unittest.TestCase):
                 self.assertEqual(animation.size, (240, 240))
                 self.assertEqual(getattr(animation, "n_frames", 1), 24)
 
-            settings["budget"]["gif_max_bytes"] = 1024
-            settings_path.write_text(json.dumps(settings), encoding="utf-8")
-            warning_output = root / "full-pack-budget-warning"
+            full_output = root / "full-pack"
             subprocess.run(
                 [
                     sys.executable, str(ROOT / "scripts" / "process_emoji_grid.py"),
-                    str(video), str(warning_output), "--layout", str(layout),
-                    "--settings", str(settings_path),
+                    str(video), str(full_output), "--layout", str(layout),
+                    "--settings", str(settings_path), "--trial-report", str(output / "processing.json"),
                 ],
                 check=True,
                 stdout=subprocess.DEVNULL,
             )
-            warning_report = json.loads(
-                (warning_output / "processing.json").read_text(encoding="utf-8")
-            )
-            self.assertEqual(warning_report["status"], "budget-warning")
-            self.assertEqual(warning_report["budget_failures"], ["01"])
+            full_report = json.loads((full_output / "processing.json").read_text(encoding="utf-8"))
+            self.assertEqual(full_report["status"], "succeeded")
+            self.assertFalse(full_report["trial_mode"])
 
     def test_configured_six_second_output_adds_retimed_three_second_variant(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

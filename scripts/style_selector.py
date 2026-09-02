@@ -31,7 +31,9 @@ def layout_count(path: Path) -> int:
 
 
 def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DEFAULT_GALLERY) -> dict:
-    presets = json.loads(presets_path.read_text(encoding="utf-8"))["presets"]
+    preset_document = json.loads(presets_path.read_text(encoding="utf-8"))
+    presets = preset_document["presets"]
+    catalog = preset_document.get("core_catalog", {})
     gallery = json.loads(gallery_path.read_text(encoding="utf-8"))
     policy = gallery["policy"]
     entries = gallery["styles"]
@@ -57,6 +59,13 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
         if layout_count(files["layout.json"]) != 9:
             raise ValueError(f"gallery style {style_id!r} is not a verified nine-cell source")
         processing = json.loads(files["processing.json"].read_text(encoding="utf-8"))
+        provenance = json.loads(files["provenance.json"].read_text(encoding="utf-8"))
+        if provenance.get("version") != 1 or provenance.get("style_id") != style_id:
+            raise ValueError(f"gallery style {style_id!r} has invalid provenance identity")
+        if provenance.get("case_status") not in {"legacy-evidence-partial", "audited-complete"}:
+            raise ValueError(f"gallery style {style_id!r} has invalid provenance status")
+        if not isinstance(provenance.get("missing_historical_fields"), list):
+            raise ValueError(f"gallery style {style_id!r} provenance must declare missing historical fields")
         successful_cells = int(processing.get("successful_cells", len(processing.get("cells", []))))
         if successful_cells < 9:
             raise ValueError(f"gallery style {style_id!r} processing report lacks nine successful cells")
@@ -73,6 +82,9 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
         with Image.open(files["motion.gif"]) as motion:
             if motion.size != (240, 240) or int(getattr(motion, "n_frames", 1)) < 2:
                 raise ValueError(f"gallery style {style_id!r} motion preview is not animated 240x240")
+        with Image.open(files["motion.webp"]) as motion:
+            if motion.size != (240, 240) or int(getattr(motion, "n_frames", 1)) < 2:
+                raise ValueError(f"gallery style {style_id!r} WebP preview is not animated 240x240")
         verified.append(
             {
                 "id": style_id,
@@ -90,15 +102,77 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
                     }
                     for name, path in files.items()
                 },
+                "provenance": provenance,
             }
         )
-    return {"version": 1, "verified_count": len(verified), "styles": verified}
+    core_summary = None
+    if catalog:
+        catalog_styles = catalog.get("styles", [])
+        target_count = int(catalog.get("target_count", 0))
+        if target_count != len(catalog_styles):
+            raise ValueError("core catalog target_count must match its style count")
+        catalog_ids = [entry.get("id") for entry in catalog_styles]
+        if any(not isinstance(style_id, str) for style_id in catalog_ids):
+            raise ValueError("core catalog style ids must be strings")
+        if len(catalog_ids) != len(set(catalog_ids)):
+            raise ValueError("core catalog style ids must be unique")
+        valid_statuses = {"route-verified", "pending-controlled-evidence"}
+        display_ids = []
+        status_by_id = {}
+        for entry in catalog_styles:
+            if not isinstance(entry, dict):
+                raise ValueError("core catalog entries must be objects")
+            style_id = entry["id"]
+            status = entry.get("status")
+            if status not in valid_statuses:
+                raise ValueError(f"core catalog style {style_id!r} has an invalid status")
+            display_id = entry.get("display_id", style_id)
+            if not isinstance(display_id, str) or not display_id.strip():
+                raise ValueError(f"core catalog style {style_id!r} is missing display_id")
+            cues = entry.get("distinguishing_cues", [])
+            if not isinstance(cues, list) or len(cues) < 2 or not all(isinstance(cue, str) and cue.strip() for cue in cues):
+                raise ValueError(f"core catalog style {style_id!r} needs at least two distinguishing cues")
+            display_ids.append(display_id)
+            status_by_id[style_id] = status
+        if len(display_ids) != len(set(display_ids)):
+            raise ValueError("core catalog display ids must be unique")
+        gallery_ids = {entry["id"] for entry in entries}
+        unknown_gallery_ids = gallery_ids.difference(catalog_ids)
+        if unknown_gallery_ids:
+            raise ValueError(f"gallery styles are outside the core catalog: {sorted(unknown_gallery_ids)}")
+        route_verified_ids = {style_id for style_id, status in status_by_id.items() if status == "route-verified"}
+        missing_verified_evidence = route_verified_ids.difference(gallery_ids)
+        if missing_verified_evidence:
+            raise ValueError(f"route-verified core styles lack gallery evidence: {sorted(missing_verified_evidence)}")
+        extra_gallery_evidence = gallery_ids.difference(route_verified_ids)
+        if extra_gallery_evidence:
+            raise ValueError(f"gallery evidence is not marked route-verified: {sorted(extra_gallery_evidence)}")
+        pending_in_gallery = sorted(
+            style_id for style_id in gallery_ids if status_by_id.get(style_id) == "pending-controlled-evidence"
+        )
+        if pending_in_gallery:
+            raise ValueError(f"pending core styles cannot be exposed by the verified selector: {pending_in_gallery}")
+        verified_core_count = len(route_verified_ids)
+        core_summary = {
+            "version": catalog.get("version"),
+            "target_count": target_count,
+            "verified_core_count": verified_core_count,
+            "pending_core_count": target_count - verified_core_count,
+            "selector_policy": catalog.get("selector_policy", "verified-only"),
+            "custom": catalog.get("custom", {}),
+        }
+    return {
+        "version": 1,
+        "verified_count": len(verified),
+        "styles": verified,
+        **({"core_catalog": core_summary} if core_summary else {}),
+    }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--style")
-    parser.add_argument("--format", choices=("json", "markdown"), default="json")
+    parser.add_argument("--format", choices=("json", "markdown", "core"), default="json")
     parser.add_argument("--verify-only", action="store_true")
     args = parser.parse_args()
     result = verify_gallery()
@@ -112,7 +186,18 @@ def main() -> int:
             raise ValueError(f"style selector resolved {len(matches)} matches for {args.style!r}")
         result = matches[0]
     if args.verify_only:
-        print(json.dumps({"valid": True, "verified_count": result.get("verified_count", 1)}, ensure_ascii=False))
+        payload = {"valid": True, "verified_count": result.get("verified_count", 1)}
+        if result.get("core_catalog"):
+            payload["core_catalog"] = result["core_catalog"]
+        print(json.dumps(payload, ensure_ascii=False))
+    elif args.format == "core":
+        catalog = json.loads(DEFAULT_PRESETS.read_text(encoding="utf-8")).get("core_catalog", {})
+        for style in catalog.get("styles", []):
+            status = style.get("status", "pending")
+            print(f"- `{style['id']}` — {style.get('display_id', style['id'])} [{status}]")
+        custom = catalog.get("custom", {})
+        if custom.get("enabled"):
+            print("- `custom` — long-tail style description [enabled, not a preset]")
     elif args.format == "markdown":
         styles = result["styles"] if "styles" in result else [result]
         print("\n".join(f"- `{style['id']}` — {style['label']} ({style['source_route']})" for style in styles))

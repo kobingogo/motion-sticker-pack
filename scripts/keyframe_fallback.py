@@ -15,8 +15,9 @@ from PIL import Image
 from PIL import ImageOps
 
 from animation_export import encode_gif_images, encode_webp_images
+from artifact_manifest import record_artifact
 from output_profile import DEFAULT_OUTPUT_FPS, DEFAULT_OUTPUT_SIZE, MAX_OUTPUT_SIZE
-from process_emoji_grid import load_layout, median_background, remove_edge_background, tile_bounds
+from process_emoji_grid import GridBoundaryError, load_layout, median_background, remove_edge_background, tile_bounds, validate_encoded_animation, write_preview
 from output_safety import begin_output_transaction
 from manage_job_state import read_state, verify_state
 
@@ -91,6 +92,7 @@ def main() -> int:
     parser.add_argument("output", type=Path)
     parser.add_argument("--layout", type=Path, required=True)
     parser.add_argument("--state", type=Path, required=True, help="hash-bound approved job state")
+    parser.add_argument("--manifest", type=Path, help="artifact-manifest.json for hash lineage")
     parser.add_argument("--fps", type=int, default=DEFAULT_OUTPUT_FPS)
     parser.add_argument("--size", type=int, default=DEFAULT_OUTPUT_SIZE)
     parser.add_argument("--duration", type=float, default=2.0)
@@ -108,7 +110,7 @@ def main() -> int:
     output_transaction = begin_output_transaction(
         args.output,
         overwrite=args.overwrite,
-        protected_paths=[args.image, args.layout, args.state],
+        protected_paths=[args.image, args.layout, args.state, *([args.manifest] if args.manifest else [])],
     )
     args.output = output_transaction.output
     with Image.open(args.image) as source:
@@ -116,10 +118,13 @@ def main() -> int:
             raise ValueError("input image exceeds the 64 megapixel safety limit")
         rgba = np.asarray(source.convert("RGBA"), dtype=np.uint8)
     height, width, _ = rgba.shape
-    frame_count = max(2, round(args.fps * args.duration))
+    # Three phase samples avoid a false single-frame animation when a recipe's
+    # sine/cosine happens to be identical at phase 0 and π.
+    frame_count = max(3, round(args.fps * args.duration))
     digits = max(2, len(str(count)))
     outputs: list[str] = []
     cell_reports = []
+    preview_pngs: dict[int, Path] = {}
 
     with tempfile.TemporaryDirectory(prefix="motion-sticker-pack-keyframes-") as temporary:
         root = Path(temporary)
@@ -142,12 +147,23 @@ def main() -> int:
             base.save(args.output / png_name, optimize=True)
             encode_webp_images(frames, args.output / webp_name, args.fps)
             encode_gif_images(frames, args.output / gif_name, args.fps)
+            try:
+                encoded_qc = {
+                    "webp": validate_encoded_animation(args.output / webp_name, expected_size=(args.size, args.size), output_fps=args.fps),
+                    "gif": validate_encoded_animation(args.output / gif_name, expected_size=(args.size, args.size), output_fps=args.fps),
+                }
+            except GridBoundaryError as exc:
+                raise ValueError(f"encoded light-motion output failed QC for {stem}: {exc}") from exc
             outputs.extend([webp_name, gif_name, png_name])
-            cell_reports.append({"id": stem, "recipe": recipe, "frames": frame_count})
+            preview_pngs[tile] = args.output / png_name
+            cell_reports.append({"id": stem, "recipe": recipe, "frames": frame_count, "encoded_qc": encoded_qc})
             for frame in frames:
                 frame.close()
             base.close()
 
+    if preview_pngs:
+        write_preview(args.output / "preview.png", preview_pngs, columns, rows, (args.size, args.size))
+        outputs.append("preview.png")
     layout_report = {
         "detected_layout": {
             "columns": columns,
@@ -179,6 +195,35 @@ def main() -> int:
         for name in outputs + ["layout.json", "processing.json"]:
             bundle.write(args.output / name, arcname=name)
     output_transaction.commit()
+    if args.manifest:
+        manifest = args.manifest.expanduser().resolve()
+        source_ids = [
+            record_artifact(manifest, path, kind=kind, stage="light-motion-rendered", workspace=manifest.parent)
+            for path, kind in (
+                (args.image, "static-sheet"),
+                (args.layout, "layout"),
+                (args.state, "approval-state"),
+            )
+        ]
+        output_ids = [
+            record_artifact(
+                manifest,
+                args.output / name,
+                kind="sticker-output" if Path(name).suffix.lower() in {".png", ".webp", ".gif"} else "processing-report",
+                stage="light-motion-rendered",
+                dependencies=source_ids,
+                workspace=manifest.parent,
+            )
+            for name in outputs + ["layout.json", "processing.json"]
+        ]
+        record_artifact(
+            manifest,
+            args.output / "sticker-pack.zip",
+            kind="sticker-pack",
+            stage="light-motion-rendered",
+            dependencies=output_ids,
+            workspace=manifest.parent,
+        )
     print(json.dumps(report, ensure_ascii=False))
     return 0
 

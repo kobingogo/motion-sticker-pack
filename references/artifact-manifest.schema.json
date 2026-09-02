@@ -26,6 +26,7 @@
           "dependencies": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
           "recorded_at": {"type": "string"},
           "reactivated_at": {"type": "string"},
+          "retired_at": {"type": "string"},
           "current": {"type": "boolean"}
         }
       }

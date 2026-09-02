@@ -60,18 +60,9 @@ If the host supports forms, chips, cards, or other structured inputs, use them f
 
 ## Style choices
 
-Use [style-presets.json](style-presets.json) as the maintained preset source. Present these eight primary choices:
+Use [style-presets.json](style-presets.json) and its `core_catalog` as the maintained source. Present only core entries whose status is `route-verified`; the v0.3.1 catalog targets 16 high-distinction directions but keeps pending entries out of the selectable verified list until controlled same-anchor evidence is complete. A pending core style may still be compiled when the user explicitly names it for a controlled trial; mark its contract as unverified and do not present it as a proven gallery style. Do not expose the competitor's 36 names as a hard-coded menu.
 
-1. `realistic` — 写实还原；
-2. `3d` — 3D（未指定子风格时，可自由选择 3D 动画风或 3D 真实人物风；明确指定子风格时严格遵守）；
-3. `hand-drawn` — 手绘风；
-4. `chibi` — Q 版；
-5. `manga` — 漫画风；
-6. `pixel-art` — 像素艺术；
-7. `cute` — 可爱风；
-8. `retro` — 复古风。
-
-Also accept `custom` followed by a short user style description. Do not force a style menu if the user already named a clear style.
+Always accept `custom` followed by a short style description for long-tail cultural media, print processes, retro UI, or hybrid treatments. Custom styles are not Gallery presets, but they still use the same static-review gate, transparency contract, and artifact manifest. Do not force a menu if the user already named a clear style.
 
 ## Expression input
 
@@ -86,13 +77,14 @@ Emoji are semantic/motif hints, not commands to paste literal Unicode glyphs int
 
 Compile the user selections with `scripts/compile_static_prompt.py --reference-image <source-image>` when an image exists, or `--character-description <definition>` otherwise. The text-defined route directly generates the complete grid; it must not first generate a standalone character image. A reference-image route must use a backend that accepts that exact image.
 
-The compiled `image_generation_request` always declares `background` and `output_format`. After inspecting the callable schema, run `scripts/prepare_image_gen_call.py` with every exposed field as a repeated `--supported-argument`. Use its transparent-first `call_arguments` for `image_gen` even when either native argument is omitted: prompt-driven real Alpha remains possible, with or without a reference image. The helper also records an `opaque_fallback_call` for one bounded retry. The runtime must judge the returned pixels, not the schema omission or the model's claim: preserve valid native alpha, locally matte only a uniform high-contrast chroma key, and reject checkerboard/two-tone previews or unsafe opaque backgrounds. Only such pixel-validation failure may run the recorded fallback: it preserves the same identity/style/reactions and reference, but uses a standalone prompt with an exact `#00FF00` instruction and supported `background: opaque` / `output_format: png`; it must not append that instruction to the transparent-first prompt. Normalize again; if fallback validation fails, stop and ask for regeneration rather than sending the sheet downstream.
+The compiled `image_generation_request` always declares `background` and `output_format`. After inspecting the callable schema, run `scripts/prepare_image_gen_call.py` with every exposed field as a repeated `--supported-argument`. The contract selects opaque-green-first for `reference-image` because the current Codex image_gen path does not reliably return native Alpha with a reference, and transparent-first for `text-defined-character` because that path can return native Alpha. The helper records the resolved policy, an opaque retry, and a single-call-per-attempt execution protocol. Before each call, use `scripts/static_generation_guard.py claim` and `invoked`, and write `static-generation-attempts.json`. Resolve tool results in this order: top-level `image_url`/`output_hint`, top-level data URL or bytes, then `content` image block. A missing `content` array is not a failure if a usable top-level result or output artifact exists. The runtime must judge returned pixels, not the model's claim: preserve valid native alpha, locally matte only a uniform high-contrast chroma key, and reject checkerboard/two-tone previews or unsafe opaque backgrounds. A reference-image retry remains standalone opaque `#00FF00`; a text-defined retry is used only after local Alpha validation fails and the first attempt is explicitly rejected in the ledger. Normalize again; if retry validation fails, stop and ask for regeneration rather than sending the sheet downstream.
 
 Immediately inspect the returned image with `scripts/inspect_sticker_sheet.py` and create:
 
 - `static-sheet.png`;
 - `static-sheet-source.png`;
 - `static-generation.json`;
+- `static-generation-attempts.json`;
 - `static-alpha.json`;
 - `layout.json`;
 - `layout-overlay.png` when review benefits from visible boundaries;

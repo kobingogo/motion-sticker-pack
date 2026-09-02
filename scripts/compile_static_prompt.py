@@ -14,6 +14,9 @@ DEFAULT_PRESETS = Path(__file__).resolve().parents[1] / "references" / "style-pr
 IMAGE_BACKGROUNDS = ("transparent", "opaque", "auto")
 IMAGE_OUTPUT_FORMATS = ("png", "webp", "jpeg")
 STICKER_OUTLINE_MODES = ("auto", "none", "white")
+STATIC_FOREGROUND_BBOX_MIN = 0.70
+STATIC_FOREGROUND_BBOX_MAX = 0.75
+STATIC_EDGE_CLEARANCE = 0.125
 
 
 def infer_3d_variant(value: str | None) -> str | None:
@@ -89,6 +92,7 @@ def _style_policy(
     style_input: str | None,
     character_description: str | None,
     sticker_outline: str,
+    style_verified: bool | None = None,
 ) -> tuple[str, dict]:
     """Add explicit-vs-default style priority without overconstraining 3D."""
     outline_instruction = (
@@ -98,13 +102,20 @@ def _style_policy(
         else "呈现优先级（默认）：不主动添加白色贴纸外轮廓，只保留角色本身的自然边缘和透明留白。\n"
     )
     if style_id != "3d":
-        return outline_instruction + style_prompt, {
-            "mode": "fixed",
+        mode = "custom" if style_id == "custom" else "fixed"
+        policy = {
+            "mode": mode,
             "variant": None,
             "explicit": True,
-            "source": "preset",
+            "source": "custom" if style_id == "custom" else "preset",
+            "catalog_tier": "long-tail" if style_id == "custom" else "core",
             "sticker_outline": sticker_outline,
         }
+        if style_id == "custom":
+            policy["verified"] = False
+        elif style_verified is not None:
+            policy["verified"] = style_verified
+        return outline_instruction + style_prompt, policy
 
     candidates = [
         (infer_3d_variant(style_input), "style-input"),
@@ -129,6 +140,7 @@ def _style_policy(
                 "explicit": False,
                 "source": None,
                 "sticker_outline": sticker_outline,
+                **({"verified": style_verified} if style_verified is not None else {}),
             },
         )
 
@@ -168,6 +180,7 @@ def _style_policy(
         "source": source,
         "label": label,
         "sticker_outline": sticker_outline,
+        **({"verified": style_verified} if style_verified is not None else {}),
     }
 
 
@@ -203,6 +216,30 @@ def load_presets(path: Path) -> dict:
         for field in ("label", "prompt"):
             if not isinstance(preset.get(field), str) or not preset[field].strip():
                 raise ValueError(f"style preset {style_id!r} is missing {field}")
+    catalog = value.get("core_catalog")
+    if catalog is not None:
+        styles = catalog.get("styles") if isinstance(catalog, dict) else None
+        if not isinstance(styles, list):
+            raise ValueError("core catalog must contain a styles list")
+        target_count = catalog.get("target_count")
+        if target_count != len(styles):
+            raise ValueError("core catalog target_count must match its style count")
+        valid_statuses = {"route-verified", "pending-controlled-evidence"}
+        for entry in styles:
+            if not isinstance(entry, dict):
+                raise ValueError("core catalog entries must be objects")
+            style_id = entry.get("id")
+            if not isinstance(style_id, str) or style_id not in presets:
+                raise ValueError(f"core catalog style {style_id!r} lacks a compilable preset")
+            status = entry.get("status")
+            if status not in valid_statuses:
+                raise ValueError(f"core catalog style {style_id!r} has an invalid status")
+            display_id = str(entry.get("display_id", style_id)).strip().lower()
+            aliases = {str(alias).strip().lower() for alias in presets[style_id].get("aliases", [])}
+            if display_id not in {style_id.lower(), *aliases}:
+                raise ValueError(f"core catalog display id {display_id!r} does not resolve to {style_id!r}")
+            if status == "route-verified" and presets[style_id].get("verified") is not True:
+                raise ValueError(f"route-verified core style {style_id!r} lacks a verified preset")
     return presets
 
 
@@ -246,12 +283,13 @@ def compile_prompt(
     columns: int,
     rows: int,
     reference_image: str | None = None,
-    background: str = "transparent",
+    background: str | None = None,
     output_format: str = "png",
     character_description: str | None = None,
     include_text: bool = False,
     style_input: str | None = None,
     sticker_outline: str = "auto",
+    style_verified: bool | None = None,
 ) -> dict:
     cleaned = [" ".join(item.split()) for item in expressions if item.strip()]
     if not cleaned:
@@ -264,10 +302,21 @@ def compile_prompt(
         raise ValueError("choose exactly one character source: reference image or character description")
     if character_description and len(character_description.strip()) > 1000:
         raise ValueError("character description must not exceed 1000 characters")
+    if background is None:
+        background = "auto"
     if background not in IMAGE_BACKGROUNDS:
         raise ValueError(f"background must be one of {', '.join(IMAGE_BACKGROUNDS)}")
     if output_format not in IMAGE_OUTPUT_FORMATS:
         raise ValueError(f"output format must be one of {', '.join(IMAGE_OUTPUT_FORMATS)}")
+    source_mode = "reference-image" if reference_image else "text-defined-character"
+    requested_background = background
+    if source_mode == "reference-image" and background == "transparent":
+        raise ValueError(
+            "reference-image generation uses an opaque #00FF00 source; "
+            "use background=auto or opaque instead of transparent"
+        )
+    if background == "auto":
+        background = "opaque" if source_mode == "reference-image" else "transparent"
     if background == "transparent" and output_format == "jpeg":
         raise ValueError("transparent image generation requires png or webp output")
     count = columns * rows
@@ -298,6 +347,7 @@ def compile_prompt(
         style_input,
         cleaned_description,
         effective_outline,
+        style_verified,
     )
     effective_style_label = style_policy.get("label", style_label)
     if reference_image:
@@ -309,21 +359,43 @@ def compile_prompt(
             f"不要先生成单张角色图、角色设定图或中间定稿图；直接输出完整{sheet_name}源图。"
             "所有格子必须呈现同一个角色，并保持可辨识的脸部、发型、体型、服装和配色一致。"
         )
+    if source_mode == "reference-image":
+        background_instruction = (
+            "【参考图路线背景合同】首次调用使用不透明、完全一致的纯 #00FF00 生成底；"
+            "不要尝试透明输出，不要棋盘格、灰白方格、渐变、纹理、阴影、地面或背景板。"
+            "后续由本地脚本只移除与画布边缘连通的纯绿色，并验证真实 Alpha。\n"
+        )
+        transparency_gap = "格间和主体外侧留出清晰、连续的纯绿色安全间隔。"
+        sheet_surface = "不透明纯绿色"
+    else:
+        background_instruction = (
+            "【真实透明度硬约束】首次调用必须优先输出保留真实 alpha 通道的 RGBA PNG；"
+            "所有透明区域（包括整张画布边缘、格间留白和每格主体外侧留白）的 alpha 必须为 0，"
+            "不能把透明效果画成可见图案。首次透明调用严禁绘制棋盘格、灰白方格、透明预览底、"
+            "黑底、白底、渐变底、彩色纯色底、地面、背景板、相框或大面积背景阴影；"
+            "不要将图像扁平化成 RGB/JPEG。若首次调用无法产生真实 alpha，备用调用才允许按照备用指令"
+            "使用完全一致的纯色抠像底，且不得用棋盘格或其他模拟透明效果冒充透明输出。\n"
+        )
+        transparency_gap = "格间和主体外侧留出较宽且完全透明的安全间隔。"
+        sheet_surface = "透明"
+    layout_safety_instruction = (
+        "版式安全合同：每格角色与本格装饰组成的整体前景包围盒目标约占所在格的 70%–75%，"
+        "优先保持在此范围；四周保留连续、均衡的至少约 12.5% 安全留白，主体和装饰不得贴边。"
+    )
     prompt = (
         f"{identity_source} 创建一套 {effective_style_label} 动态表情包的静态{sheet_name}源图，并融入 {expression_text}。"
         f" {effective_style_prompt}\n\n"
         f"{direct_sheet_instruction}"
-        f"创建一张正方形 (1:1) 透明{sheet_name}插画卡片源图，优先包含{count_text}个各不相同的表情卡片，"
+        f"创建一张正方形 (1:1) {sheet_surface}{sheet_name}插画卡片源图，优先包含{count_text}个各不相同的表情卡片，"
         f"按 {columns}×{rows} 网格排列，每格呈现不同的表情、姿势或反应。"
         + ("使用统一、窄且干净的白色贴纸外轮廓；" if effective_outline == "white" else "默认采用无白边、无厚描边的卡片呈现；")
-        + f"每格加入轻微、局部、与情绪匹配的背景点缀，{cells_name}保持统一色调，"
-        "【真实透明度硬约束】首次调用必须优先输出保留真实 alpha 通道的 RGBA PNG；所有透明区域（包括整张画布边缘、格间留白和每格主体外侧留白）的 alpha 必须为 0，不能把透明效果画成可见图案。首次透明调用严禁绘制棋盘格、灰白方格、透明预览底、黑底、白底、渐变底、彩色纯色底、地面、背景板、相框或大面积背景阴影；不要将图像扁平化成 RGB/JPEG。若首次调用无法产生真实 alpha，备用调用才允许按照备用指令使用完全一致的纯色抠像底，且不得用棋盘格或其他模拟透明效果冒充透明输出。\n"
-        "卡片之间留出较宽且完全透明的间隔。根据每个表情的语义和选定风格，合理加入少量匹配的装饰性反应元素，例如爱心、音符、星光、泪滴、腮红、汗滴或动作线；仅在合适的格子使用，不要每格强行添加，也不要引入与表情无关的大型新物体。"
-        f"{text_instruction} 背景点缀必须轻微、局部、留在自己的格子内，不得形成整格矩形底板、跨格重叠或大面积阴影。\n\n"
+        + f"每格加入轻微、局部、与情绪匹配的背景点缀，{cells_name}保持统一色调。"
+        + f"{background_instruction}{transparency_gap}根据每个表情的语义和选定风格，合理加入少量匹配的装饰性反应元素，例如爱心、音符、星光、泪滴、腮红、汗滴或动作线；仅在合适的格子使用，不要每格强行添加，也不要引入与表情无关的大型新物体。"
+        f"{text_instruction} {layout_safety_instruction} 背景点缀必须轻微、局部、留在自己的格子内，不得形成整格矩形底板、跨格重叠或大面积阴影。\n\n"
         "严格保持参考角色的身份、五官、发型或毛发、颜色、服装、身体比例和标志性特征。"
         "Emoji 和短描述用于表达情绪、动作或已有道具，不要把 Unicode Emoji 字符直接画成文字。"
         "如果提供的反应少于贴纸数量，在相同语义范围内补充互不重复、适合聊天的自然反应。"
-        "每个主体和道具必须完整留在自己的格子内，并保留安全留白。"
+        f"{layout_safety_instruction} 每个主体和道具必须完整留在自己的格子内，并保留安全留白。"
     )
     # Keep the opaque fallback as a standalone prompt.  Appending a green-key
     # suffix to the transparent-first prompt leaves contradictory instructions
@@ -341,7 +413,7 @@ def compile_prompt(
         "【纯色抠像硬约束】整张画布的留白和格间必须是完全一致的纯 #00FF00；"
         "背景只能使用这一种颜色，禁止棋盘格、灰白方格、渐变、纹理、阴影、地面、背景板、相框或其他颜色。"
         "不要改变角色身份、五官、发型、体型、服装、配色、已有道具或动作语义。"
-        "卡片之间留出清晰间隔，所有主体和道具必须完整留在自己的格子内并保留安全留白。"
+        f"{layout_safety_instruction} 卡片之间留出清晰间隔，所有主体和道具必须完整留在自己的格子内并保留安全留白。"
         f"{text_instruction} 背景点缀必须轻微、局部、留在自己的格子内，不得形成整格矩形底板、跨格重叠或大面积阴影。"
     )
     reference = None
@@ -352,9 +424,24 @@ def compile_prompt(
         "version": 2,
         "phase": "static-generation",
         "reference_label": reference_label,
-        "source_mode": "reference-image" if reference_image else "text-defined-character",
+        "source_mode": source_mode,
+        "background_policy": {
+            "requested": requested_background,
+            "resolved": background,
+            "mode": "opaque-green-first" if source_mode == "reference-image" else "transparent-first",
+            "reason": (
+                "reference-image generation is empirically unreliable for native Alpha in the current image_gen runtime"
+                if source_mode == "reference-image"
+                else "text-defined generation can emit native Alpha, but the result remains pixel-validated"
+            ),
+        },
         "character_description": cleaned_description,
-        "style": {"id": style_id, "label": effective_style_label, "prompt": style_prompt},
+        "style": {
+            "id": style_id,
+            "label": effective_style_label,
+            "prompt": style_prompt,
+            **({"verified": style_verified} if style_verified is not None else {}),
+        },
         "style_policy": style_policy,
         "outline_policy": outline_policy,
         "expressions": cleaned,
@@ -365,6 +452,15 @@ def compile_prompt(
             "generated_text_is_not_a_failure": True,
         },
         "requested_layout": {"columns": columns, "rows": rows, "count": count},
+        "layout_safety": {
+            "target_foreground_bbox_fraction": {
+                "minimum": STATIC_FOREGROUND_BBOX_MIN,
+                "maximum": STATIC_FOREGROUND_BBOX_MAX,
+            },
+            "minimum_edge_clearance_fraction": STATIC_EDGE_CLEARANCE,
+            "measurement": "per-cell alpha foreground bounding box including local accents",
+            "enforcement": "prompt-target plus video-input-repack",
+        },
         "static_sheet_prompt": prompt,
         "image_generation_request": {
             "preferred_tool": "image_gen",
@@ -419,7 +515,12 @@ def main() -> int:
         action="store_true",
         help="allow short reaction text; default is to avoid text without rejecting model-added text",
     )
-    parser.add_argument("--background", choices=IMAGE_BACKGROUNDS, default="transparent")
+    parser.add_argument(
+        "--background",
+        choices=IMAGE_BACKGROUNDS,
+        default="auto",
+        help="auto selects opaque green for reference images and transparent for text-defined characters",
+    )
     parser.add_argument("--output-format", choices=IMAGE_OUTPUT_FORMATS, default="png")
     parser.add_argument(
         "--sticker-outline",
@@ -438,6 +539,7 @@ def main() -> int:
     style_id, style_label, style_prompt = resolve_style(
         presets, args.style, args.style_prompt
     )
+    style_verified = None if style_id == "custom" else presets[style_id].get("verified") is True
     columns, rows = args.layout
     result = compile_prompt(
         args.reference_label,
@@ -454,6 +556,7 @@ def main() -> int:
         args.include_text,
         args.style,
         args.sticker_outline,
+        style_verified,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

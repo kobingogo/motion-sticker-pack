@@ -61,32 +61,66 @@ Review the route and cost warning before:
 python3 scripts/execute_video_route.py \
   --config works/小熊/video-providers.json --task works/小熊/video-task.json \
   --route works/小熊/route.json --attempt 1 --output works/小熊/video-result.json
+
+# For a native-tool route, run the host video tool first, then register its output:
+python3 scripts/execute_video_route.py \
+  --config works/小熊/video-providers.json --task works/小熊/video-task.json \
+  --route works/小熊/route.json --attempt 1 --native-video /absolute/path/host-video.mp4 \
+  --output works/小熊/video-result.json
 ```
+
+If a prior provider attempt failed, was rejected, or became uncertain and the user actively requests another generation, create an explicit retry approval before executing again:
+
+```bash
+python3 scripts/manage_job_state.py approve-video-retry \
+  --state works/小熊/job-state.json --image works/小熊/static-sheet.png \
+  --layout works/小熊/layout.json --route works/小熊/route.json \
+  --provider grok-build-local --attempt 1 \
+  --output works/小熊/video-retry-approval.json --confirmed-by-user
+
+python3 scripts/execute_video_route.py \
+  --config works/小熊/video-providers.json --task works/小熊/video-task.json \
+  --route works/小熊/route.json --attempt 1 \
+  --retry-approval works/小熊/video-retry-approval.json \
+  --output works/小熊/video-result-retry.json
+```
+
+The retry approval is hash-bound to the approved static image, layout, route, provider, and attempt. It is required only for a new execution; `--resume` remains the separate path for polling a resumable request ID.
 
 ## Real key poses
 
 ```bash
 python3 scripts/compile_keypose_plan.py \
   --input-dir works/小熊/cells --reactions '开心,惊讶,难过' \
+  --image works/小熊/static-sheet.png --layout works/小熊/layout.json \
+  --state works/小熊/job-state.json \
   --output-dir works/小熊/keypose-plan --manifest works/小熊/artifact-manifest.json
 
 python3 scripts/prepare_keyposes.py \
   --source-cells works/小熊/cells --pose-sheets works/小熊/keypose-sheets \
+  --plan works/小熊/keypose-plan/keypose-plan.json \
+  --image works/小熊/static-sheet.png --layout works/小熊/layout.json \
+  --state works/小熊/job-state.json \
   --output-dir works/小熊/keyposes --manifest works/小熊/artifact-manifest.json
 
 python3 scripts/render_keypose_pack.py works/小熊/keyposes works/小熊/output \
   --image works/小熊/static-sheet.png --layout works/小熊/layout.json \
-  --state works/小熊/job-state.json --manifest works/小熊/artifact-manifest.json
+  --state works/小熊/job-state.json \
+  --plan works/小熊/keypose-plan/keypose-plan.json \
+  --preparation-report works/小熊/keyposes/keypose-preparation.json \
+  --manifest works/小熊/artifact-manifest.json
 ```
 
 ## Local light motion and processing
 
 ```bash
 python3 scripts/light_motion_fallback.py works/小熊/static-sheet.png works/小熊/output \
-  --state works/小熊/job-state.json --layout works/小熊/layout.json
+  --state works/小熊/job-state.json --layout works/小熊/layout.json \
+  --manifest works/小熊/artifact-manifest.json
 
 python3 scripts/process_emoji_grid.py animation.mp4 works/小熊/output \
   --layout works/小熊/layout.json --settings works/小熊/sticker-production.json \
+  --trial-report works/小熊/trial/processing.json \
   --manifest works/小熊/artifact-manifest.json
 ```
 
@@ -100,3 +134,16 @@ python3 scripts/assemble_delivery.py \
   --output works/小熊/delivered --require-job-state --require-prompts \
   --require-route --cleanup-media-dir
 ```
+
+## Gallery provenance
+
+Regenerate or verify the compact provenance records shipped with each public
+style case:
+
+```bash
+python3 scripts/build_gallery_provenance.py --write
+python3 scripts/build_gallery_provenance.py --verify-only
+```
+
+Legacy cases explicitly report missing historical approval or manifest data;
+only a new run that carries those hashes may be marked `audited-complete`.

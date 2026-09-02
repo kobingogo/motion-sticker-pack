@@ -108,6 +108,45 @@ def verify_state(state: dict, image: Path, layout: Path) -> dict:
     return {"valid": True, "revision": state.get("revision"), "static_sha256": image_hash}
 
 
+def create_video_retry_approval(
+    state_path: Path,
+    image: Path,
+    layout: Path,
+    route: Path,
+    provider: str,
+    attempt: int,
+) -> dict:
+    """Create a hash-bound approval for an explicitly requested video retry."""
+
+    state = read_state(state_path)
+    verify_state(state, image, layout)
+    route_value = json.loads(route.read_text(encoding="utf-8"))
+    if not isinstance(route_value, dict) or route_value.get("version") != 1:
+        raise ValueError("route must be a version 1 JSON object")
+    attempts = route_value.get("attempts")
+    if not isinstance(attempts, list) or not 1 <= attempt <= len(attempts):
+        raise ValueError(f"route has no attempt {attempt}")
+    selected = attempts[attempt - 1]
+    if selected.get("attempt") != attempt or selected.get("id") != provider:
+        raise ValueError("retry approval provider or attempt does not match the route")
+    image_record = artifact(image)
+    layout_record = artifact(layout)
+    return {
+        "version": 1,
+        "kind": "explicit-user-video-retry-approval",
+        "approved_at": utc_now(),
+        "confirmed_by_user": True,
+        "provider": provider,
+        "attempt": attempt,
+        "static_sha256": image_record["sha256"],
+        "layout_sha256": layout_record["sha256"],
+        "route_sha256": hashlib.sha256(
+            json.dumps(route_value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+        "job_state": artifact(state_path),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -122,6 +161,15 @@ def main() -> int:
     approve.add_argument("--image", type=Path, required=True)
     approve.add_argument("--layout", type=Path, required=True)
     approve.add_argument("--confirmed-by-user", action="store_true", required=True)
+    retry = subparsers.add_parser("approve-video-retry")
+    retry.add_argument("--state", type=Path, required=True)
+    retry.add_argument("--image", type=Path, required=True)
+    retry.add_argument("--layout", type=Path, required=True)
+    retry.add_argument("--route", type=Path, required=True)
+    retry.add_argument("--provider", required=True)
+    retry.add_argument("--attempt", type=int, default=1)
+    retry.add_argument("--output", type=Path, required=True)
+    retry.add_argument("--confirmed-by-user", action="store_true", required=True)
     verify = subparsers.add_parser("verify")
     verify.add_argument("--state", type=Path, required=True)
     verify.add_argument("--image", type=Path, required=True)
@@ -148,6 +196,22 @@ def main() -> int:
         }
         atomic_write(args.state, state)
         result = {"state": str(args.state.resolve()), "phase": state["phase"], "revision": state["revision"]}
+    elif args.command == "approve-video-retry":
+        approval = create_video_retry_approval(
+            args.state,
+            args.image,
+            args.layout,
+            args.route,
+            args.provider,
+            args.attempt,
+        )
+        atomic_write(args.output, approval)
+        result = {
+            "approval": str(args.output.resolve()),
+            "provider": approval["provider"],
+            "attempt": approval["attempt"],
+            "route_sha256": approval["route_sha256"],
+        }
     else:
         result = verify_state(read_state(args.state), args.image, args.layout)
     print(json.dumps(result, ensure_ascii=False))

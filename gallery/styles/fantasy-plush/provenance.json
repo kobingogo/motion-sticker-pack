@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "case_status": "legacy-evidence-partial",
+  "style_id": "fantasy-plush",
+  "gallery_id": "fantasy-plush",
+  "source_case": "披风兔",
+  "input_type": "legacy-gallery-case",
+  "route": "grok-build-local",
+  "route_id": "grok-build-local",
+  "model": "image_to_video",
+  "approval_sha256": null,
+  "native_frame_count": 48,
+  "successful_cells": 9,
+  "withheld_cells": [],
+  "output_size_bytes": 650691,
+  "input": {
+    "type": "legacy-gallery-case",
+    "source_case": "披风兔"
+  },
+  "route_details": {
+    "id": "grok-build-local",
+    "driver": "command",
+    "provider": "grok-build",
+    "model": "image_to_video",
+    "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
+    "task_sha256": "473bb8d8fa2e6ac6f969d367fd90a56736e19ff5ac81fcb5ae76876d59b8ee70"
+  },
+  "approval": {
+    "sha256": null,
+    "status": "not-preserved",
+    "reason": "This legacy public case predates hash-bound static approval records; do not treat route/task hashes as approval proof."
+  },
+  "native": {
+    "source_size": {
+      "width": 960,
+      "height": 960
+    },
+    "fps": 8.0,
+    "frames_per_animation": 48
+  },
+  "cells": {
+    "requested": 9,
+    "successful": 9,
+    "withheld": [],
+    "quality_warnings": []
+  },
+  "outputs": {
+    "media_bytes": 650691,
+    "files": [
+      {
+        "path": "static.png",
+        "sha256": "150db65831a1d4bfef3ed2547fcc7af127dca49db8fa0d2a810066a50c253fc5",
+        "bytes": 31013
+      },
+      {
+        "path": "motion.webp",
+        "sha256": "9146c7f6d6513fa0e3f916b6290fdcea1c4f6b7ff6f7730ff966e20a8af3c035",
+        "bytes": 285388
+      },
+      {
+        "path": "motion.gif",
+        "sha256": "a8f275e8abe06b6e07da246eab533d261d817936e016147ac44d9dc298b0ba0a",
+        "bytes": 334290
+      }
+    ]
+  },
+  "artifact_manifest": {
+    "status": "not-preserved",
+    "path": null
+  },
+  "missing_historical_fields": [
+    "approval_hash",
+    "artifact_manifest"
+  ]
+}

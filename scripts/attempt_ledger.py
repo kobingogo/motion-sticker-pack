@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import tempfile
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -164,6 +165,7 @@ def initialize_ledger(path: Path, route: dict[str, Any]) -> dict[str, Any]:
                 "status": "planned",
                 "cost_status": "not-started",
                 "resumable": item["id"] == "xai-direct",
+                "retry_count": 0,
                 "events": [{"status": "planned", "at": now}],
             }
             for item in route["attempts"]
@@ -224,6 +226,7 @@ def claim_attempt(
     result_path: Path,
     *,
     resume: bool = False,
+    retry_approval_sha256: str | None = None,
 ) -> dict[str, Any]:
     with ledger_lock(path):
         ledger = validate_ledger(read_json(path), route) if path.is_file() else initialize_ledger(path, route)
@@ -231,8 +234,20 @@ def claim_attempt(
         if len(entries) != 1:
             raise ContractError(f"attempt ledger has no unique attempt {attempt}")
         entry = entries[0]
+        prior_entries = [item for item in ledger["attempts"] if item["attempt"] < attempt]
+        if prior_entries:
+            prior = max(prior_entries, key=lambda item: item["attempt"])
+            if prior["status"] not in {"failed", "rejected", "uncertain"}:
+                raise ContractError(
+                    f"attempt {attempt} cannot start before attempt {prior['attempt']} reaches a terminal failure state"
+                )
         progress = _progress(progress_path_for(path, attempt))
         if entry["status"] == "running":
+            owner_pid = int(entry.get("owner_pid", 0) or 0)
+            if _pid_is_alive(owner_pid):
+                raise ContractError(
+                    f"attempt {attempt} is actively owned by process {owner_pid}; concurrent execution is blocked"
+                )
             _transition(
                 entry,
                 "submitted" if progress.get("request_id") else "uncertain",
@@ -251,21 +266,45 @@ def claim_attempt(
                 raise ContractError("completed attempt result hash no longer matches the ledger")
             return {"idempotent": True, "entry": entry, "resume_request_id": None}
         resume_request_id = entry.get("request_id")
+        replay = entry["status"] != "planned"
+        if not replay and retry_approval_sha256:
+            raise ContractError("retry approval can only be used for a prior execution")
+        if replay and not retry_approval_sha256 and not resume:
+            raise ContractError(
+                f"attempt {attempt} is already {entry['status']}; explicit user approval is required to retry"
+            )
+        if retry_approval_sha256 and any(
+            event.get("retry_approval_sha256") == retry_approval_sha256
+            for event in entry.get("events", [])
+        ):
+            raise ContractError("retry approval has already been consumed")
         if resume:
             if not entry.get("resumable") or entry["status"] not in {"submitted", "uncertain"}:
                 raise ContractError("attempt is not in a resumable state")
             if not isinstance(resume_request_id, str) or not resume_request_id:
                 raise ContractError("resumable attempt has no provider request id")
-        elif entry["status"] != "planned":
-            raise ContractError(
-                f"attempt {attempt} is already {entry['status']}; use the next route attempt or --resume when supported"
+        elif entry["status"] not in {"planned", "failed", "rejected", "uncertain"}:
+            raise ContractError(f"attempt {attempt} cannot be retried from state {entry['status']}")
+        transition_details: dict[str, Any] = {"resumed": resume}
+        if replay:
+            transition_details.update(
+                {
+                    "retry": True,
+                    "confirmed_by_user": True,
+                    "retry_approval_sha256": retry_approval_sha256,
+                }
             )
-        _transition(entry, "running", resumed=resume)
+            entry["retry_count"] = int(entry.get("retry_count", 0)) + 1
+        _transition(entry, "running", **transition_details)
         entry["cost_status"] = "possible"
         entry["started_at"] = entry.get("started_at") or utc_now()
         entry["last_started_at"] = utc_now()
         entry["resume_count"] = int(entry.get("resume_count", 0)) + (1 if resume else 0)
         entry["result_path"] = str(result_path.resolve())
+        entry["owner_pid"] = os.getpid()
+        entry["execution_id"] = str(uuid.uuid4())
+        transition_details["execution_id"] = entry["execution_id"]
+        entry["events"][-1].update(transition_details)
         ledger["updated_at"] = utc_now()
         atomic_write_json(path, ledger)
         return {"idempotent": False, "entry": entry, "resume_request_id": resume_request_id}
@@ -293,6 +332,9 @@ def finish_attempt(
             raise ContractError("a succeeded attempt cannot transition to another state")
         if entry["status"] != "running":
             raise ContractError(f"attempt {attempt} cannot finish from state {entry['status']}")
+        owner_pid = int(entry.get("owner_pid", 0) or 0)
+        if owner_pid and owner_pid != os.getpid():
+            raise ContractError(f"attempt {attempt} is owned by process {owner_pid}")
         progress = _progress(progress_path_for(path, attempt))
         effective_request_id = request_id or progress.get("request_id") or entry.get("request_id")
         event_details: dict[str, Any] = {}
@@ -321,6 +363,7 @@ def finish_attempt(
             entry["completed_at"] = utc_now()
         else:
             entry["cost_status"] = "unknown"
+        entry.pop("owner_pid", None)
         ledger["updated_at"] = utc_now()
         atomic_write_json(path, ledger)
         return entry
