@@ -63,7 +63,6 @@ $motion-sticker-pack
 | `retro-halftone` | 复古漫画网点风（探索） | <img src="docs/assets/style-exploration/fox/14-retro-halftone.png" width="128" alt="复古漫画网点狐狸效果图"> |
 | `ink-wash-meme` | 水墨 Meme 风（探索） | <img src="docs/assets/style-exploration/fox/15-ink-wash-meme.png" width="128" alt="水墨 Meme 狐狸效果图"> |
 | `emoji-hybrid` | Emoji 混合风（探索） | <img src="docs/assets/style-exploration/fox/16-emoji-hybrid.png" width="128" alt="Emoji 混合狐狸效果图"> |
-
 其中 `retro-halftone`、`ink-wash-meme` 和 `emoji-hybrid` 属于受控验证前的风格探索，不应被当作已验证的动态 Provider 路线。
 
 ## 动态表情包 GIF 案例

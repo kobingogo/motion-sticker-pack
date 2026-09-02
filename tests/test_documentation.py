@@ -35,7 +35,7 @@ class DocumentationTests(unittest.TestCase):
             text = document.read_text(encoding="utf-8")
             if document.name == "README.md":
                 exploration = json.loads(
-                    (ROOT / "works" / "方块角色" / "style-exploration" / "manifest.json").read_text(
+                    (ROOT / "docs" / "assets" / "style-exploration" / "fox" / "manifest.json").read_text(
                         encoding="utf-8"
                     )
                 )
