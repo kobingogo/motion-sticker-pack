@@ -11,6 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
 
+def style_row_pattern(style_id: str) -> re.Pattern[str]:
+    """Match the style's table row in Markdown or HTML table form."""
+    escaped = re.escape(style_id)
+    markdown_row = rf"^\| `{escaped}`[^|]*\|"
+    html_row = rf"<tr><td><code>{escaped}</code>"
+    return re.compile(rf"(?:{markdown_row}|{html_row})", re.MULTILINE)
+
+
 class DocumentationTests(unittest.TestCase):
     def test_local_markdown_links_resolve(self) -> None:
         for document in [
@@ -45,8 +53,7 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(len(image_refs), len(exploration["styles"]))
                 for entry in exploration["styles"]:
                     with self.subTest(document=document.name, style=entry["id"]):
-                        row = rf'^\| `{re.escape(entry["id"])}`(?:[^|]*)\|'
-                        self.assertRegex(text, re.compile(row, re.MULTILINE))
+                        self.assertRegex(text, style_row_pattern(entry["id"]))
                         self.assertIn(
                             f'<img src="docs/assets/style-exploration/fox/{entry["file"]}"',
                             text,
@@ -57,8 +64,7 @@ class DocumentationTests(unittest.TestCase):
             for entry in styles:
                 expected = f'gallery/styles/{entry["gallery"]}/static.png'
                 with self.subTest(document=document.name, style=entry["id"]):
-                    row = rf'^\| `{re.escape(entry["id"])}`(?:[^|]*)\|'
-                    self.assertRegex(text, re.compile(row, re.MULTILINE))
+                    self.assertRegex(text, style_row_pattern(entry["id"]))
                     self.assertIn(f'<img src="{expected}"', text)
 
 
