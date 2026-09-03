@@ -69,3 +69,4 @@ promo-x-4x5/assets/audio/*.wav
 
 # Per-character generated assets (keep the convention README only)
 .release-assets/
+punk-assets/
