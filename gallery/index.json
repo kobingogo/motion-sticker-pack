@@ -3,7 +3,10 @@
   "policy": {
     "minimum_verified_styles": 12,
     "maximum_verified_styles": 16,
-    "required_files": ["static.png", "motion.gif", "motion.webp", "layout.json", "route.json", "processing.json", "provenance.json"],
+    "required_files": ["static.png", "motion-thumb.gif", "layout.json", "route.json", "processing.json", "provenance.json"],
+    "release_media_files": ["static.png", "motion.gif", "motion.webp"],
+    "release_manifest": "release-manifest.json",
+    "thumbnail_size": 160,
     "verification": "real-nine-cell-output"
   },
   "styles": [

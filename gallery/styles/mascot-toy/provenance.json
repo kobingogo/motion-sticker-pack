@@ -25,6 +25,11 @@
     "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
     "task_sha256": "86e3f9289cfce8e2f3e86a8b5983fe598c0fd0585cac2551ec5122548d74f647"
   },
+  "media_delivery": {
+    "type": "release-asset",
+    "asset_name_template": "motion-sticker-pack-gallery-v{version}.zip",
+    "manifest": "gallery/release-manifest.json"
+  },
   "approval": {
     "sha256": null,
     "status": "not-preserved",
@@ -48,19 +53,19 @@
     "media_bytes": 491719,
     "files": [
       {
-        "path": "static.png",
+        "path": "gallery/styles/mascot-toy/static.png",
         "sha256": "b70d4fdabff34a51c2e7177cc3efea79779ca1b18286f605dd3402cc4c904df6",
         "bytes": 26222
       },
       {
-        "path": "motion.webp",
-        "sha256": "b0c4d6da9798a2363d91f073735084c67a3db27a4c48bd0d6e42a6c37abfa31b",
-        "bytes": 213286
-      },
-      {
-        "path": "motion.gif",
+        "path": "gallery/styles/mascot-toy/motion.gif",
         "sha256": "6d41d22639adaae5df6de3e3ddc834a3c0b5629e8ecaa56103b969d65b9764d4",
         "bytes": 252211
+      },
+      {
+        "path": "gallery/styles/mascot-toy/motion.webp",
+        "sha256": "b0c4d6da9798a2363d91f073735084c67a3db27a4c48bd0d6e42a6c37abfa31b",
+        "bytes": 213286
       }
     ]
   },

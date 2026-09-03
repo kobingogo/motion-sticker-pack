@@ -38,6 +38,15 @@ def main() -> int:
     forbidden = [str(path) for path in tracked if str(path).startswith(FORBIDDEN_PREFIXES)]
     if forbidden:
         errors.append(f"generated/legacy media directories are tracked: {forbidden[:8]}")
+    full_gallery_media = [
+        str(path)
+        for path in tracked
+        if len(path.parts) == 4
+        and path.parts[:2] == ("gallery", "styles")
+        and path.name in {"motion.gif", "motion.webp"}
+    ]
+    if full_gallery_media:
+        errors.append(f"full gallery media must be in Release assets: {full_gallery_media[:8]}")
     media = [path for path in tracked if path.suffix.lower() in MEDIA_SUFFIXES]
     media_bytes = sum((ROOT / path).stat().st_size for path in media if (ROOT / path).is_file())
     if media_bytes > MAX_TRACKED_MEDIA_BYTES:

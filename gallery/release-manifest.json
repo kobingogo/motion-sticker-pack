@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "asset_name_template": "motion-sticker-pack-gallery-v{version}.zip",
+  "media_files": [
+    "static.png",
+    "motion.gif",
+    "motion.webp"
+  ],
+  "styles": [
+    {
+      "id": "3d",
+      "gallery": "plush-toy",
+      "files": [
+        {
+          "path": "gallery/styles/plush-toy/static.png",
+          "sha256": "814ecabec20327524e7f573a7c43bf4d0031326bc1bc1b94567cb75cfbafe15a",
+          "bytes": 59185
+        },
+        {
+          "path": "gallery/styles/plush-toy/motion.gif",
+          "sha256": "0cf7d762394b84fb426913bc6d24ae216d948d7d1cd406960622c26835e4b0bf",
+          "bytes": 433345
+        },
+        {
+          "path": "gallery/styles/plush-toy/motion.webp",
+          "sha256": "5b267499d65b696110fec552685a03e854668b19aa672b9e6c27816e0545a999",
+          "bytes": 382144
+        }
+      ]
+    },
+    {
+      "id": "realistic",
+      "gallery": "cinematic-realistic",
+      "files": [
+        {
+          "path": "gallery/styles/cinematic-realistic/static.png",
+          "sha256": "b5b161a3f7b9d013a5bbef1261c0e15e9b3e22cbba1c7b5371f4879239c2757e",
+          "bytes": 47226
+        },
+        {
+          "path": "gallery/styles/cinematic-realistic/motion.gif",
+          "sha256": "34c8cab2d9a9cbdf82938a90fee88fea2b480dbe5306b24004f313070290dbbe",
+          "bytes": 392491
+        },
+        {
+          "path": "gallery/styles/cinematic-realistic/motion.webp",
+          "sha256": "18d8db314067821dafdd58f01c28891f5bc60386efec38001fd530cea77801df",
+          "bytes": 312582
+        }
+      ]
+    },
+    {
+      "id": "hand-drawn",
+      "gallery": "hand-drawn",
+      "files": [
+        {
+          "path": "gallery/styles/hand-drawn/static.png",
+          "sha256": "90353205e95bed7e3bc2886c7ee7997e7429eb15f449e3b3b521412bed404875",
+          "bytes": 89276
+        },
+        {
+          "path": "gallery/styles/hand-drawn/motion.gif",
+          "sha256": "4a40de81c4c15da1b2a2750a963ab28c1d08ca6ce326b2208088e98d267fbafe",
+          "bytes": 377847
+        },
+        {
+          "path": "gallery/styles/hand-drawn/motion.webp",
+          "sha256": "748872f71e9008f2f40c041cf6d7950c7ce0c69db554381189dea9b7814c8059",
+          "bytes": 323090
+        }
+      ]
+    },
+    {
+      "id": "chibi",
+      "gallery": "iridescent-chibi",
+      "files": [
+        {
+          "path": "gallery/styles/iridescent-chibi/static.png",
+          "sha256": "bee03b9cd06fa8d56e461acdd37b21699680d83814226621292f3e675604c974",
+          "bytes": 57205
+        },
+        {
+          "path": "gallery/styles/iridescent-chibi/motion.gif",
+          "sha256": "0cffc46479d1c2643b021118d9aad53f2bf707d66f541dcf129d7007e4a42e74",
+          "bytes": 340810
+        },
+        {
+          "path": "gallery/styles/iridescent-chibi/motion.webp",
+          "sha256": "e7fddbb6b26bc9363c5c502a96fd5c3a618bc7d3aca5bfa75c4620d003cfc590",
+          "bytes": 263604
+        }
+      ]
+    },
+    {
+      "id": "manga",
+      "gallery": "manga-cel",
+      "files": [
+        {
+          "path": "gallery/styles/manga-cel/static.png",
+          "sha256": "0721a1c3e770bb94bae231d058e95a5e9002843fb1f26cd856c92b0422a52dc8",
+          "bytes": 99948
+        },
+        {
+          "path": "gallery/styles/manga-cel/motion.gif",
+          "sha256": "ccd0fd8214aa0aabe46e8fb68fcc732778a55b334d85c18536089495d29ceff0",
+          "bytes": 450961
+        },
+        {
+          "path": "gallery/styles/manga-cel/motion.webp",
+          "sha256": "a58caabe12218d081b59a30bb2d4ec7d70e97946c6a5abaef723d981858712b6",
+          "bytes": 408268
+        }
+      ]
+    },
+    {
+      "id": "pixel-art",
+      "gallery": "pixel-art",
+      "files": [
+        {
+          "path": "gallery/styles/pixel-art/static.png",
+          "sha256": "a7d921d07f3dc7fc4a339cc57ea5eab59a0898fd6974a1d4d8d1993bee2467ee",
+          "bytes": 50716
+        },
+        {
+          "path": "gallery/styles/pixel-art/motion.gif",
+          "sha256": "56099f46bc2d022c805fb396a09a05ed4c3122a5e197b56e7a713e46fd589840",
+          "bytes": 314139
+        },
+        {
+          "path": "gallery/styles/pixel-art/motion.webp",
+          "sha256": "cb503975e17fbfbeec08a5b9c72d816ebd5aeda86df9b25e3a7b73c30e914d94",
+          "bytes": 257928
+        }
+      ]
+    },
+    {
+      "id": "cute",
+      "gallery": "soft-plush",
+      "files": [
+        {
+          "path": "gallery/styles/soft-plush/static.png",
+          "sha256": "ec08d25c2382276be9f30a272ada040cb5d2dec960740e6fcabe537d7c1e1030",
+          "bytes": 39125
+        },
+        {
+          "path": "gallery/styles/soft-plush/motion.gif",
+          "sha256": "1a1eb09153dbac0c0d990bb4fba7fa369113ea9dfc3e5bfd370e03adc15499c4",
+          "bytes": 460158
+        },
+        {
+          "path": "gallery/styles/soft-plush/motion.webp",
+          "sha256": "43f5bd4a3cc25e88a1b0ebeccc9fd1fb1e095d26a59a59fd2464dfa6bcef35d8",
+          "bytes": 375806
+        }
+      ]
+    },
+    {
+      "id": "caricature-3d",
+      "gallery": "caricature-3d",
+      "files": [
+        {
+          "path": "gallery/styles/caricature-3d/static.png",
+          "sha256": "be85c19de78a1c85b2852132e175a63ebe664940e393f50b603fd461d316655b",
+          "bytes": 51782
+        },
+        {
+          "path": "gallery/styles/caricature-3d/motion.gif",
+          "sha256": "d011dd0a58de99429b08d8de9e28f12e24c8136e8fe9dc46651d223573142e55",
+          "bytes": 559391
+        },
+        {
+          "path": "gallery/styles/caricature-3d/motion.webp",
+          "sha256": "3fd15809560f7df3a988ecec3ec8954df675bd7ffa41705e3b7cbe7e87bf8c59",
+          "bytes": 472744
+        }
+      ]
+    },
+    {
+      "id": "fashion-realistic",
+      "gallery": "fashion-realistic",
+      "files": [
+        {
+          "path": "gallery/styles/fashion-realistic/static.png",
+          "sha256": "9892f925fd59f9b7ccbdbcf609626cb319c40b520bfd3809d2740f60399ee8df",
+          "bytes": 43130
+        },
+        {
+          "path": "gallery/styles/fashion-realistic/motion.gif",
+          "sha256": "107d68e0f2477e8367e605924ef29144e70327bddfdda5c55719c418581558f8",
+          "bytes": 614513
+        },
+        {
+          "path": "gallery/styles/fashion-realistic/motion.webp",
+          "sha256": "62909d802b1252f87fd24b52d68e1f87e22542c4594838e0eac2158668862295",
+          "bytes": 519190
+        }
+      ]
+    },
+    {
+      "id": "mascot-toy",
+      "gallery": "mascot-toy",
+      "files": [
+        {
+          "path": "gallery/styles/mascot-toy/static.png",
+          "sha256": "b70d4fdabff34a51c2e7177cc3efea79779ca1b18286f605dd3402cc4c904df6",
+          "bytes": 26222
+        },
+        {
+          "path": "gallery/styles/mascot-toy/motion.gif",
+          "sha256": "6d41d22639adaae5df6de3e3ddc834a3c0b5629e8ecaa56103b969d65b9764d4",
+          "bytes": 252211
+        },
+        {
+          "path": "gallery/styles/mascot-toy/motion.webp",
+          "sha256": "b0c4d6da9798a2363d91f073735084c67a3db27a4c48bd0d6e42a6c37abfa31b",
+          "bytes": 213286
+        }
+      ]
+    },
+    {
+      "id": "clay-cute",
+      "gallery": "clay-cute",
+      "files": [
+        {
+          "path": "gallery/styles/clay-cute/static.png",
+          "sha256": "986ea2d65a84d354b9e0944c98879456ac6baa2d8ff3d678b98f5f9a42e7df47",
+          "bytes": 68005
+        },
+        {
+          "path": "gallery/styles/clay-cute/motion.gif",
+          "sha256": "15ba2f659abcf94f89baaebad362d3ab426550c94c97a558c34472316c6dd149",
+          "bytes": 334559
+        },
+        {
+          "path": "gallery/styles/clay-cute/motion.webp",
+          "sha256": "cff919a0dd15917e41559cee287e84b3ec54ecfb92733f349feb74a9cd7ed80a",
+          "bytes": 256672
+        }
+      ]
+    },
+    {
+      "id": "fantasy-plush",
+      "gallery": "fantasy-plush",
+      "files": [
+        {
+          "path": "gallery/styles/fantasy-plush/static.png",
+          "sha256": "150db65831a1d4bfef3ed2547fcc7af127dca49db8fa0d2a810066a50c253fc5",
+          "bytes": 31013
+        },
+        {
+          "path": "gallery/styles/fantasy-plush/motion.gif",
+          "sha256": "a8f275e8abe06b6e07da246eab533d261d817936e016147ac44d9dc298b0ba0a",
+          "bytes": 334290
+        },
+        {
+          "path": "gallery/styles/fantasy-plush/motion.webp",
+          "sha256": "9146c7f6d6513fa0e3f916b6290fdcea1c4f6b7ff6f7730ff966e20a8af3c035",
+          "bytes": 285388
+        }
+      ]
+    },
+    {
+      "id": "kawaii-anime",
+      "gallery": "kawaii-anime",
+      "files": [
+        {
+          "path": "gallery/styles/kawaii-anime/static.png",
+          "sha256": "b48c670df48c0e8be3e1960f5852762144b38807ac6668641f2d0caf14892f59",
+          "bytes": 55179
+        },
+        {
+          "path": "gallery/styles/kawaii-anime/motion.gif",
+          "sha256": "8d868c8acfe0dd4f5f9cae9966f2c739dc2df952452e7dca8d2d677d70f814a7",
+          "bytes": 229626
+        },
+        {
+          "path": "gallery/styles/kawaii-anime/motion.webp",
+          "sha256": "a8ecf8d6b593734c25b93561e038c5e7e066585bcd788e64f8dccff20ae5a68a",
+          "bytes": 192842
+        }
+      ]
+    }
+  ]
+}

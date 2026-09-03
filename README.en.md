@@ -44,7 +44,7 @@ When no video or local image processing is callable, `prompt-only` delivers prom
 
 ## 13 evidence-backed styles
 
-The selector exposes only styles backed by a real nine-cell processed run. Every style includes a 240×240 static PNG, a real animated GIF, a lossless Animated WebP, layout, source route, processing report, and compact provenance. Legacy cases explicitly declare missing approval/manifest history instead of treating a route hash as user approval proof. The table image is one representative cell from that case, proving the route completed; cases use different characters and reactions, so they are not strict same-character A/B style comparisons and should not be used to rank style quality.
+The selector exposes only styles backed by a real nine-cell processed run. Each case keeps a 240×240 representative PNG thumbnail and an animated GIF thumbnail in Git; the complete GIF/WebP media ships as a versioned Release asset alongside layout, source route, processing report, and compact provenance. Legacy cases explicitly declare missing approval/manifest history instead of treating a route hash as user approval proof. The table image is one representative cell from that case, proving the route completed; cases use different characters and reactions, so they are not strict same-character A/B style comparisons and should not be used to rank style quality.
 
 | ID | Style | Representative cell |
 |---|---|---|
@@ -79,7 +79,7 @@ $motion-sticker-pack
 Custom style: ink-wash negative space with dry/wet brush variation; preserve the character identity and do not add a full-cell background.
 ```
 
-See [gallery/](gallery/README.md) for compact evidence. The complete legacy packs moved to a [GitHub Release asset](https://github.com/kobingogo/motion-sticker-pack/releases/download/v0.2.0/motion-sticker-pack-legacy-gallery-2026-09.zip).
+See [gallery/](gallery/README.md) for compact evidence and [GitHub Releases](https://github.com/kobingogo/motion-sticker-pack/releases) for complete gallery media. The complete legacy packs moved to a [GitHub Release asset](https://github.com/kobingogo/motion-sticker-pack/releases/download/v0.2.0/motion-sticker-pack-legacy-gallery-2026-09.zip).
 
 ## Static sheets and transparency
 

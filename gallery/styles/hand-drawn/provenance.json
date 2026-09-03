@@ -25,6 +25,11 @@
     "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
     "task_sha256": "f8772c59047353ee59506067de71cb2c5e5d56db29ae859e22c3e04844bcba65"
   },
+  "media_delivery": {
+    "type": "release-asset",
+    "asset_name_template": "motion-sticker-pack-gallery-v{version}.zip",
+    "manifest": "gallery/release-manifest.json"
+  },
   "approval": {
     "sha256": null,
     "status": "not-preserved",
@@ -45,19 +50,19 @@
     "media_bytes": 790213,
     "files": [
       {
-        "path": "static.png",
+        "path": "gallery/styles/hand-drawn/static.png",
         "sha256": "90353205e95bed7e3bc2886c7ee7997e7429eb15f449e3b3b521412bed404875",
         "bytes": 89276
       },
       {
-        "path": "motion.webp",
-        "sha256": "748872f71e9008f2f40c041cf6d7950c7ce0c69db554381189dea9b7814c8059",
-        "bytes": 323090
-      },
-      {
-        "path": "motion.gif",
+        "path": "gallery/styles/hand-drawn/motion.gif",
         "sha256": "4a40de81c4c15da1b2a2750a963ab28c1d08ca6ce326b2208088e98d267fbafe",
         "bytes": 377847
+      },
+      {
+        "path": "gallery/styles/hand-drawn/motion.webp",
+        "sha256": "748872f71e9008f2f40c041cf6d7950c7ce0c69db554381189dea9b7814c8059",
+        "bytes": 323090
       }
     ]
   },

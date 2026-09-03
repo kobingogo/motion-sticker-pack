@@ -25,6 +25,11 @@
     "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
     "task_sha256": "40725c3e178f50ef4163cf2a146009c83361c46e1b203502a00d063438d13b2c"
   },
+  "media_delivery": {
+    "type": "release-asset",
+    "asset_name_template": "motion-sticker-pack-gallery-v{version}.zip",
+    "manifest": "gallery/release-manifest.json"
+  },
   "approval": {
     "sha256": null,
     "status": "not-preserved",
@@ -61,19 +66,19 @@
     "media_bytes": 875089,
     "files": [
       {
-        "path": "static.png",
+        "path": "gallery/styles/soft-plush/static.png",
         "sha256": "ec08d25c2382276be9f30a272ada040cb5d2dec960740e6fcabe537d7c1e1030",
         "bytes": 39125
       },
       {
-        "path": "motion.webp",
-        "sha256": "43f5bd4a3cc25e88a1b0ebeccc9fd1fb1e095d26a59a59fd2464dfa6bcef35d8",
-        "bytes": 375806
-      },
-      {
-        "path": "motion.gif",
+        "path": "gallery/styles/soft-plush/motion.gif",
         "sha256": "1a1eb09153dbac0c0d990bb4fba7fa369113ea9dfc3e5bfd370e03adc15499c4",
         "bytes": 460158
+      },
+      {
+        "path": "gallery/styles/soft-plush/motion.webp",
+        "sha256": "43f5bd4a3cc25e88a1b0ebeccc9fd1fb1e095d26a59a59fd2464dfa6bcef35d8",
+        "bytes": 375806
       }
     ]
   },

@@ -36,6 +36,16 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
     catalog = preset_document.get("core_catalog", {})
     gallery = json.loads(gallery_path.read_text(encoding="utf-8"))
     policy = gallery["policy"]
+    release_manifest_path = gallery_path.parent / policy["release_manifest"]
+    if not release_manifest_path.is_file():
+        raise ValueError(f"gallery release manifest is missing: {release_manifest_path}")
+    release_manifest = json.loads(release_manifest_path.read_text(encoding="utf-8"))
+    if release_manifest.get("version") != 1:
+        raise ValueError("gallery release manifest version must be 1")
+    release_media_files = list(policy.get("release_media_files", []))
+    if release_manifest.get("media_files") != release_media_files:
+        raise ValueError("gallery release manifest media_files do not match gallery policy")
+    release_entries = {entry.get("gallery"): entry for entry in release_manifest.get("styles", [])}
     entries = gallery["styles"]
     minimum, maximum = int(policy["minimum_verified_styles"]), int(policy["maximum_verified_styles"])
     if not minimum <= len(entries) <= maximum:
@@ -56,6 +66,19 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
         missing = [name for name, path in files.items() if not path.is_file()]
         if missing:
             raise ValueError(f"gallery style {style_id!r} is missing {missing}")
+        release_entry = release_entries.get(entry["gallery"])
+        if not isinstance(release_entry, dict) or release_entry.get("id") != style_id:
+            raise ValueError(f"gallery style {style_id!r} lacks release media manifest")
+        release_records = release_entry.get("files", [])
+        if not isinstance(release_records, list) or not all(isinstance(record, dict) for record in release_records):
+            raise ValueError(f"gallery style {style_id!r} has invalid release media records")
+        if {record.get("path", "").rsplit("/", 1)[-1] for record in release_records} != set(release_media_files):
+            raise ValueError(f"gallery style {style_id!r} has incomplete release media manifest")
+        for record in release_records:
+            if not isinstance(record.get("sha256"), str) or len(record["sha256"]) != 64:
+                raise ValueError(f"gallery style {style_id!r} has invalid release media hash")
+            if not isinstance(record.get("bytes"), int) or record["bytes"] <= 0:
+                raise ValueError(f"gallery style {style_id!r} has invalid release media size")
         if layout_count(files["layout.json"]) != 9:
             raise ValueError(f"gallery style {style_id!r} is not a verified nine-cell source")
         processing = json.loads(files["processing.json"].read_text(encoding="utf-8"))
@@ -79,12 +102,10 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
         with Image.open(files["static.png"]) as static:
             if static.size != (240, 240):
                 raise ValueError(f"gallery style {style_id!r} static preview must be 240x240")
-        with Image.open(files["motion.gif"]) as motion:
-            if motion.size != (240, 240) or int(getattr(motion, "n_frames", 1)) < 2:
-                raise ValueError(f"gallery style {style_id!r} motion preview is not animated 240x240")
-        with Image.open(files["motion.webp"]) as motion:
-            if motion.size != (240, 240) or int(getattr(motion, "n_frames", 1)) < 2:
-                raise ValueError(f"gallery style {style_id!r} WebP preview is not animated 240x240")
+        with Image.open(files["motion-thumb.gif"]) as motion:
+            expected_size = int(policy.get("thumbnail_size", 120))
+            if motion.size != (expected_size, expected_size) or int(getattr(motion, "n_frames", 1)) < 2:
+                raise ValueError(f"gallery style {style_id!r} motion thumbnail is not animated {expected_size}x{expected_size}")
         verified.append(
             {
                 "id": style_id,
@@ -102,6 +123,7 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
                     }
                     for name, path in files.items()
                 },
+                "release_media": release_records,
                 "provenance": provenance,
             }
         )
