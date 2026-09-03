@@ -21,7 +21,7 @@ class StyleGalleryTests(unittest.TestCase):
         self.assertEqual(result["verified_count"], len({item["id"] for item in result["styles"]}))
         for style in result["styles"]:
             self.assertEqual(style["source_route"], "grok-build-local")
-            self.assertIn("motion-thumb.gif", style["files"])
+            self.assertIn("motion.gif", style["files"])
             self.assertEqual(
                 {record["path"].rsplit("/", 1)[-1] for record in style["release_media"]},
                 {"static.png", "motion.gif", "motion.webp"},

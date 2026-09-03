@@ -102,10 +102,9 @@ def verify_gallery(presets_path: Path = DEFAULT_PRESETS, gallery_path: Path = DE
         with Image.open(files["static.png"]) as static:
             if static.size != (240, 240):
                 raise ValueError(f"gallery style {style_id!r} static preview must be 240x240")
-        with Image.open(files["motion-thumb.gif"]) as motion:
-            expected_size = int(policy.get("thumbnail_size", 120))
-            if motion.size != (expected_size, expected_size) or int(getattr(motion, "n_frames", 1)) < 2:
-                raise ValueError(f"gallery style {style_id!r} motion thumbnail is not animated {expected_size}x{expected_size}")
+        with Image.open(files["motion.gif"]) as motion:
+            if motion.size != (240, 240) or int(getattr(motion, "n_frames", 1)) < 2:
+                raise ValueError(f"gallery style {style_id!r} motion preview is not animated 240x240")
         verified.append(
             {
                 "id": style_id,

@@ -44,7 +44,7 @@ When no video or local image processing is callable, `prompt-only` delivers prom
 
 ## 13 evidence-backed styles
 
-The selector exposes only styles backed by a real nine-cell processed run. Each case keeps a 240×240 representative PNG thumbnail and an animated GIF thumbnail in Git; the complete GIF/WebP media ships as a versioned Release asset alongside layout, source route, processing report, and compact provenance. Legacy cases explicitly declare missing approval/manifest history instead of treating a route hash as user approval proof. The table image is one representative cell from that case, proving the route completed; cases use different characters and reactions, so they are not strict same-character A/B style comparisons and should not be used to rank style quality.
+The selector exposes only styles backed by a real nine-cell processed run. Each case keeps its original 240×240 representative PNG and animated GIF in Git; the complete GIF/WebP media also ships as a versioned Release asset alongside layout, source route, processing report, and compact provenance. Legacy cases explicitly declare missing approval/manifest history instead of treating a route hash as user approval proof. The table image is one representative cell from that case, proving the route completed; cases use different characters and reactions, so they are not strict same-character A/B style comparisons and should not be used to rank style quality.
 
 | ID | Style | Representative cell |
 |---|---|---|

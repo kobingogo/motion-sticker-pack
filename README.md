@@ -67,13 +67,13 @@ $motion-sticker-pack
 
 ## 动态表情包 GIF 案例
 
-以下案例来自已通过九格处理的 gallery，均为可循环 GIF 缩略图；完整 GIF/WebP 证据随版本 Release asset 提供。
+以下案例来自已通过九格处理的 gallery，均为原始 240×240 可循环 GIF；完整 GIF/WebP 证据随版本 Release asset 提供。
 
 | 软萌与角色感 | 漫画与像素 | 材质与幻想 |
 |---|---|---|
-| <img src="gallery/styles/soft-plush/motion-thumb.gif" width="160" alt="软萌毛绒动态表情包案例"> | <img src="gallery/styles/manga-cel/motion-thumb.gif" width="160" alt="国潮漫画动态表情包案例"> | <img src="gallery/styles/fantasy-plush/motion-thumb.gif" width="160" alt="奇幻毛绒动态表情包案例"> |
-| <img src="gallery/styles/kawaii-anime/motion-thumb.gif" width="160" alt="日系萌系动态表情包案例"> | <img src="gallery/styles/pixel-art/motion-thumb.gif" width="160" alt="精细像素动态表情包案例"> | <img src="gallery/styles/clay-cute/motion-thumb.gif" width="160" alt="软陶萌宠动态表情包案例"> |
-| <img src="gallery/styles/hand-drawn/motion-thumb.gif" width="160" alt="暖色手绘动态表情包案例"> | <img src="gallery/styles/caricature-3d/motion-thumb.gif" width="160" alt="夸张 3D 肖像动态表情包案例"> | <img src="gallery/styles/mascot-toy/motion-thumb.gif" width="160" alt="品牌玩具动态表情包案例"> |
+| <img src="gallery/styles/soft-plush/motion.gif" width="180" alt="软萌毛绒动态表情包案例"> | <img src="gallery/styles/manga-cel/motion.gif" width="180" alt="国潮漫画动态表情包案例"> | <img src="gallery/styles/fantasy-plush/motion.gif" width="180" alt="奇幻毛绒动态表情包案例"> |
+| <img src="gallery/styles/kawaii-anime/motion.gif" width="180" alt="日系萌系动态表情包案例"> | <img src="gallery/styles/pixel-art/motion.gif" width="180" alt="精细像素动态表情包案例"> | <img src="gallery/styles/clay-cute/motion.gif" width="180" alt="软陶萌宠动态表情包案例"> |
+| <img src="gallery/styles/hand-drawn/motion.gif" width="180" alt="暖色手绘动态表情包案例"> | <img src="gallery/styles/caricature-3d/motion.gif" width="180" alt="夸张 3D 肖像动态表情包案例"> | <img src="gallery/styles/mascot-toy/motion.gif" width="180" alt="品牌玩具动态表情包案例"> |
 
 查看或验证选择器：
 
