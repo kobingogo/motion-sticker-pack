@@ -42,25 +42,34 @@ The interaction is:
 
 When no video or local image processing is callable, `prompt-only` delivers prompts and audit files without pretending media was generated.
 
+## Recent animated sticker example
+
+The latest completed pack is “Warm-Tail Fox”: nine independent reactions, each kept as an original 240×240, 8 fps, 3-second looping GIF after alpha, boundary, and encoded-frame checks. See [`manifest.json`](docs/assets/recent-sticker-pack/manifest.json) for the source route and SHA-256 records. The long-lived 13-style evidence gallery remains in [gallery/](gallery/README.md).
+
+| Embarrassed | Sarcastic | Eating melon |
+|---|---|---|
+| <img src="docs/assets/recent-sticker-pack/fox-01.gif" width="180" alt="Warm-Tail Fox embarrassed reaction"> | <img src="docs/assets/recent-sticker-pack/fox-02.gif" width="180" alt="Warm-Tail Fox sarcastic reaction"> | <img src="docs/assets/recent-sticker-pack/fox-03.gif" width="180" alt="Warm-Tail Fox eating melon reaction"> |
+| <img src="docs/assets/recent-sticker-pack/fox-04.gif" width="180" alt="Warm-Tail Fox lying-flat reaction"> | <img src="docs/assets/recent-sticker-pack/fox-05.gif" width="180" alt="Warm-Tail Fox got-it reaction"> | <img src="docs/assets/recent-sticker-pack/fox-06.gif" width="180" alt="Warm-Tail Fox cheer reaction"> |
+| <img src="docs/assets/recent-sticker-pack/fox-07.gif" width="180" alt="Warm-Tail Fox breaking-down reaction"> | <img src="docs/assets/recent-sticker-pack/fox-08.gif" width="180" alt="Warm-Tail Fox puzzled reaction"> | <img src="docs/assets/recent-sticker-pack/fox-09.gif" width="180" alt="Warm-Tail Fox coy reaction"> |
+
 ## 13 evidence-backed styles
 
 The selector exposes only styles backed by a real nine-cell processed run. Each case keeps its original 240×240 representative PNG and animated GIF in Git; the complete GIF/WebP media also ships as a versioned Release asset alongside layout, source route, processing report, and compact provenance. Legacy cases explicitly declare missing approval/manifest history instead of treating a route hash as user approval proof. The table image is one representative cell from that case, proving the route completed; cases use different characters and reactions, so they are not strict same-character A/B style comparisons and should not be used to rank style quality.
 
-| ID | Style | Representative cell |
-|---|---|---|
-| `3d` | Coherent 3D, with explicit animation/realistic sub-style support | <img src="gallery/styles/plush-toy/static.png" width="96" alt="3D plush expression example"> |
-| `realistic` | Cinematic realistic | <img src="gallery/styles/cinematic-realistic/static.png" width="96" alt="Cinematic realistic expression example"> |
-| `hand-drawn` | Warm hand-drawn | <img src="gallery/styles/hand-drawn/static.png" width="96" alt="Hand-drawn expression example"> |
-| `chibi` | Iridescent chibi | <img src="gallery/styles/iridescent-chibi/static.png" width="96" alt="Iridescent chibi expression example"> |
-| `manga` | Manga/cel | <img src="gallery/styles/manga-cel/static.png" width="96" alt="Manga expression example"> |
-| `pixel-art` | Refined pixel art | <img src="gallery/styles/pixel-art/static.png" width="96" alt="Pixel-art expression example"> |
-| `cute` (alias `soft-plush`) | Soft plush | <img src="gallery/styles/soft-plush/static.png" width="96" alt="Soft plush representative cell"> |
-| `caricature-3d` | Exaggerated 3D portrait | <img src="gallery/styles/caricature-3d/static.png" width="96" alt="Caricature 3D expression example"> |
-| `fashion-realistic` | Fashion realistic | <img src="gallery/styles/fashion-realistic/static.png" width="96" alt="Fashion realistic expression example"> |
-| `mascot-toy` | Product mascot toy | <img src="gallery/styles/mascot-toy/static.png" width="96" alt="Mascot toy expression example"> |
-| `clay-cute` | Soft clay animal | <img src="gallery/styles/clay-cute/static.png" width="96" alt="Clay expression example"> |
-| `fantasy-plush` | Fantasy plush | <img src="gallery/styles/fantasy-plush/static.png" width="96" alt="Fantasy plush expression example"> |
-| `kawaii-anime` | Kawaii anime | <img src="gallery/styles/kawaii-anime/static.png" width="96" alt="Kawaii anime expression example"> |
+<table><tr><th width="140">ID</th><th>Style</th><th width="160">Representative cell</th></tr>
+<tr><td><code>3d</code></td><td>Coherent 3D, with explicit animation/realistic sub-style support</td><td><img src="gallery/styles/plush-toy/static.png" width="96" alt="3D plush expression example"></td></tr>
+<tr><td><code>realistic</code></td><td>Cinematic realistic</td><td><img src="gallery/styles/cinematic-realistic/static.png" width="96" alt="Cinematic realistic expression example"></td></tr>
+<tr><td><code>hand-drawn</code></td><td>Warm hand-drawn</td><td><img src="gallery/styles/hand-drawn/static.png" width="96" alt="Hand-drawn expression example"></td></tr>
+<tr><td><code>chibi</code></td><td>Iridescent chibi</td><td><img src="gallery/styles/iridescent-chibi/static.png" width="96" alt="Iridescent chibi expression example"></td></tr>
+<tr><td><code>manga</code></td><td>Manga/cel</td><td><img src="gallery/styles/manga-cel/static.png" width="96" alt="Manga expression example"></td></tr>
+<tr><td><code>pixel-art</code></td><td>Refined pixel art</td><td><img src="gallery/styles/pixel-art/static.png" width="96" alt="Pixel-art expression example"></td></tr>
+<tr><td><code>cute</code> (alias <code>soft-plush</code>)</td><td>Soft plush</td><td><img src="gallery/styles/soft-plush/static.png" width="96" alt="Soft plush representative cell"></td></tr>
+<tr><td><code>caricature-3d</code></td><td>Exaggerated 3D portrait</td><td><img src="gallery/styles/caricature-3d/static.png" width="96" alt="Caricature 3D expression example"></td></tr>
+<tr><td><code>fashion-realistic</code></td><td>Fashion realistic</td><td><img src="gallery/styles/fashion-realistic/static.png" width="96" alt="Fashion realistic expression example"></td></tr>
+<tr><td><code>mascot-toy</code></td><td>Product mascot toy</td><td><img src="gallery/styles/mascot-toy/static.png" width="96" alt="Mascot toy expression example"></td></tr>
+<tr><td><code>clay-cute</code></td><td>Soft clay animal</td><td><img src="gallery/styles/clay-cute/static.png" width="96" alt="Clay expression example"></td></tr>
+<tr><td><code>fantasy-plush</code></td><td>Fantasy plush</td><td><img src="gallery/styles/fantasy-plush/static.png" width="96" alt="Fantasy plush expression example"></td></tr>
+<tr><td><code>kawaii-anime</code></td><td>Kawaii anime</td><td><img src="gallery/styles/kawaii-anime/static.png" width="96" alt="Kawaii anime expression example"></td></tr></table>
 
 ```bash
 python3 scripts/style_selector.py --format markdown

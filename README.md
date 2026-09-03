@@ -45,35 +45,34 @@ $motion-sticker-pack
 
 下面是同一只狐狸、同一套服装与配饰的 16 张静态风格探索图，适合直接横向比较视觉方向。它们是风格效果参考，不等同于动态路线证据；真实九格处理、GIF、Animated WebP、layout、route、processing 和 provenance 证据见 [gallery/](gallery/README.md)。
 
-| ID | 风格 | 同一角色效果图 |
-|---|---|---|
-| `3d` | 统一 3D | <img src="docs/assets/style-exploration/fox/01-3d.png" width="128" alt="3D 风格狐狸效果图"> |
-| `realistic` | 电影感写实 | <img src="docs/assets/style-exploration/fox/02-realistic.png" width="128" alt="电影感写实狐狸效果图"> |
-| `hand-drawn` | 暖色手绘 | <img src="docs/assets/style-exploration/fox/03-hand-drawn.png" width="128" alt="暖色手绘狐狸效果图"> |
-| `chibi` | 虹彩 Q 版 | <img src="docs/assets/style-exploration/fox/04-chibi.png" width="128" alt="虹彩 Q 版狐狸效果图"> |
-| `manga` | 国潮漫画 | <img src="docs/assets/style-exploration/fox/05-manga.png" width="128" alt="国潮漫画狐狸效果图"> |
-| `pixel-art` | 精细像素 | <img src="docs/assets/style-exploration/fox/06-pixel-art.png" width="128" alt="精细像素狐狸效果图"> |
-| `cute`（别名 `soft-plush`） | 软萌毛绒 | <img src="docs/assets/style-exploration/fox/07-cute.png" width="128" alt="软萌毛绒狐狸效果图"> |
-| `caricature-3d` | 夸张 3D 肖像 | <img src="docs/assets/style-exploration/fox/08-caricature-3d.png" width="128" alt="夸张 3D 肖像狐狸效果图"> |
-| `fashion-realistic` | 时尚写实 | <img src="docs/assets/style-exploration/fox/09-fashion-realistic.png" width="128" alt="时尚写实狐狸效果图"> |
-| `mascot-toy` | 品牌玩具吉祥物 | <img src="docs/assets/style-exploration/fox/10-mascot-toy.png" width="128" alt="品牌玩具狐狸效果图"> |
-| `clay-cute` | 软陶萌宠 | <img src="docs/assets/style-exploration/fox/11-clay-cute.png" width="128" alt="软陶萌宠狐狸效果图"> |
-| `fantasy-plush` | 奇幻毛绒 | <img src="docs/assets/style-exploration/fox/12-fantasy-plush.png" width="128" alt="奇幻毛绒狐狸效果图"> |
-| `kawaii-anime` | 日系萌系 | <img src="docs/assets/style-exploration/fox/13-kawaii-anime.png" width="128" alt="日系萌系狐狸效果图"> |
-| `retro-halftone` | 复古漫画网点风（探索） | <img src="docs/assets/style-exploration/fox/14-retro-halftone.png" width="128" alt="复古漫画网点狐狸效果图"> |
-| `ink-wash-meme` | 水墨 Meme 风（探索） | <img src="docs/assets/style-exploration/fox/15-ink-wash-meme.png" width="128" alt="水墨 Meme 狐狸效果图"> |
-| `emoji-hybrid` | Emoji 混合风（探索） | <img src="docs/assets/style-exploration/fox/16-emoji-hybrid.png" width="128" alt="Emoji 混合狐狸效果图"> |
+<table><tr><th width="140">ID</th><th>风格</th><th width="180">同一角色效果图</th></tr>
+<tr><td><code>3d</code></td><td>统一 3D</td><td><img src="docs/assets/style-exploration/fox/01-3d.png" width="128" alt="3D 风格狐狸效果图"></td></tr>
+<tr><td><code>realistic</code></td><td>电影感写实</td><td><img src="docs/assets/style-exploration/fox/02-realistic.png" width="128" alt="电影感写实狐狸效果图"></td></tr>
+<tr><td><code>hand-drawn</code></td><td>暖色手绘</td><td><img src="docs/assets/style-exploration/fox/03-hand-drawn.png" width="128" alt="暖色手绘狐狸效果图"></td></tr>
+<tr><td><code>chibi</code></td><td>虹彩 Q 版</td><td><img src="docs/assets/style-exploration/fox/04-chibi.png" width="128" alt="虹彩 Q 版狐狸效果图"></td></tr>
+<tr><td><code>manga</code></td><td>国潮漫画</td><td><img src="docs/assets/style-exploration/fox/05-manga.png" width="128" alt="国潮漫画狐狸效果图"></td></tr>
+<tr><td><code>pixel-art</code></td><td>精细像素</td><td><img src="docs/assets/style-exploration/fox/06-pixel-art.png" width="128" alt="精细像素狐狸效果图"></td></tr>
+<tr><td><code>cute</code>（别名 <code>soft-plush</code>）</td><td>软萌毛绒</td><td><img src="docs/assets/style-exploration/fox/07-cute.png" width="128" alt="软萌毛绒狐狸效果图"></td></tr>
+<tr><td><code>caricature-3d</code></td><td>夸张 3D 肖像</td><td><img src="docs/assets/style-exploration/fox/08-caricature-3d.png" width="128" alt="夸张 3D 肖像狐狸效果图"></td></tr>
+<tr><td><code>fashion-realistic</code></td><td>时尚写实</td><td><img src="docs/assets/style-exploration/fox/09-fashion-realistic.png" width="128" alt="时尚写实狐狸效果图"></td></tr>
+<tr><td><code>mascot-toy</code></td><td>品牌玩具吉祥物</td><td><img src="docs/assets/style-exploration/fox/10-mascot-toy.png" width="128" alt="品牌玩具狐狸效果图"></td></tr>
+<tr><td><code>clay-cute</code></td><td>软陶萌宠</td><td><img src="docs/assets/style-exploration/fox/11-clay-cute.png" width="128" alt="软陶萌宠狐狸效果图"></td></tr>
+<tr><td><code>fantasy-plush</code></td><td>奇幻毛绒</td><td><img src="docs/assets/style-exploration/fox/12-fantasy-plush.png" width="128" alt="奇幻毛绒狐狸效果图"></td></tr>
+<tr><td><code>kawaii-anime</code></td><td>日系萌系</td><td><img src="docs/assets/style-exploration/fox/13-kawaii-anime.png" width="128" alt="日系萌系狐狸效果图"></td></tr>
+<tr><td><code>retro-halftone</code></td><td>复古漫画网点风（探索）</td><td><img src="docs/assets/style-exploration/fox/14-retro-halftone.png" width="128" alt="复古漫画网点狐狸效果图"></td></tr>
+<tr><td><code>ink-wash-meme</code></td><td>水墨 Meme 风（探索）</td><td><img src="docs/assets/style-exploration/fox/15-ink-wash-meme.png" width="128" alt="水墨 Meme 狐狸效果图"></td></tr>
+<tr><td><code>emoji-hybrid</code></td><td>Emoji 混合风（探索）</td><td><img src="docs/assets/style-exploration/fox/16-emoji-hybrid.png" width="128" alt="Emoji 混合狐狸效果图"></td></tr></table>
 其中 `retro-halftone`、`ink-wash-meme` 和 `emoji-hybrid` 属于受控验证前的风格探索，不应被当作已验证的动态 Provider 路线。
 
-## 动态表情包 GIF 案例
+## 最近生成的动态表情包 GIF
 
-以下案例来自已通过九格处理的 gallery，均为原始 240×240 可循环 GIF；完整 GIF/WebP 证据随版本 Release asset 提供。
+下面是最近完成的“暖尾狐狸”九宫格案例：9 个独立表情均为原始 240×240、8 fps、3 秒可循环 GIF，已通过透明度、边界和编码检查。完整来源与 SHA-256 记录见 [`manifest.json`](docs/assets/recent-sticker-pack/manifest.json)；13 个风格的长期验证证据仍见 [gallery/](gallery/README.md)。
 
-| 软萌与角色感 | 漫画与像素 | 材质与幻想 |
+| 社死 | 阴阳怪气 | 吃瓜 |
 |---|---|---|
-| <img src="gallery/styles/soft-plush/motion.gif" width="180" alt="软萌毛绒动态表情包案例"> | <img src="gallery/styles/manga-cel/motion.gif" width="180" alt="国潮漫画动态表情包案例"> | <img src="gallery/styles/fantasy-plush/motion.gif" width="180" alt="奇幻毛绒动态表情包案例"> |
-| <img src="gallery/styles/kawaii-anime/motion.gif" width="180" alt="日系萌系动态表情包案例"> | <img src="gallery/styles/pixel-art/motion.gif" width="180" alt="精细像素动态表情包案例"> | <img src="gallery/styles/clay-cute/motion.gif" width="180" alt="软陶萌宠动态表情包案例"> |
-| <img src="gallery/styles/hand-drawn/motion.gif" width="180" alt="暖色手绘动态表情包案例"> | <img src="gallery/styles/caricature-3d/motion.gif" width="180" alt="夸张 3D 肖像动态表情包案例"> | <img src="gallery/styles/mascot-toy/motion.gif" width="180" alt="品牌玩具动态表情包案例"> |
+| <img src="docs/assets/recent-sticker-pack/fox-01.gif" width="180" alt="暖尾狐狸社死动态表情"> | <img src="docs/assets/recent-sticker-pack/fox-02.gif" width="180" alt="暖尾狐狸阴阳怪气动态表情"> | <img src="docs/assets/recent-sticker-pack/fox-03.gif" width="180" alt="暖尾狐狸吃瓜动态表情"> |
+| <img src="docs/assets/recent-sticker-pack/fox-04.gif" width="180" alt="暖尾狐狸摆烂动态表情"> | <img src="docs/assets/recent-sticker-pack/fox-05.gif" width="180" alt="暖尾狐狸收到动态表情"> | <img src="docs/assets/recent-sticker-pack/fox-06.gif" width="180" alt="暖尾狐狸冲鸭动态表情"> |
+| <img src="docs/assets/recent-sticker-pack/fox-07.gif" width="180" alt="暖尾狐狸破防动态表情"> | <img src="docs/assets/recent-sticker-pack/fox-08.gif" width="180" alt="暖尾狐狸疑惑动态表情"> | <img src="docs/assets/recent-sticker-pack/fox-09.gif" width="180" alt="暖尾狐狸撒娇动态表情"> |
 
 查看或验证选择器：
 

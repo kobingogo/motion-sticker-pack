@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "title": "暖尾狐狸 · 最近生成案例",
+  "source": "works/暖尾狐狸-delivery/3s",
+  "route": "grok-build-local",
+  "verified_at": "2026-09-02",
+  "layout": "3x3",
+  "output": {
+    "width": 240,
+    "height": 240,
+    "fps": 8,
+    "duration_seconds": 3,
+    "format": "animated-gif",
+    "alpha": "real-transparent"
+  },
+  "successful_cells": 9,
+  "files": [
+    {"id": "01", "path": "fox-01.gif", "sha256": "9ebc12ea9e02ca10e184176723eee7d08d70dad897521236d610e87629e2a1ce"},
+    {"id": "02", "path": "fox-02.gif", "sha256": "00f5217fd09c6b0cd7bfe7f3e46461cafc51d030b7ae57d408db9f9141aece40"},
+    {"id": "03", "path": "fox-03.gif", "sha256": "d0da358ff6ff28acc921babe0f0ad0c445d1ae6c431a201051f2f552afe9f957"},
+    {"id": "04", "path": "fox-04.gif", "sha256": "aea678a24e56e44ccf52ada6af271235b55bc880f9804b04166746e9bc03c793"},
+    {"id": "05", "path": "fox-05.gif", "sha256": "9cdea7151d624c9fc222391737a9a594b60fdaefd57bb6a773c8e6b1b5ffa70b"},
+    {"id": "06", "path": "fox-06.gif", "sha256": "275816d434011c73e6de351cbb22c2ad6a0e48acd2d56b47b3521ce8c8eed62f"},
+    {"id": "07", "path": "fox-07.gif", "sha256": "d30965db23ed1f0d100463bdebb8e67c394ede8f8f86b2c2ef7a873824b2a1fc"},
+    {"id": "08", "path": "fox-08.gif", "sha256": "add1b25b0552bf387c097783a7b9eba4135421304072a4339a7d76ff3342afed"},
+    {"id": "09", "path": "fox-09.gif", "sha256": "9b08f293a8caaef563330afa7ba909b47f7eec03a85597da40fbcea843953fa7"}
+  ]
+}
