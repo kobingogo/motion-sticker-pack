@@ -1,7 +1,7 @@
 # Verified style gallery
 
 This directory contains compact evidence, not full sticker packs. Every listed
-style includes one 240×240 static PNG and one 160×160 animated GIF thumbnail,
+style includes one original 240×240 static PNG and one original 240×240 animated GIF,
 the detected 3×3 layout, the selected generation route, the processing report,
 and a compact `provenance.json` record from the same nine-cell run. The complete
 240×240 GIF and lossless Animated WebP files are distributed as the versioned
@@ -32,5 +32,5 @@ python3 scripts/style_selector.py --verify-only
 
 Full legacy case packs and promotional renders are distributed as the
 `motion-sticker-pack-legacy-gallery-2026-09.zip` GitHub Release asset. The
-compact evidence and thumbnail previews here stay in Git so preset claims
+compact evidence and original GIF previews here stay in Git so preset claims
 remain reviewable in CI.

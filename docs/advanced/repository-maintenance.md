@@ -2,7 +2,7 @@
 
 ## Media policy
 
-Git contains only compact, reviewable style evidence under `gallery/styles/`: one static PNG thumbnail, one animated GIF thumbnail, layout, route, processing report, and provenance per verified style. Full 240×240 GIF/WebP gallery media is packaged as a versioned Release asset and must not be committed to `main`; full sticker packs, promotional renders, raw videos, ZIPs, and character workspaces must not be committed.
+Git contains compact, reviewable style evidence under `gallery/styles/`: one original 240×240 static PNG, one original 240×240 animated GIF, layout, route, processing report, and provenance per verified style. Full GIF/WebP gallery media is also packaged as a versioned Release asset; full sticker packs, promotional renders, raw videos, ZIPs, and character workspaces must not be committed.
 
 CI enforces:
 
