@@ -18,6 +18,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INDEX = ROOT / "gallery" / "index.json"
+DEFAULT_MANIFEST = ROOT / "gallery" / "release-manifest.json"
 
 
 def sha256_file(path: Path) -> str:
@@ -35,16 +36,14 @@ def read_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def output_record(path: Path) -> dict[str, Any]:
-    return {
-        "path": path.name,
-        "sha256": sha256_file(path),
-        "bytes": path.stat().st_size,
-    }
-
-
-def build_record(index_path: Path, entry: dict[str, Any]) -> dict[str, Any]:
+def build_record(index_path: Path, entry: dict[str, Any], manifest_path: Path | None = None) -> dict[str, Any]:
     gallery_dir = index_path.parent / "styles" / str(entry["gallery"])
+    manifest_path = manifest_path or index_path.parent / "release-manifest.json"
+    manifest = read_json(manifest_path)
+    release_entries = {item.get("gallery"): item for item in manifest.get("styles", [])}
+    release_entry = release_entries.get(entry["gallery"])
+    if not isinstance(release_entry, dict) or release_entry.get("id") != entry["id"]:
+        raise ValueError(f"release manifest has no entry for {entry['gallery']}")
     route = read_json(gallery_dir / "route.json")
     processing = read_json(gallery_dir / "processing.json")
     layout = read_json(gallery_dir / "layout.json")
@@ -58,9 +57,13 @@ def build_record(index_path: Path, entry: dict[str, Any]) -> dict[str, Any]:
         for cell in cells
         if isinstance(cell, dict) and cell.get("status") in {"withheld", "rejected"}
     ]
-    media = [gallery_dir / name for name in ("static.png", "motion.webp", "motion.gif")]
-    total_bytes = sum(path.stat().st_size for path in media)
+    media = list(release_entry.get("files", []))
+    total_bytes = sum(int(record["bytes"]) for record in media)
     missing_historical = ["approval_hash", "artifact_manifest"]
+    try:
+        manifest_reference = str(manifest_path.relative_to(ROOT))
+    except ValueError:
+        manifest_reference = str(manifest_path)
     return {
         "version": 1,
         "case_status": "legacy-evidence-partial",
@@ -90,6 +93,13 @@ def build_record(index_path: Path, entry: dict[str, Any]) -> dict[str, Any]:
             "config_sha256": route.get("config_sha256"),
             "task_sha256": route.get("task_sha256"),
         },
+        "media_delivery": {
+            "type": "release-asset",
+            "asset_name_template": manifest.get(
+                "asset_name_template", "motion-sticker-pack-gallery-v{version}.zip"
+            ),
+            "manifest": manifest_reference,
+        },
         "approval": {
             "sha256": None,
             "status": "not-preserved",
@@ -108,7 +118,7 @@ def build_record(index_path: Path, entry: dict[str, Any]) -> dict[str, Any]:
         },
         "outputs": {
             "media_bytes": total_bytes,
-            "files": [output_record(path) for path in media],
+            "files": media,
         },
         "artifact_manifest": {
             "status": "not-preserved",

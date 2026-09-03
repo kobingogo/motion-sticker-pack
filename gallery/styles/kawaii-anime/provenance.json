@@ -25,6 +25,11 @@
     "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
     "task_sha256": "1bc0bc26ee777d2a7e53b446689ae82f18b271ebab4fab7ca2ae39985dcc7934"
   },
+  "media_delivery": {
+    "type": "release-asset",
+    "asset_name_template": "motion-sticker-pack-gallery-v{version}.zip",
+    "manifest": "gallery/release-manifest.json"
+  },
   "approval": {
     "sha256": null,
     "status": "not-preserved",
@@ -48,19 +53,19 @@
     "media_bytes": 477647,
     "files": [
       {
-        "path": "static.png",
+        "path": "gallery/styles/kawaii-anime/static.png",
         "sha256": "b48c670df48c0e8be3e1960f5852762144b38807ac6668641f2d0caf14892f59",
         "bytes": 55179
       },
       {
-        "path": "motion.webp",
-        "sha256": "a8ecf8d6b593734c25b93561e038c5e7e066585bcd788e64f8dccff20ae5a68a",
-        "bytes": 192842
-      },
-      {
-        "path": "motion.gif",
+        "path": "gallery/styles/kawaii-anime/motion.gif",
         "sha256": "8d868c8acfe0dd4f5f9cae9966f2c739dc2df952452e7dca8d2d677d70f814a7",
         "bytes": 229626
+      },
+      {
+        "path": "gallery/styles/kawaii-anime/motion.webp",
+        "sha256": "a8ecf8d6b593734c25b93561e038c5e7e066585bcd788e64f8dccff20ae5a68a",
+        "bytes": 192842
       }
     ]
   },

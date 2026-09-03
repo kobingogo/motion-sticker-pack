@@ -7,6 +7,10 @@ on:
         description: "SemVer without the v prefix, for example 0.4.0"
         required: true
         type: string
+      gallery_source_ref:
+        description: "Commit, branch, or tag containing the complete gallery GIF/WebP media"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -71,10 +75,28 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+      - name: Package full gallery media
+        env:
+          GALLERY_SOURCE_REF: ${{ inputs.gallery_source_ref }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          gallery_tmp="$(mktemp -d)"
+          trap 'rm -rf "$gallery_tmp"' EXIT
+          git archive --format=tar "$GALLERY_SOURCE_REF" gallery/styles | tar -x -C "$gallery_tmp"
+          python scripts/build_gallery_release.py \
+            --source-root "$gallery_tmp/gallery/styles" \
+            --index gallery/index.json \
+            --manifest gallery/release-manifest.json \
+            --output "motion-sticker-pack-gallery-v${RELEASE_VERSION}.zip"
       - name: Create tag and release from verified main
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
-          gh release create "v${RELEASE_VERSION}" --repo "${GITHUB_REPOSITORY}" --target "$(git rev-parse HEAD)" --title "v${RELEASE_VERSION}" --generate-notes
+          gh release create "v${RELEASE_VERSION}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "$(git rev-parse HEAD)" \
+            --title "v${RELEASE_VERSION}" \
+            --generate-notes \
+            "motion-sticker-pack-gallery-v${RELEASE_VERSION}.zip"

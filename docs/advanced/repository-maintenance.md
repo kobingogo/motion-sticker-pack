@@ -2,13 +2,14 @@
 
 ## Media policy
 
-Git contains only compact, reviewable style evidence under `gallery/styles/`: one static PNG, one animated GIF, layout, route, and processing report per verified style. Full sticker packs, promotional renders, raw videos, ZIPs, and character workspaces must not be committed.
+Git contains only compact, reviewable style evidence under `gallery/styles/`: one static PNG thumbnail, one animated GIF thumbnail, layout, route, processing report, and provenance per verified style. Full 240×240 GIF/WebP gallery media is packaged as a versioned Release asset and must not be committed to `main`; full sticker packs, promotional renders, raw videos, ZIPs, and character workspaces must not be committed.
 
 CI enforces:
 
 - README and README.en remain between 150 and 220 lines;
 - `examples/`, `promo-v020/`, and `works/` are not tracked;
 - compact tracked media stays below 12MiB;
+- full gallery media is supplied through the versioned Release asset named by `gallery/release-manifest.json`;
 - the CI badge and release gate remain present;
 - 12–16 style entries pass the real-nine-cell evidence validator.
 
@@ -27,7 +28,7 @@ The archive was built with `git archive` from commit `0702d22`, so it contains e
 
 Official tags/releases are created only through `.github/workflows/release.yml`. The workflow checks out `main`, runs the complete Python/Node/policy suite, validates SemVer, and only then creates the tag and GitHub Release from that verified commit. A failed verification job cannot reach the publish job.
 
-Protect `main` with required `ci / test (3.10)` and `ci / test (3.12)` checks. Direct releases and hand-created version tags are outside the supported process.
+The release workflow requires a source ref that still contains the complete gallery media, packages it with `scripts/build_gallery_release.py`, and attaches `motion-sticker-pack-gallery-v{version}.zip` to the Release. Protect `main` with required `ci / test (3.10)` and `ci / test (3.12)` checks. Direct releases and hand-created version tags are outside the supported process.
 
 ## History-slimming evaluation
 

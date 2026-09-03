@@ -25,6 +25,11 @@
     "config_sha256": "3f587dc03364d1766f0ee13a2677a6c91389a2bf387c8b52502b07d3e319c77b",
     "task_sha256": "6512d50fddc96b6e64d5b18e318919377539823490d2b88aa9854d5fcfe88a42"
   },
+  "media_delivery": {
+    "type": "release-asset",
+    "asset_name_template": "motion-sticker-pack-gallery-v{version}.zip",
+    "manifest": "gallery/release-manifest.json"
+  },
   "approval": {
     "sha256": null,
     "status": "not-preserved",
@@ -45,19 +50,19 @@
     "media_bytes": 959177,
     "files": [
       {
-        "path": "static.png",
+        "path": "gallery/styles/manga-cel/static.png",
         "sha256": "0721a1c3e770bb94bae231d058e95a5e9002843fb1f26cd856c92b0422a52dc8",
         "bytes": 99948
       },
       {
-        "path": "motion.webp",
-        "sha256": "a58caabe12218d081b59a30bb2d4ec7d70e97946c6a5abaef723d981858712b6",
-        "bytes": 408268
-      },
-      {
-        "path": "motion.gif",
+        "path": "gallery/styles/manga-cel/motion.gif",
         "sha256": "ccd0fd8214aa0aabe46e8fb68fcc732778a55b334d85c18536089495d29ceff0",
         "bytes": 450961
+      },
+      {
+        "path": "gallery/styles/manga-cel/motion.webp",
+        "sha256": "a58caabe12218d081b59a30bb2d4ec7d70e97946c6a5abaef723d981858712b6",
+        "bytes": 408268
       }
     ]
   },
